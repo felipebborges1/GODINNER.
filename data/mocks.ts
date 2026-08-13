@@ -13,7 +13,7 @@ const userRows: Array<[string, string, string, string, string, string, number, n
   ["u8","marina.rosa","Marina Rosa","https://i.pravatar.cc/160?img=45","Pequenos lugares, grandes histórias.","Lourdes",316,221],
 ];
 export const CURRENT_USER_ID = "u1";
-export const users: User[] = userRows.map(([id, username, name, avatar, bio, neighborhood, followers, following]) => ({ id, username, name, avatar, bio, neighborhood, followers, following }));
+export const users: User[] = userRows.map(([id, username, name, avatar, bio, neighborhood, followers, following]) => ({ id, username, name, avatar, bio, neighborhood, followers, following, role: id === CURRENT_USER_ID ? "admin" : "user" }));
 
 const restaurantRows: Array<[string,string,string,string,string,"Belo Horizonte"|"Nova Lima",number,number,number,string]> = [
   ["r1","cozinha-do-sereno","Cozinha do Sereno","Contemporânea","$$$","Nova Lima",8.8,9.1,124,"photo-1515003197210-e0cd71810b5f"],

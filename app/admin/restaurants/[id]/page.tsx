@@ -1,0 +1,1 @@
+import { AdminRestaurantDetail } from "@/components/admin/admin-restaurant-detail";export default async function Page({params}:{params:Promise<{id:string}>}){const {id}=await params;return <AdminRestaurantDetail id={id}/>}
