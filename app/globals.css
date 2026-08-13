@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+.input { width: 100%; border-radius: 1rem; background: var(--color-stone-100); padding: .85rem 1rem; font-size: .875rem; outline: none; }
+.input:focus { box-shadow: 0 0 0 2px var(--color-orange-500); }
+
 @theme { --font-sans: Arial, Helvetica, sans-serif; }
 * { box-sizing: border-box; }
 body { margin: 0; background: #fafaf9; color: #1c1917; }
