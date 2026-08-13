@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal, X } from "lucide-react";
 import { restaurants, follows } from "@/data/mocks";
@@ -36,10 +36,16 @@ export function SearchExplorer() {
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const { showToast } = useToast();
   const params = Object.fromEntries(searchParams.entries());
+  const pendingParams = useRef(searchParams.toString());
+
+  useEffect(() => {
+    pendingParams.current = searchParams.toString();
+  }, [searchParams]);
 
   const setParam = (key: string, value?: string) => {
-    const next = new URLSearchParams(searchParams.toString());
+    const next = new URLSearchParams(pendingParams.current);
     value ? next.set(key, value) : next.delete(key);
+    pendingParams.current = next.toString();
     router.replace(`${path}?${next}`);
   };
 
