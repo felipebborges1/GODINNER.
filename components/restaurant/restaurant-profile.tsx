@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, Clipboard, Heart, ListPlus, MapPin, Share2, Star, Utensils } from "lucide-react";
+import { Check, Clipboard, Ellipsis, Heart, ListPlus, MapPin, Share2, Star, Utensils } from "lucide-react";
 import { useMemo, useState } from "react";
 import { restaurants, follows, users } from "@/data/mocks";
 import { useAppContext } from "@/hooks/use-app-context";
@@ -23,6 +23,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
   const { currentUserId, reviews, showToast } = useAppContext();
   const { isWanted, toggleWantToVisit } = useWantToVisit(restaurant.id);
   const [listsOpen, setListsOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const friendIds = useMemo(() => getFriendIds(follows, currentUserId ?? ""), [currentUserId]);
   const restaurantReviews = reviews.filter((review) => review.restaurantId === restaurant.id);
@@ -47,8 +48,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
         </div>
         <section className="mt-6 grid grid-cols-2 gap-3 lg:mt-0"><div className="rounded-3xl bg-stone-950 p-5 text-white"><p className="text-xs font-black uppercase tracking-wide text-stone-300">GODINNER</p><p className="mt-1 text-3xl font-black">{rating?.toFixed(1) ?? "—"}</p><p className="mt-1 text-xs text-stone-300">{restaurantReviews.length} avaliações</p></div><div className="rounded-3xl bg-orange-50 p-5"><p className="text-xs font-black uppercase tracking-wide text-orange-700">Seus amigos</p><p className="mt-1 text-3xl font-black">{friendsRating?.toFixed(1) ?? "—"}</p><p className="mt-1 text-xs text-orange-700">{friendsRating ? "nota dos amigos" : "ainda não avaliaram"}</p></div></section>
       </div>
-      <section className="mt-7 grid gap-3 sm:grid-cols-2"><button onClick={handleWant} className={`flex min-h-14 items-center justify-center gap-2 rounded-2xl border text-sm font-black ${isWanted ? "border-orange-500 bg-orange-500 text-white" : "border-stone-200 bg-white"}`}><Heart size={19} fill={isWanted ? "currentColor" : "none"}/>{isWanted ? "Quero conhecer" : "Quero conhecer"}</button><Link href={`/review/new?restaurant=${restaurant.slug}`} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-stone-950 text-sm font-black text-white"><Check size={19}/> Já fui / Avaliar</Link></section>
-      <div className="mt-3 flex gap-3"><button onClick={() => setListsOpen(true)} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-stone-100 px-4 py-3 text-sm font-bold"><ListPlus size={18}/> Lista</button><button onClick={() => setShareOpen(true)} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-stone-100 px-4 py-3 text-sm font-bold"><Share2 size={18}/> Compartilhar</button></div>
+      <section className="mt-7 flex gap-3"><button onClick={handleWant} className={`grid min-h-14 min-w-14 place-items-center rounded-2xl border ${isWanted ? "border-orange-500 bg-orange-500 text-white" : "border-stone-200 bg-white"}`} aria-label={isWanted ? "Remover de Quero conhecer" : "Adicionar a Quero conhecer"}><Heart size={21} fill={isWanted ? "currentColor" : "none"}/></button><Link href={`/review/new?restaurant=${restaurant.slug}`} className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-stone-950 text-sm font-black text-white"><Check size={19}/> Já fui / Avaliar</Link><button onClick={() => setOptionsOpen(true)} className="grid min-h-14 min-w-14 place-items-center rounded-2xl bg-stone-100" aria-label="Mais opções"><Ellipsis size={23}/></button></section>
       <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-10"><section><h2 className="text-2xl font-black">Seus amigos</h2>{friendReviews.length ? <div className="mt-4 grid gap-4">{friendReviews.map((review) => <ReviewCard key={review.id} review={review} user={users.find((user) => user.id === review.userId)!}/>)}</div> : <p className="mt-3 text-sm text-stone-500">Seus amigos ainda não avaliaram este lugar.</p>}</section>
           <section><h2 className="text-2xl font-black">Comunidade</h2>{communityReviews.length ? <div className="mt-4 grid gap-4">{communityReviews.map((review) => <ReviewCard key={review.id} review={review} user={users.find((user) => user.id === review.userId)!}/>)}</div> : <p className="mt-3 text-sm text-stone-500">Ainda não há avaliações da comunidade.</p>}</section></div>
@@ -56,6 +56,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
       </div>
     </main>
     <SaveToListSheet open={listsOpen} onClose={() => setListsOpen(false)} restaurantId={restaurant.id}/>
+    <BottomSheet open={optionsOpen} onClose={() => setOptionsOpen(false)} title="Opções"><div className="grid gap-2"><button onClick={() => { setOptionsOpen(false); setListsOpen(true); }} className="flex items-center gap-3 rounded-2xl p-3 text-left text-sm font-bold hover:bg-stone-50"><ListPlus size={19}/> Adicionar à lista</button><button onClick={() => { setOptionsOpen(false); setShareOpen(true); }} className="flex items-center gap-3 rounded-2xl p-3 text-left text-sm font-bold hover:bg-stone-50"><Share2 size={19}/> Compartilhar</button></div></BottomSheet>
     <BottomSheet open={shareOpen} onClose={() => setShareOpen(false)} title="Compartilhar restaurante"><button onClick={copyLink} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-950 py-3 text-sm font-bold text-white"><Clipboard size={18}/> Copiar link</button></BottomSheet>
   </div>;
 }
