@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal, X } from "lucide-react";
-import { restaurants, follows } from "@/data/mocks";
 import { RestaurantCard } from "@/components/restaurant/restaurant-card";
 import { FilterChip } from "@/components/search/filter-chip";
 import { FilterSheet } from "@/components/search/filter-sheet";
@@ -31,7 +30,7 @@ export function SearchExplorer() {
   const router = useRouter();
   const path = usePathname();
   const searchParams = useSearchParams();
-  const { lists, currentUserId, reviews } = useAppContext();
+  const { lists, currentUserId, reviews, restaurants, follows } = useAppContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const { showToast } = useToast();
@@ -64,7 +63,8 @@ export function SearchExplorer() {
     );
   };
 
-  const visibleRestaurants = useMemo(() => position ? restaurants.map((restaurant) => ({ ...restaurant, distanceKm: distanceKm(position, restaurant.coordinates) })) : restaurants, [position]);
+  const eligibleRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status !== "rejected" && (restaurant.status !== "pending_review" || restaurant.submittedBy === currentUserId)), [restaurants, currentUserId]);
+  const visibleRestaurants = useMemo(() => position ? eligibleRestaurants.map((restaurant) => ({ ...restaurant, distanceKm: distanceKm(position, restaurant.coordinates) })) : eligibleRestaurants, [eligibleRestaurants, position]);
 
   const results = useMemo(
     () => filterRestaurants(visibleRestaurants, params, lists, currentUserId),
@@ -72,7 +72,7 @@ export function SearchExplorer() {
   );
   const friendIds = useMemo(
     () => getFriendIds(follows, currentUserId ?? ""),
-    [currentUserId],
+    [currentUserId, follows],
   );
   const view = params.view === "map" ? "map" : "list";
   const labels: Record<string, string> = { nearby: "Perto de mim", city: "Cidade", neighborhood: "Bairro", distance: "Distância", type: "Categoria", cuisine: "Culinária", price: "Preço", occasion: "Ocasião", rating: "Nota", history: "Histórico", chef: "Chef", openNow: "Aberto agora" };

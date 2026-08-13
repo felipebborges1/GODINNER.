@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Camera, Heart, MapPin } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { restaurants, users } from "@/data/mocks";
+import { users } from "@/data/mocks";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListCard } from "@/components/lists/list-card";
 import { ReviewCard } from "@/components/review/review-card";
@@ -15,7 +15,7 @@ type Tab = "experiences" | "lists" | "photos";
 const tabs: Array<{ id: Tab; label: string }> = [{ id: "experiences", label: "Experiências" }, { id: "lists", label: "Listas" }, { id: "photos", label: "Fotos" }];
 
 export function ProfileView({ userId, own }: { userId: string; own: boolean }) {
-  const { currentUserId, reviews, lists, follows, toggleFollow, showToast } = useAppContext();
+  const { currentUserId, reviews, lists, follows, restaurants, toggleFollow, showToast } = useAppContext();
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = users.find((item) => item.id === userId)!;

@@ -3,7 +3,12 @@ import type { Restaurant, RestaurantList } from "@/types";
 export type SearchParams = Record<string, string>;
 
 export const normalize = (value: string) =>
-  value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
 
 export function filterRestaurants(
   restaurants: Restaurant[],

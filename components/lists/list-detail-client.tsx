@@ -4,7 +4,6 @@ import Image from "next/image";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
 import { Clipboard, Edit3, Lock, Map, Share2, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { restaurants } from "@/data/mocks";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { RestaurantCard } from "@/components/restaurant/restaurant-card";
@@ -13,7 +12,7 @@ import { useAppContext } from "@/hooks/use-app-context";
 import { ListFormSheet } from "./list-form-sheet";
 
 export function ListDetailClient({ id }: { id: string }) {
-  const { currentUserId, lists, removeRestaurantFromList, deleteList, showToast } = useAppContext();
+  const { currentUserId, lists, restaurants, removeRestaurantFromList, deleteList, showToast } = useAppContext();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [editOpen, setEditOpen] = useState(false);
