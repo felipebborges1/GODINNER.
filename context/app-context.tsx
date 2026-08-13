@@ -1,12 +1,13 @@
 "use client";
 import { createContext, useCallback, useMemo, useState } from "react";
 import { CURRENT_USER_ID, mockData } from "@/data/mocks";
-import type { RestaurantList, Review } from "@/types";
+import type { Follow, RestaurantList, Review } from "@/types";
 
 type AppContextValue = {
   currentUserId: string | null;
   reviews: Review[];
   lists: RestaurantList[];
+  follows: Follow[];
   isToastOpen: boolean;
   toastMessage: string;
   showToast: (message?: string) => void;
@@ -17,6 +18,7 @@ type AppContextValue = {
   updateList: (listId: string, draft: Pick<RestaurantList, "name" | "description" | "isPublic">) => boolean;
   deleteList: (listId: string) => boolean;
   removeRestaurantFromList: (listId: string, restaurantId: string) => boolean;
+  toggleFollow: (userId: string) => boolean;
   publishReview: (draft: Omit<Review, "id" | "userId" | "createdAt">) => Review | null;
 };
 export const AppContext = createContext<AppContextValue | null>(null);
@@ -26,6 +28,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [toastMessage, setToastMessage] = useState("Pronto!");
   const [lists, setLists] = useState(mockData.restaurantLists);
   const [reviews, setReviews] = useState(mockData.reviews);
+  const [follows, setFollows] = useState(mockData.follows);
   const showToast = useCallback((message = "Pronto!") => { setToastMessage(message); setToastOpen(true); }, []);
   const hideToast = useCallback(() => setToastOpen(false), []);
   const toggleWantToVisit = useCallback((restaurantId: string) => {
@@ -67,6 +70,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLists((current) => current.map((list) => list.id === listId ? { ...list, restaurantIds: list.restaurantIds.filter((id) => id !== restaurantId) } : list));
     return true;
   }, [currentUserId, lists]);
+  const toggleFollow = useCallback((userId: string) => {
+    if (!currentUserId || userId === currentUserId) return false;
+    const existing = follows.some((follow) => follow.followerId === currentUserId && follow.followingId === userId);
+    setFollows((current) => existing ? current.filter((follow) => !(follow.followerId === currentUserId && follow.followingId === userId)) : [...current, { followerId: currentUserId, followingId: userId, createdAt: new Date().toISOString() }]);
+    return !existing;
+  }, [currentUserId, follows]);
   const publishReview = useCallback((draft: Omit<Review, "id" | "userId" | "createdAt">) => {
     if (!currentUserId) return null;
     const review = { ...draft, id: `review-${Date.now()}`, userId: currentUserId, createdAt: new Date().toISOString() };
@@ -79,6 +88,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
     return review;
   }, [currentUserId]);
-  const value = useMemo(() => ({ currentUserId, reviews, lists, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, publishReview }), [createList, currentUserId, deleteList, hideToast, isToastOpen, lists, publishReview, removeRestaurantFromList, reviews, showToast, toastMessage, toggleRestaurantInList, toggleWantToVisit, updateList]);
+  const value = useMemo(() => ({ currentUserId, reviews, lists, follows, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, publishReview }), [createList, currentUserId, deleteList, follows, hideToast, isToastOpen, lists, publishReview, removeRestaurantFromList, reviews, showToast, toastMessage, toggleFollow, toggleRestaurantInList, toggleWantToVisit, updateList]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
