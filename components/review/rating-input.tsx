@@ -1,0 +1,5 @@
+"use client";
+
+export function RatingInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  return <div className="rounded-3xl bg-stone-950 p-5 text-white"><div className="flex items-end justify-between"><div><p className="text-5xl font-black tracking-tight">{value.toFixed(1)} <span className="text-base text-stone-400">/ 10</span></p><p className="mt-2 text-xs font-bold text-stone-400">Sua nota</p></div><input aria-label="Nota da experiência" type="number" min="0" max="10" step="0.1" value={value.toFixed(1)} onChange={(event) => onChange(Math.max(0, Math.min(10, Number(event.target.value))))} className="w-20 rounded-xl bg-white/10 px-2 py-2 text-center text-sm font-bold outline-none ring-1 ring-white/20"/></div><input aria-label="Ajustar nota" className="mt-5 w-full accent-orange-500" type="range" min="0" max="10" step="0.1" value={value} onChange={(event) => onChange(Number(event.target.value))}/><div className="mt-1 flex justify-between text-[10px] font-bold text-stone-500"><span>0.0</span><span>10.0</span></div></div>;
+}

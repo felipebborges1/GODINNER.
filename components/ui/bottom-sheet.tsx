@@ -1,0 +1,3 @@
+"use client";
+import { X } from "lucide-react";
+export function BottomSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) { if (!open) return null; return <div className="fixed inset-0 z-50 bg-stone-950/40" onClick={onClose}><section className="absolute bottom-0 w-full rounded-t-[2rem] bg-white p-6" onClick={e=>e.stopPropagation()}><div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-stone-200"/><div className="flex justify-between"><h2 className="font-bold">{title}</h2><button onClick={onClose} aria-label="Fechar"><X size={20}/></button></div><div className="mt-5">{children}</div></section></div>; }

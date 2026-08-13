@@ -1,0 +1,1 @@
+export function distanceKm(a:{latitude:number;longitude:number},b:{latitude:number;longitude:number}){const r=6371,d=(v:number)=>v*Math.PI/180,lat=d(b.latitude-a.latitude),lng=d(b.longitude-a.longitude),x=Math.sin(lat/2)**2+Math.cos(d(a.latitude))*Math.cos(d(b.latitude))*Math.sin(lng/2)**2;return Number((2*r*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))).toFixed(1));}

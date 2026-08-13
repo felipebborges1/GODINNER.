@@ -1,0 +1,2 @@
+import { MapPin } from "lucide-react";
+export function EmptyState({ title = "Nada por aqui ainda", message = "Tente ajustar sua busca ou volte em breve." }: { title?: string; message?: string }) { return <div className="rounded-3xl border border-dashed border-stone-300 bg-stone-50 px-6 py-12 text-center"><MapPin className="mx-auto mb-3 text-orange-500"/><h3 className="font-bold">{title}</h3><p className="mt-1 text-sm text-stone-500">{message}</p></div>; }

@@ -1,0 +1,5 @@
+import Link from "next/link";
+import { Plus, Search } from "lucide-react";
+import { Brand } from "@/components/ui/brand";
+import { UserAvatar } from "@/components/ui/user-avatar";
+export function DesktopHeader() { return <header className="sticky top-0 z-40 hidden border-b border-stone-200 bg-white/90 backdrop-blur lg:block"><div className="mx-auto flex h-18 max-w-6xl items-center justify-between px-6"><Brand/><nav className="flex gap-7 text-sm font-semibold text-stone-600"><Link href="/">Discover</Link><Link href="/search">Buscar</Link><Link href="/feed">Feed</Link><Link href="/lists">Listas</Link></nav><div className="flex items-center gap-4"><Link href="/review/new" className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-4 py-2.5 text-sm font-bold text-white"><Plus size={16}/>Registrar</Link><Link href="/search" aria-label="Buscar"><Search size={20}/></Link><Link href="/profile"><UserAvatar src="https://i.pravatar.cc/160?img=47" name="Bia Fonseca" size="sm"/></Link></div></div></header>; }

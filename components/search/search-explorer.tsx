@@ -1,0 +1,122 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { SlidersHorizontal, X } from "lucide-react";
+import { restaurants, follows } from "@/data/mocks";
+import { RestaurantCard } from "@/components/restaurant/restaurant-card";
+import { FilterChip } from "@/components/search/filter-chip";
+import { FilterSheet } from "@/components/search/filter-sheet";
+import { SearchBar } from "@/components/search/search-bar";
+import { MapView } from "@/components/search/map-view";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useAppContext } from "@/hooks/use-app-context";
+import { countFriendsWhoVisited, getFriendIds } from "@/lib/restaurant-social";
+import { filterRestaurants } from "@/lib/search";
+import { distanceKm } from "@/lib/distance";
+import { useToast } from "@/hooks/use-toast";
+
+const quick = [
+  ["nearby", "true", "Perto de mim"],
+  ["type", "bar", "Bar"],
+  ["cuisine", "japanese", "Japonês"],
+  ["cuisine", "italian", "Italiano"],
+  ["price", "100", "Até R$100"],
+  ["rating", "8", "Nota 8+"],
+  ["occasion", "date", "Date"],
+  ["openNow", "true", "Aberto agora"],
+] as const;
+
+export function SearchExplorer() {
+  const router = useRouter();
+  const path = usePathname();
+  const searchParams = useSearchParams();
+  const { lists, currentUserId, reviews } = useAppContext();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
+  const { showToast } = useToast();
+  const params = Object.fromEntries(searchParams.entries());
+
+  const setParam = (key: string, value?: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    value ? next.set(key, value) : next.delete(key);
+    router.replace(`${path}?${next}`);
+  };
+
+  const clearFilters = () => {
+    const next = new URLSearchParams();
+    if (params.view) next.set("view", params.view);
+    router.replace(next.size ? `${path}?${next}` : path);
+  };
+
+  const requestNearby = () => {
+    if (!navigator.geolocation) { showToast("Localização indisponível — usando Vila da Serra"); setParam("nearby", "true"); return; }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => { setPosition({ latitude: coords.latitude, longitude: coords.longitude }); setParam("nearby", "true"); showToast("Localização usada com distâncias simuladas"); },
+      () => { setParam("nearby", "true"); showToast("Localização não disponível — usando Vila da Serra"); },
+      { timeout: 8000, maximumAge: 300000 },
+    );
+  };
+
+  const visibleRestaurants = useMemo(() => position ? restaurants.map((restaurant) => ({ ...restaurant, distanceKm: distanceKm(position, restaurant.coordinates) })) : restaurants, [position]);
+
+  const results = useMemo(
+    () => filterRestaurants(visibleRestaurants, params, lists, currentUserId),
+    [visibleRestaurants, params, lists, currentUserId],
+  );
+  const friendIds = useMemo(
+    () => getFriendIds(follows, currentUserId ?? ""),
+    [currentUserId],
+  );
+  const view = params.view === "map" ? "map" : "list";
+  const labels: Record<string, string> = { nearby: "Perto de mim", city: "Cidade", neighborhood: "Bairro", distance: "Distância", type: "Categoria", cuisine: "Culinária", price: "Preço", occasion: "Ocasião", rating: "Nota", history: "Histórico", chef: "Chef", openNow: "Aberto agora" };
+  const valueLabels: Record<string, string> = {
+    japanese: "Japonesa", italian: "Italiana", meat: "Carnes", brasileira: "Brasileira",
+    mineira: "Mineira", contemporanea: "Contemporânea", restaurant: "Restaurante",
+    bar: "Bar", date: "Date", friends: "Amigos", family: "Família",
+    wantToVisit: "Quero conhecer", visited: "Já fui", "belo-horizonte": "Belo Horizonte",
+    "nova-lima": "Nova Lima", "vila-da-serra": "Vila da Serra",
+  };
+  const activeFilters = Object.entries(params).filter(([key]) => !["q", "view"].includes(key));
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10">
+      <h1 className="text-3xl font-black">Explorar lugares</h1>
+      <p className="mt-1 text-sm text-stone-500">Vila da Serra, Belo Horizonte e Nova Lima</p>
+      <div className="mt-5">
+        <SearchBar value={params.q ?? ""} onChange={(value) => setParam("q", value || undefined)} placeholder="Restaurante, comida, bairro ou chef" />
+      </div>
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+        {quick.map(([key, value, label]) => (
+          <FilterChip key={label} label={label} active={params[key] === value} onClick={() => key === "nearby" ? requestNearby() : setParam(key, params[key] === value ? undefined : value)} />
+        ))}
+      </div>
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex rounded-xl bg-stone-100 p-1">
+          <button onClick={() => setParam("view", "list")} aria-pressed={view === "list"} className={`rounded-lg px-3 py-2 text-sm font-bold ${view === "list" ? "bg-white shadow" : ""}`}>Lista</button>
+          <button onClick={() => setParam("view", "map")} aria-pressed={view === "map"} className={`rounded-lg px-3 py-2 text-sm font-bold ${view === "map" ? "bg-white shadow" : ""}`}>Mapa</button>
+        </div>
+        <button onClick={() => setFiltersOpen(true)} aria-expanded={filtersOpen} className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold"><SlidersHorizontal size={16} />Filtros</button>
+      </div>
+      <FilterSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        params={params}
+        onToggle={(key, value) => setParam(key, params[key] === value ? undefined : value)}
+        onClear={clearFilters}
+        count={results.length}
+      />
+      {activeFilters.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-xs font-black text-stone-500">Filtros ativos:</span>{activeFilters.map(([key, value]) => <button key={key} onClick={() => setParam(key)} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`}<X size={13} /></button>)}{activeFilters.length > 1 && <button onClick={clearFilters} className="text-xs font-bold text-orange-600">Limpar tudo</button>}</div>}
+      <p className="mt-6 text-sm font-semibold text-stone-500">{results.length} {results.length === 1 ? "resultado" : "resultados"}</p>
+      {view === "map" ? (
+        <div className="mt-4"><MapView restaurants={results} /></div>
+      ) : results.length ? (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={`${restaurant.distanceKm} km`} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}
+        </div>
+      ) : (
+        <div className="mt-5"><EmptyState title="Nenhum lugar encontrado" message={params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} /></div>
+      )}
+    </div>
+  );
+}
