@@ -2,11 +2,12 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import { CURRENT_USER_ID, mockData, users } from "@/data/mocks";
 import { normalize } from "@/lib/search";
-import { dataMode, hasSupabasePublicEnv } from "@/lib/supabase/env";
+import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/lib/supabase/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { mapFollow, mapList, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
 import { publishReviewPersisted } from "@/lib/data/repositories";
 import { createSignedImageUrl, uploadUserImage } from "@/lib/supabase/storage";
+import { mockRestaurantCoordinates } from "@/lib/distance";
 import type { Follow, PriceRange, Restaurant, RestaurantList, Review, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo: { url: string; alt: string; file?: File } | null; instagram?: string; site?: string; phone?: string; chef?: string };
@@ -59,7 +60,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [follows, setFollows] = useState(dataMode === "mock" ? mockData.follows : []);
   const [profiles, setProfiles] = useState<User[]>(dataMode === "mock" ? users : []);
   const [isLoading, setIsLoading] = useState(dataMode === "supabase" && backendConfigured);
-  const [dataError, setDataError] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(supabaseConfigurationError);
   const [retryToken, setRetryToken] = useState(0);
   useEffect(() => {
     if (dataMode !== "supabase" || !backendConfigured) return;
@@ -246,13 +247,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!client || !draft.photo.file) return { error: "Selecione a foto novamente." };
       const upload = await uploadUserImage(currentUserId, draft.photo.file, "restaurant-submissions");
       if (upload.error || !upload.data) return { error: "Não foi possível enviar a foto." };
-      const inserted = await client.from("restaurants").insert({ slug: baseSlug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), latitude: draft.city === "Nova Lima" ? -19.98 : -19.94, longitude: -43.95, category: draft.category, cuisines: draft.cuisine, price_range: draft.priceRange, instagram: draft.instagram ?? null, website: draft.site ?? null, phone: draft.phone ?? null, chef: draft.chef?.trim() ?? "", cover_photo_url: null, cover_photo_path: upload.data.path, status: "pending_review", submitted_by: currentUserId, submitted_at: new Date().toISOString(), moderated_by: null, moderated_at: null, rejection_reason: null, merged_into_id: null }).select("*").single();
+      const coordinates = mockRestaurantCoordinates(index, draft.city);
+      const inserted = await client.from("restaurants").insert({ slug: baseSlug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), latitude: coordinates.latitude, longitude: coordinates.longitude, category: draft.category, cuisines: draft.cuisine, price_range: draft.priceRange, instagram: draft.instagram ?? null, website: draft.site ?? null, phone: draft.phone ?? null, chef: draft.chef?.trim() ?? "", cover_photo_url: null, cover_photo_path: upload.data.path, status: "pending_review", submitted_by: currentUserId, submitted_at: new Date().toISOString(), moderated_by: null, moderated_at: null, rejection_reason: null, merged_into_id: null }).select("*").single();
       if (inserted.error || !inserted.data) return { error: "Não foi possível cadastrar o restaurante." };
       const restaurant = mapRestaurant({ ...inserted.data, cover_photo_url: upload.data.url });
       setRestaurants((current) => [restaurant, ...current]);
       return { restaurant };
     }
-    const restaurant: Restaurant = { id: `restaurant-${Date.now()}`, slug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), category: draft.category, cuisine: draft.cuisine, priceRange: draft.priceRange, coverPhoto: { id: `cover-${Date.now()}`, ...draft.photo }, photos: [{ id: `cover-${Date.now()}`, ...draft.photo }], tags: ["new"], chef: draft.chef?.trim() ?? "", occasions: ["friends"], isOpenNow: false, distanceKm: Number((2.4 + (index % 5) * .4).toFixed(1)), coordinates: { x: 20 + (index * 13) % 60, y: 20 + (index * 17) % 55, latitude: draft.city === "Nova Lima" ? -19.98 + (index % 3) * .004 : -19.94 + (index % 3) * .004, longitude: -43.95 + (index % 4) * .004 }, godinnerRating: 0, friendsRating: 0, reviewCount: 0, status: "pending_review", submittedBy: currentUserId, submittedAt: new Date().toISOString(), instagram: draft.instagram, site: draft.site, phone: draft.phone };
+    const restaurantCoordinates = mockRestaurantCoordinates(index, draft.city);
+    const restaurant: Restaurant = { id: `restaurant-${Date.now()}`, slug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), category: draft.category, cuisine: draft.cuisine, priceRange: draft.priceRange, coverPhoto: { id: `cover-${Date.now()}`, ...draft.photo }, photos: [{ id: `cover-${Date.now()}`, ...draft.photo }], tags: ["new"], chef: draft.chef?.trim() ?? "", occasions: ["friends"], isOpenNow: false, distanceKm: Number((2.4 + (index % 5) * .4).toFixed(1)), coordinates: restaurantCoordinates, godinnerRating: 0, friendsRating: 0, reviewCount: 0, status: "pending_review", submittedBy: currentUserId, submittedAt: new Date().toISOString(), instagram: draft.instagram, site: draft.site, phone: draft.phone };
     setRestaurants((current) => [...current, restaurant]);
     return { restaurant };
   }, [backendConfigured, currentUserId, restaurants]);

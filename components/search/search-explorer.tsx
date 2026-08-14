@@ -14,7 +14,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { useAppContext } from "@/hooks/use-app-context";
 import { countFriendsWhoVisited, getFriendIds } from "@/lib/restaurant-social";
 import { filterRestaurants } from "@/lib/search";
-import { distanceKm } from "@/lib/distance";
+import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 
@@ -60,17 +60,37 @@ export function SearchExplorer() {
     router.replace(next.size ? `${path}?${next}` : path);
   };
 
+  const applyFallbackLocation = (message: string) => {
+    setPosition(FALLBACK_COORDINATES);
+    setParam("nearby", "true");
+    showToast(message);
+  };
+
   const requestNearby = () => {
-    if (!navigator.geolocation) { showToast("Localização indisponível — usando Vila da Serra"); setParam("nearby", "true"); return; }
+    if (!navigator.geolocation) { applyFallbackLocation("Localização indisponível — usando Vila da Serra"); return; }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { setPosition({ latitude: coords.latitude, longitude: coords.longitude }); setParam("nearby", "true"); showToast("Localização usada com distâncias simuladas"); },
-      () => { setParam("nearby", "true"); showToast("Localização não disponível — usando Vila da Serra"); },
+      ({ coords }) => { setPosition({ latitude: coords.latitude, longitude: coords.longitude }); setParam("nearby", "true"); showToast("Localização permitida — distâncias calculadas"); },
+      (error) => {
+        const message = error.code === error.PERMISSION_DENIED
+          ? "Permissão negada — usando Vila da Serra"
+          : error.code === error.TIMEOUT
+            ? "Tempo esgotado — usando Vila da Serra"
+            : "Localização indisponível — usando Vila da Serra";
+        applyFallbackLocation(message);
+      },
       { timeout: 8000, maximumAge: 300000 },
     );
   };
 
   const eligibleRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status !== "rejected" && (restaurant.status !== "pending_review" || restaurant.submittedBy === currentUserId)), [restaurants, currentUserId]);
-  const visibleRestaurants = useMemo(() => position ? eligibleRestaurants.map((restaurant) => ({ ...restaurant, distanceKm: distanceKm(position, restaurant.coordinates) })) : eligibleRestaurants, [eligibleRestaurants, position]);
+  const visibleRestaurants = useMemo(() => {
+    const origin = position ?? (params.nearby || params.distance ? FALLBACK_COORDINATES : null);
+    if (!origin) return eligibleRestaurants;
+    return eligibleRestaurants.map((restaurant) => ({
+      ...restaurant,
+      distanceKm: hasCoordinates(restaurant.coordinates) ? distanceKm(origin, restaurant.coordinates) : Number.POSITIVE_INFINITY,
+    }));
+  }, [eligibleRestaurants, params.distance, params.nearby, position]);
 
   const results = useMemo(
     () => filterRestaurants(visibleRestaurants, params, lists, currentUserId),
@@ -124,7 +144,7 @@ export function SearchExplorer() {
       {activeFilters.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-xs font-black text-stone-500">Filtros ativos:</span>{activeFilters.map(([key, value]) => <button key={key} onClick={() => setParam(key)} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`}<X size={13} /></button>)}{activeFilters.length > 1 && <button onClick={clearFilters} className="text-xs font-bold text-orange-600">Limpar tudo</button>}</div>}
       <p className="mt-6 text-sm font-semibold text-stone-500">{results.length} {results.length === 1 ? "resultado" : "resultados"}</p>
       {view === "map" && results.length ? (
-        <div className="mt-4"><MapView restaurants={results} /></div>
+        <div className="mt-4"><MapView key={results.map((restaurant) => restaurant.id).join(",")} restaurants={results} /></div>
       ) : results.length ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={`${restaurant.distanceKm} km`} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}

@@ -85,8 +85,8 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
               <Field label="Instagram"><input value={draft.instagram ?? ""} onChange={(event) => update("instagram", event.target.value)} /></Field>
               <Field label="Site"><input value={draft.site ?? ""} onChange={(event) => update("site", event.target.value)} /></Field>
               <Field label="Telefone"><input value={draft.phone ?? ""} onChange={(event) => update("phone", event.target.value)} /></Field>
-              <Field label="Latitude"><input type="number" step="any" value={draft.coordinates.latitude} onChange={(event) => update("coordinates", { ...draft.coordinates, latitude: Number(event.target.value) })} /></Field>
-              <Field label="Longitude"><input type="number" step="any" value={draft.coordinates.longitude} onChange={(event) => update("coordinates", { ...draft.coordinates, longitude: Number(event.target.value) })} /></Field>
+              <Field label="Latitude"><input type="number" step="any" value={draft.coordinates?.latitude ?? ""} onChange={(event) => update("coordinates", { latitude: Number(event.target.value), longitude: draft.coordinates?.longitude ?? 0 })} /></Field>
+              <Field label="Longitude"><input type="number" step="any" value={draft.coordinates?.longitude ?? ""} onChange={(event) => update("coordinates", { latitude: draft.coordinates?.latitude ?? 0, longitude: Number(event.target.value) })} /></Field>
               <button onClick={save} className="rounded-xl bg-stone-950 px-4 py-3 font-bold text-white">Salvar alterações</button>
             </> : <>
               <Info label="Endereço" value={restaurant.address} />
@@ -95,7 +95,7 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
               <Info label="Culinárias" value={restaurant.cuisine.join(", ")} />
               <Info label="Preço" value={restaurant.priceRange} />
               <Info label="Chef" value={restaurant.chef || "—"} />
-              <Info label="Coordenadas" value={`${restaurant.coordinates.latitude}, ${restaurant.coordinates.longitude}`} />
+              <Info label="Coordenadas" value={restaurant.coordinates ? `${restaurant.coordinates.latitude}, ${restaurant.coordinates.longitude}` : "Indisponíveis"} />
               <Info label="Instagram" value={restaurant.instagram || "—"} />
               <Info label="Site" value={restaurant.site || "—"} />
               <Info label="Telefone" value={restaurant.phone || "—"} />

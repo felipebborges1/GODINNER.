@@ -1,4 +1,5 @@
 import type { Follow, Restaurant, RestaurantList, Review, User } from "@/types";
+import { mockRestaurantCoordinates } from "@/lib/distance";
 
 const photo = (id: string, query: string) => ({ id, url: `https://images.unsplash.com/${query}?auto=format&fit=crop&w=1200&q=85`, alt: "Imagem ilustrativa para o protótipo GODINNER" });
 
@@ -37,7 +38,7 @@ const restaurantRows: Array<[string,string,string,string,string,"Belo Horizonte"
   ["r19","sol-da-serra","Sol da Serra","Brasileira","$$","Nova Lima",8.3,8.7,91,"photo-1515003197210-e0cd71810b5f"],
   ["r20","torta-de-vo","Torta de Vó","Confeitaria","$","Belo Horizonte",8.1,8.6,63,"photo-1551024506-0bccd828d307"],
 ];
-export const restaurants: Restaurant[] = restaurantRows.map(([id,slug,name,cuisine,priceRange,city,godinnerRating,friendsRating,reviewCount,image],i) => { const coverPhoto = photo(`${id}-cover`, image); const tags = ["r2", "r4", "r7", "r11", "r12", "r14", "r16", "r18"].includes(id) ? ["date"] : []; const category = ["r3", "r14", "r18"].includes(id) ? "bar" : "restaurant"; if (category === "bar") tags.push("bar"); if (i >= 15) tags.push("new"); return {id,slug,name,cuisine:[cuisine],tags,category,chef:["Ana","Rafa","Luiz","Maya"][i%4],occasions:[tags.includes("date")?"date":"friends",i%3===0?"family":"business"],isOpenNow:i%4!==0,distanceKm:Number((0.5+i*.28).toFixed(1)),coordinates:{x:12+(i*17)%74,y:14+(i*29)%68,latitude:-19.97+(i%5)*.012,longitude:-43.95+(i%4)*.011},priceRange:priceRange as Restaurant["priceRange"],neighborhood:i%3===0?"Vila da Serra":i%3===1?"Belvedere":"Vale do Sereno",city,address:`Endereço ilustrativo, ${i+10}`,godinnerRating,friendsRating,reviewCount,coverPhoto,photos:[coverPhoto]}; });
+export const restaurants: Restaurant[] = restaurantRows.map(([id,slug,name,cuisine,priceRange,city,godinnerRating,friendsRating,reviewCount,image],i) => { const coverPhoto = photo(`${id}-cover`, image); const tags = ["r2", "r4", "r7", "r11", "r12", "r14", "r16", "r18"].includes(id) ? ["date"] : []; const category = ["r3", "r14", "r18"].includes(id) ? "bar" : "restaurant"; if (category === "bar") tags.push("bar"); if (i >= 15) tags.push("new"); return {id,slug,name,cuisine:[cuisine],tags,category,chef:["Ana","Rafa","Luiz","Maya"][i%4],occasions:[tags.includes("date")?"date":"friends",i%3===0?"family":"business"],isOpenNow:i%4!==0,distanceKm:Number((0.5+i*.28).toFixed(1)),coordinates:mockRestaurantCoordinates(i, city),priceRange:priceRange as Restaurant["priceRange"],neighborhood:i%3===0?"Vila da Serra":i%3===1?"Belvedere":"Vale do Sereno",city,address:`Endereço ilustrativo, ${i+10}`,godinnerRating,friendsRating,reviewCount,coverPhoto,photos:[coverPhoto]}; });
 
 const galleryImages = ["photo-1414235077428-338989a2e8c0", "photo-1547592180-85f173990554", "photo-1551183053-bf91a1d81141", "photo-1473973916745-60839aebf06e"];
 restaurants.forEach((restaurant) => {
