@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Check, Clipboard, Ellipsis, Heart, ListPlus, MapPin, Share2, Star, Utensils } from "lucide-react";
 import { useMemo, useState } from "react";
-import { restaurants, follows, users } from "@/data/mocks";
 import { useAppContext } from "@/hooks/use-app-context";
 import { useWantToVisit } from "@/hooks/use-want-to-visit";
 import { getFriendIds } from "@/lib/restaurant-social";
@@ -20,7 +19,7 @@ import { SaveToListSheet } from "./save-to-list-sheet";
 const average = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 
 export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
-  const { currentUserId, reviews, showToast } = useAppContext();
+  const { currentUserId, reviews, follows, users, showToast } = useAppContext();
   const { isWanted, toggleWantToVisit } = useWantToVisit(restaurant.id);
   const [listsOpen, setListsOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -33,7 +32,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
   const friendsRating = average(friendReviews.map((review) => review.rating));
   const averageSpend = average(restaurantReviews.flatMap((review) => review.amountPerPerson === undefined ? [] : [review.amountPerPerson]));
   const galleryPhotos = [restaurant.coverPhoto, ...restaurant.photos, ...restaurantReviews.flatMap((review) => review.photos)].filter((photo, index, source) => source.findIndex((candidate) => candidate.id === photo.id) === index).slice(0, 5);
-  const handleWant = () => { const added = toggleWantToVisit(restaurant.id); showToast(added ? "Adicionado a Quero conhecer" : "Removido de Quero conhecer"); };
+  const handleWant = async () => { const added = await toggleWantToVisit(restaurant.id); showToast(added ? "Adicionado a Quero conhecer" : "Removido de Quero conhecer"); };
   const copyLink = async () => { const url = `${window.location.origin}/restaurant/${restaurant.slug}`; try { await navigator.clipboard?.writeText(url); showToast("Link copiado"); } catch { showToast("Link pronto para compartilhar"); } setShareOpen(false); };
 
   return <div className="pb-28 lg:pb-12">

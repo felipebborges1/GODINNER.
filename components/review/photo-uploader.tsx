@@ -7,7 +7,7 @@ import type { RestaurantPhoto } from "@/types";
 export function PhotoUploader({ photos, onChange }: { photos: RestaurantPhoto[]; onChange: (photos: RestaurantPhoto[]) => void }) {
   const addFiles = (files: FileList | null) => {
     const selected = Array.from(files ?? []).filter((file) => file.type.startsWith("image/")).slice(0, 5 - photos.length);
-    const created = selected.map((file) => ({ id: `local-${crypto.randomUUID()}`, url: URL.createObjectURL(file), alt: "Foto local da experiência" }));
+    const created = selected.map((file) => ({ id: `local-${crypto.randomUUID()}`, url: URL.createObjectURL(file), file, alt: "Foto local da experiência" }));
     onChange([...photos, ...created]);
   };
   const remove = (id: string) => { const item = photos.find((photo) => photo.id === id); if (item?.url.startsWith("blob:")) URL.revokeObjectURL(item.url); onChange(photos.filter((photo) => photo.id !== id)); };

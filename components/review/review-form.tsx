@@ -24,7 +24,7 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => () => { if (!submitted.current) photosRef.current.forEach((photo) => { if (photo.url.startsWith("blob:")) URL.revokeObjectURL(photo.url); }); }, []);
   if (published) return <ReviewSuccess review={published} restaurant={restaurant}/>;
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
     if (!currentUserId) nextErrors.login = "Entre para publicar uma experiência.";
@@ -34,7 +34,7 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
     if (amount && (!Number.isFinite(Number(amount)) || Number(amount) < 0)) nextErrors.amount = "Informe um valor válido.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    const review = publishReview({ restaurantId: restaurant.id, rating: Number(rating.toFixed(1)), comment: comment.trim(), photos, amountPerPerson: amount ? Number(amount) : undefined, visitDate });
+    const review = await publishReview({ restaurantId: restaurant.id, rating: Number(rating.toFixed(1)), comment: comment.trim(), photos, amountPerPerson: amount ? Number(amount) : undefined, visitDate });
     if (!review) return;
     submitted.current = true;
     setPublished(review);

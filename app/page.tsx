@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, MapPin, UsersRound } from "lucide-react";
-import { follows, restaurants, reviews, users } from "@/data/mocks";
 import { Brand } from "@/components/ui/brand";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { SearchBar } from "@/components/search/search-bar";
@@ -25,12 +24,12 @@ const quickFilters = [
 export default function DiscoverPage() {
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [location, setLocation] = useState("Vila da Serra / Nova Lima");
-  const { currentUserId } = useAppContext();
-  const nearby = useMemo(() => restaurants.filter((restaurant) => ["Vila da Serra", "Vale do Sereno"].includes(restaurant.neighborhood)).slice(0, 6), []);
-  const communityFavorites = useMemo(() => [...restaurants].sort((a, b) => b.godinnerRating - a.godinnerRating).slice(0, 4), []);
-  const datePlaces = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("date")).slice(0, 4), []);
-  const newPlaces = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("new")).slice(0, 4), []);
-  const bars = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("bar")).slice(0, 4), []);
+  const { currentUserId, follows, restaurants, reviews, users } = useAppContext();
+  const nearby = useMemo(() => restaurants.filter((restaurant) => ["Vila da Serra", "Vale do Sereno"].includes(restaurant.neighborhood)).slice(0, 6), [restaurants]);
+  const communityFavorites = useMemo(() => [...restaurants].sort((a, b) => b.godinnerRating - a.godinnerRating).slice(0, 4), [restaurants]);
+  const datePlaces = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("date")).slice(0, 4), [restaurants]);
+  const newPlaces = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("new")).slice(0, 4), [restaurants]);
+  const bars = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("bar")).slice(0, 4), [restaurants]);
   const friendIds = useMemo(() => getFriendIds(follows, currentUserId ?? ""), [currentUserId]);
   const friendActivities = reviews.filter((review) => friendIds.has(review.userId)).slice(0, 8);
   const friendCounts = useMemo(() => Object.fromEntries(restaurants.map((restaurant) => [restaurant.id, countFriendsWhoVisited(reviews, restaurant.id, friendIds)])), [friendIds]);

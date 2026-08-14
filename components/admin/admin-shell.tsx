@@ -1,7 +1,17 @@
 "use client";
+
 import Link from "next/link";
-import { LayoutDashboard, Store, Clock3, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Clock3, LayoutDashboard, Store } from "lucide-react";
 import { useAppContext } from "@/hooks/use-app-context";
 
-const links = [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }, { href: "/admin/restaurants", label: "Restaurantes", icon: Store }, { href: "/admin/restaurants/pending", label: "Pendentes", icon: Clock3 }];
-export function AdminShell({ active, children }: { active: string; children: React.ReactNode }) { const { isAdmin } = useAppContext(); if (!isAdmin) return <main className="grid min-h-screen place-items-center bg-stone-950 p-6 text-center text-white"><div><p className="text-sm font-black text-orange-400">ADMIN GODINNER</p><h1 className="mt-2 text-3xl font-black">Acesso restrito</h1><p className="mt-3 text-stone-300">Esta área é exclusiva para moderação.</p><Link className="mt-6 inline-flex rounded-xl bg-white px-4 py-3 font-bold text-stone-950" href="/">Voltar ao GODINNER</Link></div></main>; return <div className="min-h-screen bg-stone-100 text-stone-900"><aside className="border-b border-stone-200 bg-stone-950 px-4 py-4 text-white lg:fixed lg:inset-y-0 lg:w-64 lg:border-b-0 lg:border-r lg:p-6"><Link href="/admin" className="text-xl font-black"><span className="text-orange-400">GO</span>DINNER <small className="ml-1 text-xs font-bold text-stone-400">ADMIN</small></Link><nav className="mt-5 flex gap-2 overflow-x-auto lg:block lg:space-y-2">{links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold ${active === href ? "bg-orange-500 text-white" : "text-stone-300 hover:bg-stone-800"}`}><Icon size={17}/>{label}</Link>)}</nav><Link href="/" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-stone-300 hover:bg-stone-800"><ArrowLeft size={17}/>Voltar ao GODINNER</Link></aside><main className="mx-auto max-w-7xl p-4 pb-10 sm:p-7 lg:ml-64 lg:max-w-none lg:p-10">{children}</main></div>; }
+const links = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/restaurants", label: "Restaurantes", icon: Store },
+  { href: "/admin/restaurants/pending", label: "Pendentes", icon: Clock3 },
+];
+
+export function AdminShell({ active, children }: { active: string; children: React.ReactNode }) {
+  const { isAdmin, dataMode } = useAppContext();
+  if (!isAdmin && dataMode === "mock") return <main className="grid min-h-screen place-items-center bg-stone-950 p-6 text-center text-white"><div><p className="text-sm font-black text-orange-400">ADMIN GODINNER</p><h1 className="mt-2 text-3xl font-black">Acesso restrito</h1><p className="mt-3 text-stone-300">Esta área é exclusiva para moderação.</p><Link className="mt-6 inline-flex rounded-xl bg-white px-4 py-3 font-bold text-stone-950" href="/">Voltar ao GODINNER</Link></div></main>;
+  return <div className="min-h-screen bg-stone-100 text-stone-900"><aside className="border-b border-stone-200 bg-stone-950 px-4 py-4 text-white lg:fixed lg:inset-y-0 lg:w-64 lg:border-b-0 lg:border-r lg:p-6"><Link href="/admin" className="text-xl font-black"><span className="text-orange-400">GO</span>DINNER <small className="ml-1 text-xs font-bold text-stone-400">ADMIN</small></Link><nav className="mt-5 flex gap-2 overflow-x-auto lg:block lg:space-y-2">{links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold ${active === href ? "bg-orange-500 text-white" : "text-stone-300 hover:bg-stone-800"}`}><Icon size={17}/>{label}</Link>)}</nav><Link href="/" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-stone-300 hover:bg-stone-800"><ArrowLeft size={17}/>Voltar ao GODINNER</Link></aside><main className="mx-auto max-w-7xl p-4 pb-10 sm:p-7 lg:ml-64 lg:max-w-none lg:p-10">{children}</main></div>;
+}

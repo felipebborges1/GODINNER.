@@ -1,0 +1,19 @@
+project_id = "godinner-local"
+
+[db]
+major_version = 17
+
+[studio]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+enable_signup = true
+
+[storage]
+enabled = true
+
+[analytics]
+enabled = false
