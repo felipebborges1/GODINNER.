@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 export function LoginWall({ open, onClose, next = "/" }: { open: boolean; onClose: () => void; next?: string }) {
   const query = next && next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
@@ -11,15 +11,9 @@ export function LoginWall({ open, onClose, next = "/" }: { open: boolean; onClos
         Salve lugares, compartilhe experiências e descubra onde seus amigos estão indo.
       </p>
       <div className="mt-6 grid gap-3">
-        <Link href={`/login${query}`} className="flex min-h-12 items-center justify-center rounded-2xl bg-stone-950 px-4 text-sm font-black text-white" onClick={onClose}>
-          Entrar
-        </Link>
-        <Link href={`/register${query}`} className="flex min-h-12 items-center justify-center rounded-2xl bg-orange-500 px-4 text-sm font-black text-white" onClick={onClose}>
-          Criar conta
-        </Link>
-        <button type="button" onClick={onClose} className="min-h-11 rounded-2xl bg-stone-100 px-4 text-sm font-bold text-stone-700">
-          Agora não
-        </button>
+        <Button href={`/login${query}`} onClick={onClose} className="min-h-12 w-full rounded-2xl">Entrar</Button>
+        <Button href={`/register${query}`} onClick={onClose} variant="accent" className="min-h-12 w-full rounded-2xl">Criar conta</Button>
+        <Button type="button" onClick={onClose} variant="soft" className="w-full rounded-2xl">Agora não</Button>
       </div>
     </Modal>
   );

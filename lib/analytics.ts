@@ -12,7 +12,8 @@ export type AnalyticsEvent =
   | "user_followed"
   | "signup_started"
   | "signup_completed"
-  | "login_completed";
+  | "login_completed"
+  | "people_discovery_viewed";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 

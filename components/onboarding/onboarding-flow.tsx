@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useAppContext } from "@/hooks/use-app-context";
 import { safeNext } from "@/lib/safe-next";
+import { Button } from "@/components/ui/button";
 
 const cuisines = [
   ["🍣", "Japonesa"], ["🍝", "Italiana"], ["🥩", "Carnes"], ["🍔", "Hambúrguer"], ["🍕", "Pizza"],
@@ -53,7 +54,7 @@ export function OnboardingFlow() {
               return <button type="button" key={label} onClick={() => toggleCuisine(label)} aria-pressed={active} className={`min-h-16 rounded-2xl border px-3 text-left text-sm font-bold transition ${active ? "border-orange-500 bg-orange-50 text-orange-700" : "border-stone-200 bg-white text-stone-700"}`}><span className="mr-2 text-xl" aria-hidden="true">{icon}</span>{label}</button>;
             })}
           </div>
-          <button type="button" onClick={() => setStep(2)} className="mt-8 min-h-12 w-full rounded-2xl bg-stone-950 px-4 text-sm font-black text-white">Continuar</button>
+          <Button type="button" onClick={() => setStep(2)} className="mt-8 min-h-12 w-full rounded-2xl">Continuar</Button>
         </section>
       ) : (
         <section>
@@ -62,11 +63,11 @@ export function OnboardingFlow() {
           <div className="mt-7 grid gap-3">
             {suggestions.map((user) => {
               const isFollowing = followed.includes(user.id);
-              return <div key={user.id} className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3"><UserAvatar src={user.avatar} name={user.name} size="sm"/><div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{user.name}</p><p className="truncate text-xs text-stone-500">@{user.username} · {user.neighborhood}</p></div><button type="button" onClick={() => void toggleSuggestedFollow(user.id)} className={`min-h-10 rounded-full px-3 text-xs font-black ${isFollowing ? "bg-stone-100 text-stone-700" : "bg-orange-500 text-white"}`}>{isFollowing ? "Seguindo" : "Seguir"}</button></div>;
+              return <div key={user.id} className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3"><UserAvatar src={user.avatar} name={user.name} size="sm"/><div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{user.name}</p><p className="truncate text-xs text-stone-500">@{user.username} · {user.neighborhood}</p></div><Button type="button" onClick={() => void toggleSuggestedFollow(user.id)} variant={isFollowing ? "soft" : "accent"} className="min-h-10 rounded-full px-3 text-xs">{isFollowing ? "Seguindo" : "Seguir"}</Button></div>;
             })}
           </div>
-          <button type="button" onClick={finish} className="mt-8 min-h-12 w-full rounded-2xl bg-stone-950 px-4 text-sm font-black text-white">Começar a explorar</button>
-          <button type="button" onClick={finish} className="mt-3 min-h-11 w-full rounded-2xl bg-stone-100 px-4 text-sm font-bold text-stone-700">Pular por agora</button>
+          <Button type="button" onClick={finish} className="mt-8 min-h-12 w-full rounded-2xl">Começar a explorar</Button>
+          <Button type="button" onClick={finish} variant="soft" className="mt-3 min-h-11 w-full rounded-2xl">Pular por agora</Button>
         </section>
       )}
     </main>
