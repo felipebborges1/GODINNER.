@@ -16,6 +16,9 @@ export type AdminResult = { ok: boolean; error?: string; restaurant?: Restaurant
 type AppContextValue = {
   dataMode: "mock" | "supabase";
   backendConfigured: boolean;
+  isLoading: boolean;
+  dataError: string | null;
+  retryData: () => void;
   currentUserId: string | null;
   reviews: Review[];
   users: User[];
@@ -55,6 +58,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [restaurants, setRestaurants] = useState(dataMode === "mock" ? mockData.restaurants : []);
   const [follows, setFollows] = useState(dataMode === "mock" ? mockData.follows : []);
   const [profiles, setProfiles] = useState<User[]>(dataMode === "mock" ? users : []);
+  const [isLoading, setIsLoading] = useState(dataMode === "supabase" && backendConfigured);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
   useEffect(() => {
     if (dataMode !== "supabase" || !backendConfigured) return;
     const supabaseClient = createSupabaseBrowserClient();
@@ -62,6 +68,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     type SupabaseBrowserClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>;
     let active = true;
     async function loadPersistedData(client: SupabaseBrowserClient) {
+      setIsLoading(true);
+      setDataError(null);
       const { data: authData } = await client.auth.getUser();
       if (!active) return;
       setSessionUserId(authData.user?.id ?? null);
@@ -75,6 +83,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         client.from("follows").select("*").order("created_at"),
       ]);
       if (!active) return;
+      const queryError = [profiles, restaurantRows, reviewRows, reviewPhotoRows, listRows, itemRows, followRows].find((response) => response.error)?.error;
+      if (queryError) {
+        setDataError("Não conseguimos carregar seus dados agora.");
+        setIsLoading(false);
+        return;
+      }
       const me = profiles.data?.find((profile) => profile.id === authData.user?.id);
       setSessionRole(me?.role ?? null);
       setProfiles((profiles.data ?? []).map(mapProfile));
@@ -91,6 +105,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setReviews((reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotos.filter((photo): photo is NonNullable<typeof photo> => photo?.reviewId === review.id))));
       setLists((listRows.data ?? []).map((list) => mapList(list, (itemRows.data ?? []).filter((item) => item.list_id === list.id).map((item) => item.restaurant_id))));
       setFollows((followRows.data ?? []).map(mapFollow));
+      setDataError(null);
+      setIsLoading(false);
     }
     void loadPersistedData(supabaseClient);
     const { data: authListener } = supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -102,12 +118,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setReviews([]);
         setLists([]);
         setFollows([]);
+        setIsLoading(false);
         return;
       }
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") void loadPersistedData(supabaseClient);
     });
     return () => { active = false; authListener.subscription.unsubscribe(); };
-  }, [backendConfigured]);
+  }, [backendConfigured, retryToken]);
+  const retryData = useCallback(() => setRetryToken((value) => value + 1), []);
   const showToast = useCallback((message = "Pronto!") => { setToastMessage(message); setToastOpen(true); }, []);
   const hideToast = useCallback(() => setToastOpen(false), []);
   const toggleWantToVisit = useCallback(async (restaurantId: string) => {
@@ -301,6 +319,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, currentUserId, users: profiles, reviews, restaurants, lists, follows, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, submitRestaurant, publishReview, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, currentUserId, deleteList, follows, hideToast, isAdmin, isToastOpen, lists, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleWantToVisit, updateList, updateRestaurantAdmin]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, users: profiles, reviews, restaurants, lists, follows, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, submitRestaurant, publishReview, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, currentUserId, dataError, deleteList, follows, hideToast, isAdmin, isLoading, isToastOpen, lists, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleWantToVisit, updateList, updateRestaurantAdmin]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

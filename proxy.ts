@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSupabaseSession } from "@/lib/supabase/middleware";
 import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 
-const protectedPrefixes = ["/profile", "/review/new", "/restaurant/new", "/admin"];
+const protectedPrefixes = ["/profile", "/review/new", "/restaurant/new", "/onboarding", "/admin"];
 const protectedExactPaths = ["/lists"];
 
 export async function proxy(request: NextRequest) {

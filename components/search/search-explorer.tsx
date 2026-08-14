@@ -9,11 +9,14 @@ import { FilterSheet } from "@/components/search/filter-sheet";
 import { SearchBar } from "@/components/search/search-bar";
 import { MapView } from "@/components/search/map-view";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { useAppContext } from "@/hooks/use-app-context";
 import { countFriendsWhoVisited, getFriendIds } from "@/lib/restaurant-social";
 import { filterRestaurants } from "@/lib/search";
 import { distanceKm } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/analytics";
 
 const quick = [
   ["nearby", "true", "Perto de mim"],
@@ -30,7 +33,7 @@ export function SearchExplorer() {
   const router = useRouter();
   const path = usePathname();
   const searchParams = useSearchParams();
-  const { lists, currentUserId, reviews, restaurants, follows } = useAppContext();
+  const { lists, currentUserId, reviews, restaurants, follows, isLoading, dataError, retryData } = useAppContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const { showToast } = useToast();
@@ -39,6 +42,9 @@ export function SearchExplorer() {
 
   useEffect(() => {
     pendingParams.current = searchParams.toString();
+    const q = searchParams.get("q");
+    const active = ["nearby", "city", "neighborhood", "distance", "type", "cuisine", "price", "occasion", "rating", "history", "chef", "openNow"].some((key) => searchParams.has(key));
+    if (q || active) trackEvent(q ? "search_performed" : "filter_applied", q ? { hasQuery: true } : { hasFilter: true });
   }, [searchParams]);
 
   const setParam = (key: string, value?: string) => {
@@ -85,6 +91,9 @@ export function SearchExplorer() {
   };
   const activeFilters = Object.entries(params).filter(([key]) => !["q", "view"].includes(key));
 
+  if (isLoading) return <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10"><LoadingSkeleton className="h-9 w-52"/><LoadingSkeleton className="mt-5 h-12 max-w-xl"/><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <LoadingSkeleton key={index} className="h-80"/>)}</div></div>;
+  if (dataError) return <div className="mx-auto max-w-2xl px-4 py-10"><ErrorState message={dataError} onRetry={retryData}/></div>;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10">
       <h1 className="text-3xl font-black">Explorar lugares</h1>
@@ -114,14 +123,14 @@ export function SearchExplorer() {
       />
       {activeFilters.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-xs font-black text-stone-500">Filtros ativos:</span>{activeFilters.map(([key, value]) => <button key={key} onClick={() => setParam(key)} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`}<X size={13} /></button>)}{activeFilters.length > 1 && <button onClick={clearFilters} className="text-xs font-bold text-orange-600">Limpar tudo</button>}</div>}
       <p className="mt-6 text-sm font-semibold text-stone-500">{results.length} {results.length === 1 ? "resultado" : "resultados"}</p>
-      {view === "map" ? (
+      {view === "map" && results.length ? (
         <div className="mt-4"><MapView restaurants={results} /></div>
       ) : results.length ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={`${restaurant.distanceKm} km`} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}
         </div>
       ) : (
-        <div className="mt-5"><EmptyState title="Nenhum lugar encontrado" message={params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} /></div>
+        <div className="mt-5"><EmptyState title="Nenhum lugar encontrado" message={params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={params.q ? "Adicionar restaurante" : undefined} actionHref={params.q ? `/restaurant/new?name=${encodeURIComponent(params.q)}` : undefined} /></div>
       )}
     </div>
   );
