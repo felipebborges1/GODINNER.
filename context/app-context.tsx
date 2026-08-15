@@ -21,6 +21,7 @@ type AppContextValue = {
   dataError: string | null;
   retryData: () => void;
   currentUserId: string | null;
+  isAuthLoading: boolean;
   reviews: Review[];
   users: User[];
   restaurants: Restaurant[];
@@ -60,6 +61,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [follows, setFollows] = useState(dataMode === "mock" ? mockData.follows : []);
   const [profiles, setProfiles] = useState<User[]>(dataMode === "mock" ? users : []);
   const [isLoading, setIsLoading] = useState(dataMode === "supabase" && backendConfigured);
+  const [isAuthLoading, setIsAuthLoading] = useState(dataMode === "supabase" && backendConfigured);
   const [dataError, setDataError] = useState<string | null>(supabaseConfigurationError);
   const [retryToken, setRetryToken] = useState(0);
   useEffect(() => {
@@ -68,12 +70,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!supabaseClient) return;
     type SupabaseBrowserClient = NonNullable<ReturnType<typeof createSupabaseBrowserClient>>;
     let active = true;
-    async function loadPersistedData(client: SupabaseBrowserClient) {
+    let loadSequence = 0;
+    async function loadPersistedData(client: SupabaseBrowserClient, requestedUserId?: string | null) {
+      const requestId = ++loadSequence;
       setIsLoading(true);
       setDataError(null);
-      const { data: authData } = await client.auth.getUser();
-      if (!active) return;
-      setSessionUserId(authData.user?.id ?? null);
+      try {
+        const resolvedUserId = requestedUserId === undefined
+          ? (await client.auth.getUser()).data.user?.id ?? null
+          : requestedUserId;
+        if (!active || requestId !== loadSequence) return;
+        setSessionUserId(resolvedUserId);
       const [profiles, restaurantRows, reviewRows, reviewPhotoRows, listRows, itemRows, followRows] = await Promise.all([
         client.from("profiles").select("*").order("created_at"),
         client.from("restaurants").select("*").order("created_at", { ascending: false }),
@@ -83,14 +90,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         client.from("restaurant_list_items").select("*").order("created_at"),
         client.from("follows").select("*").order("created_at"),
       ]);
-      if (!active) return;
+      if (!active || requestId !== loadSequence) return;
       const queryError = [profiles, restaurantRows, reviewRows, reviewPhotoRows, listRows, itemRows, followRows].find((response) => response.error)?.error;
       if (queryError) {
         setDataError("Não conseguimos carregar seus dados agora.");
         setIsLoading(false);
         return;
       }
-      const me = profiles.data?.find((profile) => profile.id === authData.user?.id);
+      const me = profiles.data?.find((profile) => profile.id === resolvedUserId);
       setSessionRole(me?.role ?? null);
       setProfiles((profiles.data ?? []).map(mapProfile));
       const mappedRestaurants = await Promise.all((restaurantRows.data ?? []).map(async (restaurant) => {
@@ -98,21 +105,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const signed = await createSignedImageUrl("restaurant-submissions", restaurant.cover_photo_path);
         return mapRestaurant({ ...restaurant, cover_photo_url: signed.data ?? restaurant.cover_photo_url });
       }));
+      if (!active || requestId !== loadSequence) return;
       setRestaurants(mappedRestaurants);
       const reviewPhotos = await Promise.all((reviewPhotoRows.data ?? []).map(async (photo) => {
         const signed = await client.storage.from("review-photos").createSignedUrl(photo.storage_path, 60 * 60);
         return signed.data?.signedUrl ? mapReviewPhoto(photo, signed.data.signedUrl) : null;
       }));
+      if (!active || requestId !== loadSequence) return;
       setReviews((reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotos.filter((photo): photo is NonNullable<typeof photo> => photo?.reviewId === review.id))));
       setLists((listRows.data ?? []).map((list) => mapList(list, (itemRows.data ?? []).filter((item) => item.list_id === list.id).map((item) => item.restaurant_id))));
       setFollows((followRows.data ?? []).map(mapFollow));
       setDataError(null);
       setIsLoading(false);
+      } catch {
+        if (active && requestId === loadSequence) {
+          setDataError("Falha ao carregar seus dados agora.");
+          setSessionRole(null);
+        }
+      } finally {
+        if (active && requestId === loadSequence) {
+          setIsLoading(false);
+          setIsAuthLoading(false);
+        }
+      }
     }
     void loadPersistedData(supabaseClient);
     const { data: authListener } = supabaseClient.auth.onAuthStateChange((event, session) => {
-      setSessionUserId(session?.user?.id ?? null);
+      const nextUserId = session?.user?.id ?? null;
+      setSessionUserId(nextUserId);
       if (event === "SIGNED_OUT") {
+        loadSequence += 1;
         setSessionRole(null);
         setProfiles([]);
         setRestaurants([]);
@@ -120,9 +142,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLists([]);
         setFollows([]);
         setIsLoading(false);
-        return;
+        setIsAuthLoading(false);
+        window.setTimeout(() => { void loadPersistedData(supabaseClient, null); }, 0);
       }
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") void loadPersistedData(supabaseClient);
+      if (event === "SIGNED_IN") {
+        setIsAuthLoading(true);
+        window.setTimeout(() => { void loadPersistedData(supabaseClient, nextUserId); }, 0);
+      }
     });
     return () => { active = false; authListener.subscription.unsubscribe(); };
   }, [backendConfigured, retryToken]);
@@ -322,6 +348,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, users: profiles, reviews, restaurants, lists, follows, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, submitRestaurant, publishReview, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, currentUserId, dataError, deleteList, follows, hideToast, isAdmin, isLoading, isToastOpen, lists, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleWantToVisit, updateList, updateRestaurantAdmin]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, submitRestaurant, publishReview, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, currentUserId, dataError, deleteList, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleWantToVisit, updateList, updateRestaurantAdmin]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
