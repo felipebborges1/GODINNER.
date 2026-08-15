@@ -106,13 +106,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return mapRestaurant({ ...restaurant, cover_photo_url: signed.data ?? restaurant.cover_photo_url });
       }));
       if (!active || requestId !== loadSequence) return;
-      setRestaurants(mappedRestaurants);
       const reviewPhotos = await Promise.all((reviewPhotoRows.data ?? []).map(async (photo) => {
         const signed = await client.storage.from("review-photos").createSignedUrl(photo.storage_path, 60 * 60);
         return signed.data?.signedUrl ? mapReviewPhoto(photo, signed.data.signedUrl) : null;
       }));
       if (!active || requestId !== loadSequence) return;
-      setReviews((reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotos.filter((photo): photo is NonNullable<typeof photo> => photo?.reviewId === review.id))));
+      const mappedReviews = (reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotos.filter((photo): photo is NonNullable<typeof photo> => photo?.reviewId === review.id)));
+      const ratingsByRestaurant = new Map<string, number[]>();
+      mappedReviews.forEach((review) => {
+        const ratings = ratingsByRestaurant.get(review.restaurantId) ?? [];
+        ratings.push(review.rating);
+        ratingsByRestaurant.set(review.restaurantId, ratings);
+      });
+      setRestaurants(mappedRestaurants.map((restaurant) => {
+        const ratings = ratingsByRestaurant.get(restaurant.id) ?? [];
+        return {
+          ...restaurant,
+          godinnerRating: ratings.length ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1)) : 0,
+          reviewCount: ratings.length,
+        };
+      }));
+      setReviews(mappedReviews);
       setLists((listRows.data ?? []).map((list) => mapList(list, (itemRows.data ?? []).filter((item) => item.list_id === list.id).map((item) => item.restaurant_id))));
       setFollows((followRows.data ?? []).map(mapFollow));
       setDataError(null);
