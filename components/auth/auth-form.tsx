@@ -16,7 +16,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => params.get("error") === "auth_callback" ? "Não foi possível confirmar o e-mail. Solicite um novo link e tente novamente." : "");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const next = safeNext(params.get("next"));
@@ -32,7 +32,14 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setBusy(true);
     const response = mode === "login"
       ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { name: name.trim(), username: username.trim().toLowerCase() } } });
+      : await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: { name: name.trim(), username: username.trim().toLowerCase() },
+          },
+        });
     setBusy(false);
     if (response.error) { setError("Não foi possível concluir. Verifique os dados e tente novamente."); return; }
     if (mode === "login") trackEvent("login_completed");
