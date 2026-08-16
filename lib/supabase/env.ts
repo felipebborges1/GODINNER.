@@ -1,14 +1,24 @@
-const publicSupabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-export const dataMode: "mock" | "supabase" = process.env.NEXT_PUBLIC_DATA_MODE === "mock"
-  ? "mock"
-  : publicSupabaseConfigured
-    ? "supabase"
-    : "mock";
+const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+const publicSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
+
+function isLocalSupabaseUrl(value: string) {
+  try {
+    return ["localhost", "127.0.0.1", "::1"].includes(new URL(value).hostname);
+  } catch {
+    return true;
+  }
+}
+
+const publicSupabaseConfigured = Boolean(publicSupabaseUrl && publicSupabaseAnonKey) && !isLocalSupabaseUrl(publicSupabaseUrl);
+export const dataMode: "mock" | "supabase" = process.env.NEXT_PUBLIC_DATA_MODE === "mock" ? "mock" : "supabase";
+export const supabaseConfigurationError = dataMode === "supabase" && !publicSupabaseConfigured
+  ? "Supabase remoto não está configurado neste ambiente."
+  : null;
 
 export function getSupabasePublicEnv() {
   return {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+    url: publicSupabaseUrl,
+    anonKey: publicSupabaseAnonKey,
   };
 }
 
@@ -22,6 +32,5 @@ export function getSupabaseEnv() {
 }
 
 export function hasSupabasePublicEnv() {
-  const { url, anonKey } = getSupabasePublicEnv();
-  return Boolean(url && anonKey);
+  return publicSupabaseConfigured;
 }

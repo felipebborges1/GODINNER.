@@ -1,11 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSupabaseSession } from "@/lib/supabase/middleware";
-import { hasSupabasePublicEnv } from "@/lib/supabase/env";
+import { dataMode, hasSupabasePublicEnv } from "@/lib/supabase/env";
 
 const protectedPrefixes = ["/profile", "/review/new", "/restaurant/new", "/onboarding", "/admin"];
 const protectedExactPaths = ["/lists"];
 
 export async function proxy(request: NextRequest) {
+  if (dataMode === "supabase" && !hasSupabasePublicEnv()) {
+    return NextResponse.json({ error: "Supabase remoto não está configurado neste ambiente." }, { status: 500 });
+  }
   if (!hasSupabasePublicEnv()) return NextResponse.next();
   const response = await updateSupabaseSession(request);
   const isProtected = protectedPrefixes.some((prefix) => request.nextUrl.pathname === prefix || request.nextUrl.pathname.startsWith(`${prefix}/`)) || protectedExactPaths.includes(request.nextUrl.pathname);

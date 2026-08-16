@@ -7,3 +7,5 @@ dev.*.log
 .env.*.local
 supabase/.temp/
 supabase/.branches/
+.vercel
+.env*
