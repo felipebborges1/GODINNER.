@@ -16,6 +16,7 @@ import { ReviewCard } from "@/components/review/review-card";
 import { MapView } from "@/components/search/map-view";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { PhotoGallery } from "./photo-gallery";
+import { GooglePlaceCover } from "./google-place-cover";
 import { SaveToListSheet } from "./save-to-list-sheet";
 import { trackEvent } from "@/lib/analytics";
 
@@ -43,7 +44,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
   const copyLink = async () => { const url = `${window.location.origin}/restaurant/${restaurant.slug}`; try { await navigator.clipboard?.writeText(url); showToast("Link copiado"); } catch { showToast("Link pronto para compartilhar"); } setShareOpen(false); };
 
   return <div className="pb-28 lg:pb-12">
-    <PhotoGallery photos={galleryPhotos} name={restaurant.name}/>
+    {restaurant.hasGooglePlaceCover ? <GooglePlaceCover slug={restaurant.slug} fallbackUrl={restaurant.coverPhoto.url} alt={restaurant.name} variant="profile"/> : <PhotoGallery photos={galleryPhotos} name={restaurant.name}/>}
     <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-6 lg:pt-9">
       <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-12">
         <div>
