@@ -4,7 +4,7 @@ import { getSupabaseEnv } from "./env";
 
 export async function updateSupabaseSession(request: NextRequest) {
   const { url, anonKey } = getSupabaseEnv();
-  if (!url || !anonKey) return NextResponse.next({ request });
+  if (!url || !anonKey) return { response: NextResponse.next({ request }), user: null };
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, anonKey, {
     cookies: {
@@ -16,6 +16,6 @@ export async function updateSupabaseSession(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
-  return response;
+  const { data } = await supabase.auth.getUser();
+  return { response, user: data.user };
 }

@@ -18,15 +18,10 @@ export async function proxy(request: NextRequest) {
     callback.searchParams.set("next", safeNext(request.nextUrl.searchParams.get("next")));
     return NextResponse.redirect(callback);
   }
-  const response = await updateSupabaseSession(request);
+  const { response, user } = await updateSupabaseSession(request);
   const isProtected = protectedPrefixes.some((prefix) => request.nextUrl.pathname === prefix || request.nextUrl.pathname.startsWith(`${prefix}/`)) || protectedExactPaths.includes(request.nextUrl.pathname);
   if (!isProtected) return response;
-  const { createServerClient } = await import("@supabase/ssr");
-  const { getSupabaseEnv } = await import("@/lib/supabase/env");
-  const { url, anonKey } = getSupabaseEnv();
-  const supabase = createServerClient(url, anonKey, { cookies: { getAll: () => request.cookies.getAll(), setAll: () => undefined } });
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) {
+  if (!user) {
     const login = new URL("/login", request.url);
     login.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(login);
