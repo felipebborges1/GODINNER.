@@ -8,9 +8,9 @@ import { mapFollow, mapList, mapProfile, mapRestaurant, mapReview, mapReviewPhot
 import { publishReviewPersisted } from "@/lib/data/repositories";
 import { createSignedImageUrl, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
-import type { Follow, PriceRange, Restaurant, RestaurantList, Review, User } from "@/types";
+import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, User } from "@/types";
 
-export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo: { url: string; alt: string; file?: File } | null; instagram?: string; site?: string; phone?: string; chef?: string };
+export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
 export type AdminResult = { ok: boolean; error?: string; restaurant?: Restaurant };
 
@@ -274,7 +274,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [backendConfigured, currentUserId, follows]);
   const submitRestaurant = useCallback(async (draft: RestaurantSubmission) => {
     if (!currentUserId) return { error: "Entre para adicionar um restaurante." };
-    if (!draft.photo) return { error: "Adicione uma foto." };
     const normalizedName = normalize(draft.name);
     if (normalizedName.length < 2) return { error: "Informe um nome válido." };
     const duplicate = restaurants.find((restaurant) => normalize(restaurant.name) === normalizedName);
@@ -284,18 +283,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const index = restaurants.length;
     if (dataMode === "supabase" && backendConfigured) {
       const client = createSupabaseBrowserClient();
-      if (!client || !draft.photo.file) return { error: "Selecione a foto novamente." };
-      const upload = await uploadUserImage(currentUserId, draft.photo.file, "restaurant-submissions");
-      if (upload.error || !upload.data) return { error: "Não foi possível enviar a foto." };
-      const coordinates = mockRestaurantCoordinates(index, draft.city);
-      const inserted = await client.from("restaurants").insert({ slug: baseSlug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), latitude: coordinates.latitude, longitude: coordinates.longitude, category: draft.category, cuisines: draft.cuisine, price_range: draft.priceRange, instagram: draft.instagram ?? null, website: draft.site ?? null, phone: draft.phone ?? null, chef: draft.chef?.trim() ?? "", cover_photo_url: null, cover_photo_path: upload.data.path, google_place_id: null, status: "pending_review", submitted_by: currentUserId, submitted_at: new Date().toISOString(), moderated_by: null, moderated_at: null, rejection_reason: null, merged_into_id: null }).select("*").single();
+      if (!client) return { error: "Não foi possível cadastrar o restaurante." };
+      const upload = draft.photo?.file ? await uploadUserImage(currentUserId, draft.photo.file, "restaurant-submissions") : null;
+      if (upload?.error || (draft.photo?.file && !upload?.data)) return { error: "Não foi possível enviar a foto." };
+      const coordinates = draft.coordinates ?? mockRestaurantCoordinates(index, draft.city);
+      const inserted = await client.from("restaurants").insert({ slug: baseSlug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), latitude: coordinates.latitude, longitude: coordinates.longitude, category: draft.category, cuisines: draft.cuisine, price_range: draft.priceRange, instagram: draft.instagram ?? null, website: draft.site ?? null, phone: draft.phone ?? null, chef: draft.chef?.trim() ?? "", cover_photo_url: null, cover_photo_path: upload?.data?.path ?? null, google_place_id: null, status: "pending_review", submitted_by: currentUserId, submitted_at: new Date().toISOString(), moderated_by: null, moderated_at: null, rejection_reason: null, merged_into_id: null }).select("*").single();
       if (inserted.error || !inserted.data) return { error: "Não foi possível cadastrar o restaurante." };
-      const restaurant = mapRestaurant({ ...inserted.data, cover_photo_url: upload.data.url });
+      const restaurant = mapRestaurant({ ...inserted.data, cover_photo_url: upload?.data?.url ?? null });
       setRestaurants((current) => [restaurant, ...current]);
       return { restaurant };
     }
-    const restaurantCoordinates = mockRestaurantCoordinates(index, draft.city);
-    const restaurant: Restaurant = { id: `restaurant-${Date.now()}`, slug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), category: draft.category, cuisine: draft.cuisine, priceRange: draft.priceRange, coverPhoto: { id: `cover-${Date.now()}`, ...draft.photo }, photos: [{ id: `cover-${Date.now()}`, ...draft.photo }], tags: ["new"], chef: draft.chef?.trim() ?? "", occasions: ["friends"], isOpenNow: false, distanceKm: Number((2.4 + (index % 5) * .4).toFixed(1)), coordinates: restaurantCoordinates, godinnerRating: 0, friendsRating: 0, reviewCount: 0, status: "pending_review", submittedBy: currentUserId, submittedAt: new Date().toISOString(), instagram: draft.instagram, site: draft.site, phone: draft.phone };
+    const restaurantCoordinates = draft.coordinates ?? mockRestaurantCoordinates(index, draft.city);
+    const fallbackPhoto = { id: `cover-${Date.now()}`, url: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80", alt: draft.name.trim() };
+    const submittedPhoto = draft.photo ? { id: `cover-${Date.now()}`, ...draft.photo } : fallbackPhoto;
+    const restaurant: Restaurant = { id: `restaurant-${Date.now()}`, slug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), category: draft.category, cuisine: draft.cuisine, priceRange: draft.priceRange, coverPhoto: submittedPhoto, photos: draft.photo ? [submittedPhoto] : [], tags: ["new"], chef: draft.chef?.trim() ?? "", occasions: ["friends"], isOpenNow: false, distanceKm: Number((2.4 + (index % 5) * .4).toFixed(1)), coordinates: restaurantCoordinates, godinnerRating: 0, friendsRating: 0, reviewCount: 0, status: "pending_review", submittedBy: currentUserId, submittedAt: new Date().toISOString(), instagram: draft.instagram, site: draft.site, phone: draft.phone };
     setRestaurants((current) => [...current, restaurant]);
     return { restaurant };
   }, [backendConfigured, currentUserId, restaurants]);
