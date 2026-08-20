@@ -14,6 +14,7 @@ import { useAppContext } from "@/hooks/use-app-context";
 import { trackEvent } from "@/lib/analytics";
 import type { User } from "@/types";
 import { BetaFeedback } from "./beta-feedback";
+import { PushNotificationSettings } from "@/components/push/push-notification-settings";
 
 type Tab = "experiences" | "lists" | "photos";
 type ProfileList = "places" | "followers" | "following";
@@ -65,7 +66,7 @@ export function ProfileView({ userId, own }: { userId: string; own: boolean }) {
       {tab === "experiences" && <section className="mt-6"><h2 className="sr-only">Experiências</h2>{ownReviews.length ? <div className="grid max-w-xl gap-4">{ownReviews.map((review) => <ReviewCard key={review.id} review={review} user={user} restaurant={restaurants.find((restaurant) => restaurant.id === review.restaurantId)}/>)}</div> : <EmptyState title="Nenhuma experiência publicada ainda." message={own ? "Registre sua próxima visita para começar." : "Esta pessoa ainda não publicou experiências."} actionLabel={own ? "Explorar restaurantes" : undefined} actionHref={own ? "/search" : undefined}/>}</section>}
       {tab === "lists" && <section className="mt-6">{visibleLists.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleLists.map((list) => <ListCard key={list.id} list={list}/>)}</div> : <EmptyState title="Nenhuma lista para mostrar." message={own ? "Organize seus próximos lugares em listas." : "Esta pessoa ainda não compartilhou listas."}/>}</section>}
       {tab === "photos" && <section className="mt-6">{photos.length ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{photos.map(({ photo, restaurant }) => restaurant && <Link key={photo.id} href={`/restaurant/${restaurant.slug}`} className="group relative aspect-square overflow-hidden rounded-2xl"><Image src={photo.url} alt={`Foto publicada em ${restaurant.name}`} fill unoptimized sizes="(min-width: 1024px) 250px, 50vw" className="object-cover transition group-hover:scale-105"/><span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 p-3 text-xs font-bold text-white">{restaurant.name}</span></Link>)}</div> : <EmptyState title="Nenhuma foto publicada ainda." message="As fotos das experiências aparecem aqui."/>}</section>}</>}
-      {own && <div className="mt-8"><BetaFeedback/></div>}
+      {own && <div className="mt-8 grid max-w-xl gap-4"><PushNotificationSettings/><BetaFeedback/></div>}
     </div>
     <LoginWall open={loginOpen} onClose={() => setLoginOpen(false)} next={next}/>
   </>;

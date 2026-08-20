@@ -14,11 +14,14 @@ export interface Database {
       restaurant_lists: { Row: ListRow; Insert: ListInsert; Update: ListUpdate; Relationships: [] };
       restaurant_list_items: { Row: ListItemRow; Insert: ListItemInsert; Update: ListItemUpdate; Relationships: [] };
       follows: { Row: FollowRow; Insert: FollowInsert; Update: FollowUpdate; Relationships: [] };
+      push_subscriptions: { Row: PushSubscriptionRow; Insert: PushSubscriptionInsert; Update: PushSubscriptionUpdate; Relationships: [] };
+      follow_push_events: { Row: FollowPushEventRow; Insert: FollowPushEventInsert; Update: FollowPushEventUpdate; Relationships: [] };
     };
     Views: Record<string, never>;
     Functions: {
       publish_review: { Args: { p_restaurant_id: string; p_rating: number; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: string };
       merge_restaurant: { Args: { p_pending_id: string; p_target_id: string }; Returns: string };
+      claim_follow_push_event: { Args: { p_following_id: string }; Returns: Array<{ event_id: string; follower_id: string; following_id: string }> };
     };
     Enums: { app_role: AppRole; restaurant_category: RestaurantCategory; restaurant_status: RestaurantStatus; list_type: ListType; price_range: PriceRange };
     CompositeTypes: Record<string, never>;
@@ -46,3 +49,9 @@ export type ListItemUpdate = Partial<ListItemInsert>;
 export type FollowRow = { follower_id: string; following_id: string; created_at: string; };
 export type FollowInsert = Omit<FollowRow, "created_at"> & { created_at?: string };
 export type FollowUpdate = Partial<FollowInsert>;
+export type PushSubscriptionRow = { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; created_at: string; updated_at: string; };
+export type PushSubscriptionInsert = Omit<PushSubscriptionRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string; };
+export type PushSubscriptionUpdate = Partial<PushSubscriptionInsert>;
+export type FollowPushEventRow = { id: string; follower_id: string; following_id: string; created_at: string; processed_at: string | null; };
+export type FollowPushEventInsert = Omit<FollowPushEventRow, "id" | "created_at"> & { id?: string; created_at?: string; };
+export type FollowPushEventUpdate = Partial<FollowPushEventInsert>;

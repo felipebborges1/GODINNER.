@@ -268,6 +268,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ? await client.from("follows").delete().eq("follower_id", currentUserId).eq("following_id", userId)
         : await client.from("follows").insert({ follower_id: currentUserId, following_id: userId });
       if (response.error) return false;
+      if (!existing) void fetch("/api/push/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ followingId: userId }) }).catch(() => undefined);
     }
     setFollows((current) => existing ? current.filter((follow) => !(follow.followerId === currentUserId && follow.followingId === userId)) : [...current, { followerId: currentUserId, followingId: userId, createdAt: new Date().toISOString() }]);
     return !existing;
