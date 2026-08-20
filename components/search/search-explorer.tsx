@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal, X } from "lucide-react";
@@ -7,7 +8,6 @@ import { RestaurantCard } from "@/components/restaurant/restaurant-card";
 import { FilterChip } from "@/components/search/filter-chip";
 import { FilterSheet } from "@/components/search/filter-sheet";
 import { SearchBar } from "@/components/search/search-bar";
-import { MapView } from "@/components/search/map-view";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -17,6 +17,11 @@ import { filterRestaurants } from "@/lib/search";
 import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
+
+const MapView = dynamic(() => import("@/components/search/map-view").then((module) => module.MapView), {
+  ssr: false,
+  loading: () => <LoadingSkeleton className="min-h-[480px] rounded-3xl sm:min-h-[560px] lg:min-h-[620px]"/>,
+});
 
 const quick = [
   ["nearby", "true", "Perto de mim"],

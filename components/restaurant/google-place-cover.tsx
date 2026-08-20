@@ -15,6 +15,12 @@ type CoverState = {
   failed: boolean;
 };
 
+type CardState = {
+  key: string;
+  loaded: boolean;
+  failed: boolean;
+};
+
 const inFlightMetadata = new Map<string, Promise<PhotoMetadata>>();
 
 function loadMetadata(slug: string, variant: "card" | "profile") {
@@ -32,16 +38,18 @@ function loadMetadata(slug: string, variant: "card" | "profile") {
   return request;
 }
 
-export function GooglePlaceCover({ slug, fallbackUrl, alt, variant }: {
+export function GooglePlaceCover({ slug, fallbackUrl, alt, variant, priority = false }: {
   slug: string;
   fallbackUrl: string;
   alt: string;
   variant: "card" | "profile";
+  priority?: boolean;
 }) {
   const requestKey = `${slug}:${variant}`;
   const cardRef = useRef<HTMLSpanElement | null>(null);
-  const [isVisible, setIsVisible] = useState(variant === "profile");
+  const [isVisible, setIsVisible] = useState(variant === "profile" || priority);
   const [state, setState] = useState<CoverState>({ key: "", metadata: null, failed: false });
+  const [cardState, setCardState] = useState<CardState>({ key: "", loaded: false, failed: false });
 
   useEffect(() => {
     if (variant === "profile" || isVisible) return;
@@ -61,7 +69,7 @@ export function GooglePlaceCover({ slug, fallbackUrl, alt, variant }: {
   }, [isVisible, variant]);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (variant !== "profile") return;
     let active = true;
     loadMetadata(slug, variant)
       .then((value) => {
@@ -71,7 +79,27 @@ export function GooglePlaceCover({ slug, fallbackUrl, alt, variant }: {
         if (active) setState({ key: requestKey, metadata: null, failed: true });
       });
     return () => { active = false; };
-  }, [isVisible, requestKey, slug, variant]);
+  }, [requestKey, slug, variant]);
+
+  const cardLoaded = cardState.key === requestKey && cardState.loaded;
+  const cardFailed = cardState.key === requestKey && cardState.failed;
+
+  if (variant === "card") return <span ref={cardRef} aria-busy={!cardLoaded && !cardFailed} className="absolute inset-0 block overflow-hidden bg-stone-100">
+    {!cardLoaded && !cardFailed && <span className="absolute inset-0 animate-pulse bg-gradient-to-br from-stone-100 via-stone-200 to-stone-100" aria-hidden="true"/>}
+    {isVisible && !cardFailed && <Image
+      src={`/api/google-places/${slug}?media=1&variant=card`}
+      alt={alt}
+      fill
+      priority={priority}
+      unoptimized
+      sizes="(min-width: 1024px) 270px, 82vw"
+      className={`object-cover transition duration-500 group-hover:scale-105 ${cardLoaded ? "opacity-100" : "opacity-0"}`}
+      onLoad={() => setCardState({ key: requestKey, loaded: true, failed: false })}
+      onError={() => setCardState({ key: requestKey, loaded: false, failed: true })}
+    />}
+    {cardFailed && <Image src={fallbackUrl} alt={alt} fill sizes="(min-width: 1024px) 270px, 82vw" className="object-cover transition duration-500 group-hover:scale-105"/>}
+    {cardLoaded && <span translate="no" className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs font-normal text-white backdrop-blur-sm">Google Maps</span>}
+  </span>;
 
   const metadata = state.key === requestKey ? state.metadata : null;
   const failed = state.key === requestKey && state.failed;
@@ -80,17 +108,12 @@ export function GooglePlaceCover({ slug, fallbackUrl, alt, variant }: {
     src={realPhoto ? metadata.imageUrl : fallbackUrl}
     alt={alt}
     fill
-    priority={variant === "profile"}
+    priority
     unoptimized={Boolean(realPhoto)}
-    sizes={variant === "profile" ? "100vw" : "(min-width: 1024px) 270px, 72vw"}
-    className={variant === "card" ? "object-cover transition duration-500 group-hover:scale-105" : "object-cover"}
+    sizes="100vw"
+    className="object-cover"
     onError={() => setState({ key: requestKey, metadata: null, failed: true })}
   />;
-
-  if (variant === "card") return <span ref={cardRef} className="absolute inset-0 block">
-    {image}
-    {realPhoto && <span translate="no" className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs font-normal text-white backdrop-blur-sm">Google Maps</span>}
-  </span>;
 
   return <section className="relative aspect-[4/3] overflow-hidden bg-stone-100 lg:h-[430px] lg:aspect-auto lg:rounded-[2rem]">
     {image}

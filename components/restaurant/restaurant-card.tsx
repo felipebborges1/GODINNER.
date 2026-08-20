@@ -17,7 +17,7 @@ import type { Restaurant } from "@/types";
 import { GooglePlaceCover } from "./google-place-cover";
 import { SaveToListSheet } from "./save-to-list-sheet";
 
-export function RestaurantCard({ restaurant, distance, friendsVisited = 0, className = "" }: { restaurant: Restaurant; distance?: string; friendsVisited?: number; className?: string }) {
+export function RestaurantCard({ restaurant, distance, friendsVisited = 0, className = "", imagePriority = false }: { restaurant: Restaurant; distance?: string; friendsVisited?: number; className?: string; imagePriority?: boolean }) {
   const { isWanted, toggleWantToVisit } = useWantToVisit(restaurant.id);
   const { currentUserId } = useAppContext();
   const { showToast } = useToast();
@@ -36,7 +36,7 @@ export function RestaurantCard({ restaurant, distance, friendsVisited = 0, class
   return <>
     <article className={`group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-stone-100 transition hover:-translate-y-0.5 hover:shadow-lg ${className}`}>
       <Link href={`/restaurant/${restaurant.slug}`} className="relative block aspect-[4/3] overflow-hidden">
-        {restaurant.hasGooglePlaceCover ? <GooglePlaceCover slug={restaurant.slug} fallbackUrl={restaurant.coverPhoto.url} alt={restaurant.name} variant="card"/> : <Image src={restaurant.coverPhoto.url} alt={restaurant.name} fill sizes="(min-width: 1024px) 270px, 72vw" className="object-cover transition duration-500 group-hover:scale-105"/>}
+        {restaurant.hasGooglePlaceCover ? <GooglePlaceCover slug={restaurant.slug} fallbackUrl={restaurant.coverPhoto.url} alt={restaurant.name} variant="card" priority={imagePriority}/> : <Image src={restaurant.coverPhoto.url} alt={restaurant.name} fill priority={imagePriority} sizes="(min-width: 1024px) 270px, 72vw" className="object-cover transition duration-500 group-hover:scale-105"/>}
         {restaurant.status === "pending_review" ? <span className="absolute bottom-3 left-3 rounded-full bg-orange-500 px-2 py-1 text-[10px] font-black text-white">PENDENTE</span> : restaurant.reviewCount > 0 ? <div className="absolute bottom-3 left-3"><RatingBadge rating={restaurant.godinnerRating} label="GODINNER"/></div> : <span className="absolute bottom-3 left-3 rounded-full bg-stone-950 px-2.5 py-1 text-xs font-bold text-white">novo</span>}
       </Link>
       <div className="p-4">

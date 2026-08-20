@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGooglePlaceConfig, getGooglePlaceCover } from "@/lib/google-places";
+import { getGooglePlaceConfig, getGooglePlaceCover, getGooglePlacePhotoUri } from "@/lib/google-places";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,14 @@ export async function GET(request: NextRequest, context: { params: Promise<{ slu
     if (!config) return NextResponse.json({ error: "Foto do Google Maps indisponível." }, { status: 404 });
     const { photo } = await getGooglePlaceCover(config);
     const variant = request.nextUrl.searchParams.get("variant") === "profile" ? "profile" : "card";
-    const imageUrl = `/api/google-places/${slug}/photo?name=${encodeURIComponent(photo.name)}&variant=${variant}`;
+    if (request.nextUrl.searchParams.get("media") === "1") {
+      const photoUri = await getGooglePlacePhotoUri(photo.name, variant === "profile" ? 1600 : 720);
+      const response = NextResponse.redirect(photoUri, 307);
+      response.headers.set("Cache-Control", "private, no-store, max-age=0");
+      return response;
+    }
+
+    const imageUrl = `/api/google-places/${slug}?media=1&variant=${variant}`;
     const attribution = photo.authorAttributions?.[0];
 
     return NextResponse.json({

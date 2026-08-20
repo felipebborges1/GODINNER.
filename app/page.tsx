@@ -47,7 +47,7 @@ export default function DiscoverPage() {
 
     <section className="mt-10"><div className="mb-4 flex items-end justify-between"><h2 className="text-xl font-black tracking-tight sm:text-2xl">Seus amigos estão conhecendo</h2><Link href="/feed" className="text-sm font-bold text-stone-700">Ver mais</Link></div><div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">{friendActivities.map((review) => { const user = users.find((item) => item.id === review.userId); const restaurant = restaurants.find((item) => item.id === review.restaurantId); return user && restaurant ? <FriendActivityCard key={review.id} user={user} restaurant={restaurant} review={review}/> : null; })}</div></section>
 
-    <DiscoverSection title="Perto de você" href="/search?nearby=true" restaurants={nearby} distances={["0,5 km", "0,9 km", "1,2 km", "1,7 km", "2,1 km", "2,4 km"]} friendCounts={friendCounts}/>
+    <DiscoverSection title="Perto de você" href="/search?nearby=true" restaurants={nearby} distances={["0,5 km", "0,9 km", "1,2 km", "1,7 km", "2,1 km", "2,4 km"]} friendCounts={friendCounts} prioritizeFirst/>
     <DiscoverSection title="Queridinhos da comunidade" href="/search?sort=rating" restaurants={communityFavorites} friendCounts={friendCounts}/>
     <DiscoverSection title="Para um date" href="/search?occasion=date" restaurants={datePlaces} friendCounts={friendCounts}/>
     <DiscoverSection title="Novos na região" href="/search?sort=new" restaurants={newPlaces} friendCounts={friendCounts}/>
