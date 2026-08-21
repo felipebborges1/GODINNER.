@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node tests/sprint9-contracts.test.mjs"
+    "test": "node --test tests/sprint9-contracts.test.mjs tests/ai-cuisine-matching.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",

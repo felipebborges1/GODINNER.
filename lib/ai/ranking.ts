@@ -1,16 +1,12 @@
 import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance";
 import { normalize } from "@/lib/search";
 import type { Restaurant, Review } from "@/types";
+import { restaurantMatchesCuisine } from "./cuisine";
 import type { AiRecommendation, AiRecommendationResponse, AiSearchIntent, AiSearchPosition } from "./types";
 
 type RankingInput = { restaurants: Restaurant[]; reviews: Review[]; intent: AiSearchIntent; position?: AiSearchPosition | null };
 
 const priceNotice = "Você pediu um valor em reais. Hoje o GODINNER possui apenas faixas de preço, então não aplicamos esse limite com precisão.";
-
-function includesTerm(values: string[], term: string) {
-  const normalizedTerm = normalize(term);
-  return values.some((value) => normalize(value).includes(normalizedTerm) || normalizedTerm.includes(normalize(value)));
-}
 
 function restaurantText(restaurant: Restaurant) {
   return normalize([restaurant.name, restaurant.address, restaurant.neighborhood, restaurant.city, restaurant.category, restaurant.chef, ...restaurant.cuisine].join(" "));
@@ -23,8 +19,8 @@ function ratingFor(reviews: Review[], restaurantId: string) {
 
 function candidateReasons(restaurant: Restaurant, intent: AiSearchIntent, rating: number | null, distance: number | null) {
   const reasons: string[] = [];
-  const matchingCuisine = intent.cuisines.find((cuisine) => includesTerm(restaurant.cuisine, cuisine));
-  if (matchingCuisine) reasons.push(`${restaurant.cuisine.find((cuisine) => normalize(cuisine).includes(normalize(matchingCuisine))) ?? matchingCuisine} compatível`);
+  const matchingCuisine = intent.cuisines.find((cuisine) => restaurantMatchesCuisine(restaurant.cuisine, cuisine));
+  if (matchingCuisine) reasons.push(`${restaurant.cuisine.find((cuisine) => restaurantMatchesCuisine([cuisine], matchingCuisine)) ?? matchingCuisine} compatível`);
   if (intent.neighborhoods.some((neighborhood) => normalize(neighborhood) === normalize(restaurant.neighborhood))) reasons.push(`${restaurant.neighborhood} compatível`);
   else if (intent.city === restaurant.city) reasons.push(`${restaurant.city} compatível`);
   if (intent.nearMe && distance !== null) reasons.push(`${distance.toFixed(1).replace(".", ",")} km de referência`);
@@ -42,7 +38,7 @@ export function rankAiRecommendations({ restaurants, reviews, intent, position }
   if (intent.maxPricePerPerson !== null) notices.push(priceNotice);
   if (intent.occasions.length) notices.push("O catálogo ainda não possui atributos confiáveis de ocasião; esse pedido não foi usado como filtro.");
 
-  const knownCuisine = intent.cuisines.length === 0 || intent.cuisines.some((term) => catalog.some((restaurant) => includesTerm(restaurant.cuisine, term)));
+  const knownCuisine = intent.cuisines.length === 0 || intent.cuisines.some((term) => catalog.some((restaurant) => restaurantMatchesCuisine(restaurant.cuisine, term)));
   const knownNeighborhood = intent.neighborhoods.length === 0 || intent.neighborhoods.some((term) => catalog.some((restaurant) => normalize(restaurant.neighborhood) === normalize(term)));
   const knownKeywords = intent.keywords.filter((term) => catalog.some((restaurant) => restaurantText(restaurant).includes(normalize(term))));
   if (intent.keywords.length && !knownKeywords.length) notices.push("Parte do que você pediu não pode ser verificada com os dados atuais do catálogo.");
@@ -50,7 +46,7 @@ export function rankAiRecommendations({ restaurants, reviews, intent, position }
   const matches = (restaurant: Restaurant, includeNeighborhood: boolean) =>
     (!intent.city || restaurant.city === intent.city) &&
     (!intent.category || restaurant.category === intent.category) &&
-    (!intent.cuisines.length || includesTerm(restaurant.cuisine, intent.cuisines.find((term) => includesTerm(restaurant.cuisine, term)) ?? "")) &&
+    (!intent.cuisines.length || intent.cuisines.some((term) => restaurantMatchesCuisine(restaurant.cuisine, term))) &&
     (!includeNeighborhood || !intent.neighborhoods.length || intent.neighborhoods.some((term) => normalize(restaurant.neighborhood) === normalize(term)));
 
   let candidates = knownCuisine ? catalog.filter((restaurant) => matches(restaurant, true)) : [];
@@ -67,7 +63,7 @@ export function rankAiRecommendations({ restaurants, reviews, intent, position }
     const { rating, reviewCount } = ratingFor(reviews, restaurant.id);
     const distance = origin && hasCoordinates(restaurant.coordinates) ? distanceKm(origin, restaurant.coordinates) : null;
     let score = 0;
-    if (intent.cuisines.some((term) => includesTerm(restaurant.cuisine, term))) score += 100;
+    if (intent.cuisines.some((term) => restaurantMatchesCuisine(restaurant.cuisine, term))) score += 100;
     if (intent.city === restaurant.city) score += 45;
     if (intent.neighborhoods.some((term) => normalize(term) === normalize(restaurant.neighborhood))) score += 70;
     if (intent.category === restaurant.category) score += 20;
