@@ -13,7 +13,12 @@ export type AnalyticsEvent =
   | "signup_started"
   | "signup_completed"
   | "login_completed"
-  | "people_discovery_viewed";
+  | "people_discovery_viewed"
+  | "ai_search_started"
+  | "ai_search_completed"
+  | "ai_search_no_results"
+  | "ai_search_failed"
+  | "ai_recommendation_clicked";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 

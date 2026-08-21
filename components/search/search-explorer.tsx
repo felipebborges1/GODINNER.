@@ -8,6 +8,7 @@ import { RestaurantCard } from "@/components/restaurant/restaurant-card";
 import { FilterChip } from "@/components/search/filter-chip";
 import { FilterSheet } from "@/components/search/filter-sheet";
 import { SearchBar } from "@/components/search/search-bar";
+import { AiSearchPanel } from "@/components/search/ai-search-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -34,7 +35,7 @@ const quick = [
   ["openNow", "true", "Aberto agora"],
 ] as const;
 
-export function SearchExplorer() {
+export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: boolean }) {
   const router = useRouter();
   const path = usePathname();
   const searchParams = useSearchParams();
@@ -126,6 +127,7 @@ export function SearchExplorer() {
       <div className="mt-5">
         <SearchBar value={params.q ?? ""} onChange={(value) => setParam("q", value || undefined)} placeholder="Restaurante, comida, bairro ou chef" />
       </div>
+      {aiSearchEnabled && <div className="mt-5"><AiSearchPanel restaurants={eligibleRestaurants} /></div>}
       <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
         {quick.map(([key, value, label]) => (
           <FilterChip key={label} label={label} active={params[key] === value} onClick={() => key === "nearby" ? requestNearby() : setParam(key, params[key] === value ? undefined : value)} />
