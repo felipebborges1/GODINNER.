@@ -99,8 +99,8 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   }, [eligibleRestaurants, params.distance, params.nearby, position]);
 
   const results = useMemo(
-    () => filterRestaurants(visibleRestaurants, params, lists, currentUserId),
-    [visibleRestaurants, params, lists, currentUserId],
+    () => filterRestaurants(visibleRestaurants, params, lists, currentUserId, reviews),
+    [visibleRestaurants, params, lists, currentUserId, reviews],
   );
   const friendIds = useMemo(
     () => getFriendIds(follows, currentUserId ?? ""),

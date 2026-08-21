@@ -1,4 +1,5 @@
 import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance";
+import { calculateCommunitySpend, formatCommunitySpend, type CommunitySpend } from "@/lib/community-spend";
 import { normalize } from "@/lib/search";
 import type { Restaurant, Review } from "@/types";
 import { restaurantMatchesCuisine } from "./cuisine";
@@ -6,7 +7,7 @@ import type { AiRecommendation, AiRecommendationResponse, AiSearchIntent, AiSear
 
 type RankingInput = { restaurants: Restaurant[]; reviews: Review[]; intent: AiSearchIntent; position?: AiSearchPosition | null };
 
-const priceNotice = "Você pediu um valor em reais. Hoje o GODINNER possui apenas faixas de preço, então não aplicamos esse limite com precisão.";
+const priceNotice = "O orçamento é usado como sinal de compatibilidade. Gastos informados pela comunidade não são uma garantia de preço.";
 
 function restaurantText(restaurant: Restaurant) {
   return normalize([restaurant.name, restaurant.address, restaurant.neighborhood, restaurant.city, restaurant.category, restaurant.chef, ...restaurant.cuisine].join(" "));
@@ -17,13 +18,14 @@ function ratingFor(reviews: Review[], restaurantId: string) {
   return { rating: values.length ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)) : null, reviewCount: values.length };
 }
 
-function candidateReasons(restaurant: Restaurant, intent: AiSearchIntent, rating: number | null, distance: number | null) {
+function candidateReasons(restaurant: Restaurant, intent: AiSearchIntent, rating: number | null, distance: number | null, communitySpend: CommunitySpend | null) {
   const reasons: string[] = [];
   const matchingCuisine = intent.cuisines.find((cuisine) => restaurantMatchesCuisine(restaurant.cuisine, cuisine));
   if (matchingCuisine) reasons.push(`${restaurant.cuisine.find((cuisine) => restaurantMatchesCuisine([cuisine], matchingCuisine)) ?? matchingCuisine} compatível`);
   if (intent.neighborhoods.some((neighborhood) => normalize(neighborhood) === normalize(restaurant.neighborhood))) reasons.push(`${restaurant.neighborhood} compatível`);
   else if (intent.city === restaurant.city) reasons.push(`${restaurant.city} compatível`);
   if (intent.nearMe && distance !== null) reasons.push(`${distance.toFixed(1).replace(".", ",")} km de referência`);
+  if (intent.maxPricePerPerson !== null && communitySpend && communitySpend.average <= intent.maxPricePerPerson) reasons.push(`Gasto informado pela comunidade em torno de ${formatCommunitySpend(communitySpend.average)} por pessoa`);
   if (rating !== null) reasons.push(`nota GODINNER ${rating.toFixed(1)}`);
   if (!reasons.length) reasons.push("opção do catálogo GODINNER");
   return reasons.slice(0, 3);
@@ -61,6 +63,7 @@ export function rankAiRecommendations({ restaurants, reviews, intent, position }
 
   const scored = candidates.map((restaurant) => {
     const { rating, reviewCount } = ratingFor(reviews, restaurant.id);
+    const communitySpend = calculateCommunitySpend(reviews.filter((review) => review.restaurantId === restaurant.id));
     const distance = origin && hasCoordinates(restaurant.coordinates) ? distanceKm(origin, restaurant.coordinates) : null;
     let score = 0;
     if (intent.cuisines.some((term) => restaurantMatchesCuisine(restaurant.cuisine, term))) score += 100;
@@ -70,13 +73,14 @@ export function rankAiRecommendations({ restaurants, reviews, intent, position }
     if (distance !== null) score += Math.max(0, 35 - distance * 3);
     score += knownKeywords.filter((term) => restaurantText(restaurant).includes(normalize(term))).length * 8;
     if (rating !== null) score += rating * 2 + Math.min(reviewCount, 10);
-    return { restaurant, rating, reviewCount, distance, score };
+    if (intent.maxPricePerPerson !== null && communitySpend && communitySpend.average <= intent.maxPricePerPerson) score += 25;
+    return { restaurant, rating, reviewCount, distance, communitySpend, score };
   }).sort((a, b) => b.score - a.score || (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY) || a.restaurant.name.localeCompare(b.restaurant.name));
 
-  const recommendations: AiRecommendation[] = scored.slice(0, 5).map(({ restaurant, rating, reviewCount, distance }) => ({
+  const recommendations: AiRecommendation[] = scored.slice(0, 5).map(({ restaurant, rating, reviewCount, distance, communitySpend }) => ({
     restaurantId: restaurant.id,
     slug: restaurant.slug,
-    reasons: candidateReasons(restaurant, intent, rating, distance),
+    reasons: candidateReasons(restaurant, intent, rating, distance, communitySpend),
     rating,
     reviewCount,
     distanceKm: distance === null ? null : Number(distance.toFixed(1)),

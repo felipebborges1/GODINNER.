@@ -1,4 +1,5 @@
-import type { Restaurant, RestaurantList } from "@/types";
+import { calculateCommunitySpend } from "@/lib/community-spend";
+import type { Restaurant, RestaurantList, Review } from "@/types";
 
 export type SearchParams = Record<string, string>;
 
@@ -15,6 +16,7 @@ export function filterRestaurants(
   params: SearchParams,
   lists: RestaurantList[],
   userId: string | null,
+  reviews: Review[] = [],
 ) {
   const q = normalize(params.q ?? "");
   const history = params.history;
@@ -48,6 +50,12 @@ export function filterRestaurants(
     );
   });
 
+  const hasCommunityBudgetCompatibility = (restaurant: Restaurant) => {
+    if (params.price !== "100") return false;
+    const spend = calculateCommunitySpend(reviews.filter((review) => review.restaurantId === restaurant.id));
+    return Boolean(spend && spend.average <= 100);
+  };
+
   return result.sort((a, b) =>
     params.sort === "rating"
       ? b.godinnerRating - a.godinnerRating
@@ -57,6 +65,6 @@ export function filterRestaurants(
           ? a.distanceKm - b.distanceKm
           : q
             ? (normalize(a.name).startsWith(q) ? -1 : 0) - (normalize(b.name).startsWith(q) ? -1 : 0)
-            : 0,
+            : Number(hasCommunityBudgetCompatibility(b)) - Number(hasCommunityBudgetCompatibility(a)),
   );
 }

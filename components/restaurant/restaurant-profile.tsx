@@ -8,6 +8,7 @@ import { LoginWall } from "@/components/auth/login-wall";
 import { useAppContext } from "@/hooks/use-app-context";
 import { useWantToVisit } from "@/hooks/use-want-to-visit";
 import { getFriendIds } from "@/lib/restaurant-social";
+import { calculateCommunitySpend, formatCommunityExperienceCount, formatCommunitySpend } from "@/lib/community-spend";
 import type { Restaurant } from "@/types";
 import { CuisineChip } from "@/components/ui/cuisine-chip";
 import { PriceBadge } from "@/components/ui/price-badge";
@@ -38,7 +39,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
   const communityReviews = restaurantReviews.filter((review) => !friendIds.has(review.userId));
   const rating = average(restaurantReviews.map((review) => review.rating));
   const friendsRating = average(friendReviews.map((review) => review.rating));
-  const averageSpend = average(restaurantReviews.flatMap((review) => review.amountPerPerson === undefined ? [] : [review.amountPerPerson]));
+  const communitySpend = calculateCommunitySpend(restaurantReviews);
   const galleryPhotos = [restaurant.coverPhoto, ...restaurant.photos, ...restaurantReviews.flatMap((review) => review.photos)].filter((photo, index, source) => source.findIndex((candidate) => candidate.id === photo.id) === index).slice(0, 5);
   const handleWant = async () => { if (!currentUserId) { setLoginOpen(true); return; } const added = await toggleWantToVisit(restaurant.id); trackEvent(added ? "want_to_visit_added" : "want_to_visit_removed", { restaurantId: restaurant.id }); showToast(added ? "Adicionado a Quero conhecer" : "Removido de Quero conhecer"); };
   const copyLink = async () => { const url = `${window.location.origin}/restaurant/${restaurant.slug}`; try { await navigator.clipboard?.writeText(url); showToast("Link copiado"); } catch { showToast("Link pronto para compartilhar"); } setShareOpen(false); };
@@ -60,7 +61,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
       <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-10"><section><h2 className="text-2xl font-black">Seus amigos</h2>{friendReviews.length ? <div className="mt-4 grid gap-4">{friendReviews.map((review) => <ReviewCard key={review.id} review={review} user={users.find((user) => user.id === review.userId)!}/>)}</div> : <p className="mt-3 text-sm text-stone-500">Seus amigos ainda não avaliaram este lugar.</p>}</section>
           <section><h2 className="text-2xl font-black">Comunidade</h2>{communityReviews.length ? <div className="mt-4 grid gap-4">{communityReviews.map((review) => <ReviewCard key={review.id} review={review} user={users.find((user) => user.id === review.userId)!}/>)}</div> : <p className="mt-3 text-sm text-stone-500">Ainda não há avaliações da comunidade.</p>}</section></div>
-        <aside className="space-y-5"><section className="rounded-3xl bg-orange-50 p-5"><p className="text-sm font-black">Preço médio</p><p className="mt-2 text-2xl font-black">{averageSpend ? `R$ ${Math.round(averageSpend)}/pessoa` : "Ainda sem média"}</p><p className="mt-1 text-xs text-stone-500">Média informada pela comunidade</p></section><section className="rounded-3xl border border-stone-100 p-5"><h2 className="text-lg font-black">Sobre</h2><p className="mt-3 flex items-start gap-2 text-sm text-stone-600"><MapPin size={17} className="mt-0.5 shrink-0"/>{restaurant.address}</p></section><section><h2 className="mb-3 text-lg font-black">Localização</h2><MapView restaurants={[restaurant]}/></section></aside>
+        <aside className="space-y-5"><section className="rounded-3xl bg-orange-50 p-5"><p className="text-sm font-black">Faixa editorial</p><p className="mt-2 text-2xl font-black">{restaurant.priceRange}</p><p className="mt-1 text-xs text-stone-500">Referência inicial do catálogo</p>{communitySpend && <div className="mt-5 border-t border-orange-100 pt-4"><p className="text-sm font-black">{communitySpend.experienceCount === 1 ? "Gasto informado pela comunidade" : "Gasto médio da comunidade"}</p><p className="mt-2 text-2xl font-black">{formatCommunitySpend(communitySpend.average)} <span className="text-base font-semibold">por pessoa</span></p><p className="mt-1 text-xs text-stone-500">{formatCommunityExperienceCount(communitySpend.experienceCount)}</p></div>}</section><section className="rounded-3xl border border-stone-100 p-5"><h2 className="text-lg font-black">Sobre</h2><p className="mt-3 flex items-start gap-2 text-sm text-stone-600"><MapPin size={17} className="mt-0.5 shrink-0"/>{restaurant.address}</p></section><section><h2 className="mb-3 text-lg font-black">Localização</h2><MapView restaurants={[restaurant]}/></section></aside>
       </div>
     </main>
     <SaveToListSheet open={listsOpen} onClose={() => setListsOpen(false)} restaurantId={restaurant.id}/>
