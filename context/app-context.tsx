@@ -6,7 +6,7 @@ import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/li
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { mapFollow, mapList, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
 import { publishReviewPersisted } from "@/lib/data/repositories";
-import { createSignedImageUrl, uploadUserImage } from "@/lib/supabase/storage";
+import { createSignedImageUrl, removeProfileAvatar, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
 import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, User } from "@/types";
 
@@ -40,6 +40,7 @@ type AppContextValue = {
   toggleFollow: (userId: string) => Promise<boolean>;
   submitRestaurant: (draft: RestaurantSubmission) => Promise<{ restaurant?: Restaurant; duplicate?: Restaurant; error?: string }>;
   publishReview: (draft: Omit<Review, "id" | "userId" | "createdAt">) => Promise<Review | null>;
+  updateProfileAvatar: (file: File | null) => Promise<{ ok: boolean; avatar: string | null; error?: string }>;
   isAdmin: boolean;
   updateRestaurantAdmin: (restaurantId: string, draft: AdminRestaurantDraft) => AdminResult;
   approveRestaurant: (restaurantId: string) => AdminResult;
@@ -99,7 +100,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       const me = profiles.data?.find((profile) => profile.id === resolvedUserId);
       setSessionRole(me?.role ?? null);
-      setProfiles((profiles.data ?? []).map(mapProfile));
+      const mappedProfiles = (profiles.data ?? []).map((profile) => {
+        const path = profile.avatar_url?.startsWith(`${profile.id}/`) ? profile.avatar_url : null;
+        return mapProfile(profile, path ? `/api/profile-avatar/${profile.id}?v=${encodeURIComponent(path)}` : null);
+      });
+      if (!active || requestId !== loadSequence) return;
+      setProfiles(mappedProfiles);
       const mappedRestaurants = await Promise.all((restaurantRows.data ?? []).map(async (restaurant) => {
         if (!restaurant.cover_photo_path) return mapRestaurant(restaurant);
         const signed = await createSignedImageUrl("restaurant-submissions", restaurant.cover_photo_path);
@@ -273,6 +279,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setFollows((current) => existing ? current.filter((follow) => !(follow.followerId === currentUserId && follow.followingId === userId)) : [...current, { followerId: currentUserId, followingId: userId, createdAt: new Date().toISOString() }]);
     return !existing;
   }, [backendConfigured, currentUserId, follows]);
+  const updateProfileAvatar = useCallback(async (file: File | null) => {
+    if (!currentUserId) return { ok: false, avatar: null, error: "Entre para alterar sua foto." };
+    const current = profiles.find((profile) => profile.id === currentUserId);
+    if (!current) return { ok: false, avatar: null, error: "Perfil não encontrado." };
+    const previousPath = current.avatarPath;
+    const previousAvatar = current.avatar;
+    if (dataMode !== "supabase" || !backendConfigured) {
+      const nextAvatar = file ? URL.createObjectURL(file) : null;
+      setProfiles((items) => items.map((profile) => profile.id === currentUserId ? { ...profile, avatar: nextAvatar, avatarPath: null } : profile));
+      return { ok: true, avatar: nextAvatar };
+    }
+    const client = createSupabaseBrowserClient();
+    if (!client) return { ok: false, avatar: previousAvatar, error: "Supabase não está configurado." };
+    if (!file) {
+      const cleared = await client.from("profiles").update({ avatar_url: null }).eq("id", currentUserId).select("*").single();
+      if (cleared.error) return { ok: false, avatar: previousAvatar, error: "Não foi possível remover sua foto." };
+      if (previousPath) {
+        const removed = await removeProfileAvatar(previousPath);
+        if (removed.error) {
+          await client.from("profiles").update({ avatar_url: previousPath }).eq("id", currentUserId);
+          return { ok: false, avatar: previousAvatar, error: "Não foi possível remover sua foto. Tente novamente." };
+        }
+      }
+      setProfiles((items) => items.map((profile) => profile.id === currentUserId ? { ...profile, avatar: null, avatarPath: null } : profile));
+      return { ok: true, avatar: null };
+    }
+    const uploaded = await uploadProfileAvatar(currentUserId, file);
+    if (uploaded.error || !uploaded.data) return { ok: false, avatar: previousAvatar, error: "Não foi possível enviar sua foto." };
+    const updated = await client.from("profiles").update({ avatar_url: uploaded.data.path }).eq("id", currentUserId).select("*").single();
+    if (updated.error) {
+      await removeProfileAvatar(uploaded.data.path);
+      return { ok: false, avatar: previousAvatar, error: "Não foi possível salvar sua foto." };
+    }
+    if (previousPath) {
+      const removed = await removeProfileAvatar(previousPath);
+      if (removed.error) {
+        await client.from("profiles").update({ avatar_url: previousPath }).eq("id", currentUserId);
+        await removeProfileAvatar(uploaded.data.path);
+        return { ok: false, avatar: previousAvatar, error: "Não foi possível alterar sua foto. Tente novamente." };
+      }
+    }
+    const avatar = `/api/profile-avatar/${currentUserId}?v=${encodeURIComponent(uploaded.data.path)}`;
+    setProfiles((items) => items.map((profile) => profile.id === currentUserId ? { ...profile, avatar, avatarPath: uploaded.data.path } : profile));
+    return { ok: true, avatar };
+  }, [backendConfigured, currentUserId, profiles]);
   const submitRestaurant = useCallback(async (draft: RestaurantSubmission) => {
     if (!currentUserId) return { error: "Entre para adicionar um restaurante." };
     const normalizedName = normalize(draft.name);
@@ -364,6 +415,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, submitRestaurant, publishReview, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, currentUserId, dataError, deleteList, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleWantToVisit, updateList, updateRestaurantAdmin]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, submitRestaurant, publishReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, currentUserId, dataError, deleteList, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleWantToVisit, updateList, updateProfileAvatar, updateRestaurantAdmin]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

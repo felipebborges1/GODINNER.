@@ -4,7 +4,10 @@ import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance
 
 const placeholderImage = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
 
-export function mapProfile(row: ProfileRow): User { return { id: row.id, username: row.username, name: row.name, avatar: row.avatar_url ?? placeholderImage, bio: row.bio, neighborhood: row.location, followers: 0, following: 0, role: row.role }; }
+export function mapProfile(row: ProfileRow, avatarUrl: string | null = row.avatar_url) {
+  const avatarPath = row.avatar_url?.startsWith(`${row.id}/`) ? row.avatar_url : null;
+  return { id: row.id, username: row.username, name: row.name, avatar: avatarUrl, avatarPath, bio: row.bio, neighborhood: row.location, followers: 0, following: 0, role: row.role } satisfies User;
+}
 export function mapRestaurant(row: RestaurantRow): Restaurant {
   const coordinates = hasCoordinates({ latitude: row.latitude, longitude: row.longitude })
     ? { latitude: row.latitude, longitude: row.longitude }

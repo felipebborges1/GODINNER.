@@ -9,9 +9,9 @@ const source = await readFile(new URL("../lib/ai/cuisine.ts", import.meta.url), 
 const compiled = TypeScript.transpileModule(source, {
   compilerOptions: { module: TypeScript.ModuleKind.CommonJS, target: TypeScript.ScriptTarget.ES2022 },
 });
-const module = { exports: {} };
-new Function("exports", "require", "module", compiled.outputText)(module.exports, require, module);
-const { cuisineTermsMatch, restaurantMatchesCuisine } = module.exports;
+const compiledModule = { exports: {} };
+new Function("exports", "require", "module", compiled.outputText)(compiledModule.exports, require, compiledModule);
+const { cuisineTermsMatch, restaurantMatchesCuisine } = compiledModule.exports;
 
 test("matches explicit Portuguese cuisine gender and accent variants", () => {
   assert.equal(cuisineTermsMatch("Japonesa", "japonesa"), true);

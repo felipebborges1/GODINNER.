@@ -18,7 +18,10 @@ export type AnalyticsEvent =
   | "ai_search_completed"
   | "ai_search_no_results"
   | "ai_search_failed"
-  | "ai_recommendation_clicked";
+  | "ai_recommendation_clicked"
+  | "profile_photo_added"
+  | "profile_photo_changed"
+  | "profile_photo_removed";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 

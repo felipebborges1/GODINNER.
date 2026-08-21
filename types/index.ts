@@ -1,6 +1,6 @@
 export type PriceRange = "$" | "$$" | "$$$" | "$$$$";
 
-export interface User { id: string; username: string; name: string; avatar: string; bio: string; neighborhood: string; followers: number; following: number; role?: "user" | "admin"; }
+export interface User { id: string; username: string; name: string; avatar: string | null; avatarPath?: string | null; bio: string; neighborhood: string; followers: number; following: number; role?: "user" | "admin"; }
 export interface RestaurantPhoto { id: string; url: string; alt: string; reviewId?: string; file?: File; }
 export interface RestaurantCoordinates { latitude: number; longitude: number; }
 export interface Restaurant { id: string; slug: string; name: string; cuisine: string[]; tags: string[]; category: "restaurant" | "bar"; chef: string; occasions: string[]; isOpenNow: boolean; distanceKm: number; coordinates?: RestaurantCoordinates; priceRange: PriceRange; neighborhood: string; city: "Belo Horizonte" | "Nova Lima"; address: string; godinnerRating: number; friendsRating: number; reviewCount: number; coverPhoto: RestaurantPhoto; photos: RestaurantPhoto[]; hasGooglePlaceCover?: boolean; status?: "published" | "pending_review" | "rejected"; submittedBy?: string; submittedAt?: string; instagram?: string; site?: string; phone?: string; moderatedBy?: string; moderatedAt?: string; rejectionReason?: string; mergedIntoId?: string; }

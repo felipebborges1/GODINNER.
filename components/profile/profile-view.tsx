@@ -15,13 +15,14 @@ import { trackEvent } from "@/lib/analytics";
 import type { User } from "@/types";
 import { BetaFeedback } from "./beta-feedback";
 import { PushNotificationSettings } from "@/components/push/push-notification-settings";
+import { ProfileAvatarEditor } from "./profile-avatar-editor";
 
 type Tab = "experiences" | "lists" | "photos";
 type ProfileList = "places" | "followers" | "following";
 const tabs: Array<{ id: Tab; label: string }> = [{ id: "experiences", label: "Experiências" }, { id: "lists", label: "Listas" }, { id: "photos", label: "Fotos" }];
 
 export function ProfileView({ userId, own }: { userId: string; own: boolean }) {
-  const { currentUserId, users, reviews, lists, follows, restaurants, isAdmin, toggleFollow, showToast } = useAppContext();
+  const { currentUserId, users, reviews, lists, follows, restaurants, isAdmin, toggleFollow, showToast, updateProfileAvatar } = useAppContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -52,12 +53,23 @@ export function ProfileView({ userId, own }: { userId: string; own: boolean }) {
   const next = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
   const listTitle = profileList === "places" ? "Lugares visitados" : profileList === "followers" ? "Seguidores" : "Seguindo";
   const connectionRows = profileList === "followers" ? followersUsers : followingUsers;
+  const saveAvatar = async (file: File) => {
+    const hadAvatar = Boolean(user.avatar);
+    const result = await updateProfileAvatar(file);
+    if (result.ok) { trackEvent(hadAvatar ? "profile_photo_changed" : "profile_photo_added"); showToast(hadAvatar ? "Foto de perfil atualizada" : "Foto de perfil adicionada"); }
+    return result;
+  };
+  const removeAvatar = async () => {
+    const result = await updateProfileAvatar(null);
+    if (result.ok) { trackEvent("profile_photo_removed"); showToast("Foto de perfil removida"); }
+    return result;
+  };
 
   return <>
     <div className="mx-auto max-w-6xl px-4 py-6 pb-28 sm:px-6 lg:py-10">
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
         <section>
-          <div className="flex items-start gap-4"><UserAvatar src={user.avatar} name={user.name} size="lg"/><div className="min-w-0 flex-1"><h1 className="text-3xl font-black">{user.name}</h1><p className="mt-1 text-sm text-stone-500">@{user.username} · {user.neighborhood}</p><p className="mt-4 max-w-xl text-sm leading-6 text-stone-600">{user.bio}</p></div>{own && isAdmin && <Link href="/admin" aria-label="Abrir painel administrativo" className="shrink-0 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-black text-stone-700 shadow-sm">Painel admin</Link>}{!own && <Button variant={followingUser ? "soft" : "solid"} onClick={() => void toggleUserFollow(user)}>{followingUser ? "Seguindo" : "Seguir"}</Button>}</div>
+          <div className="flex items-start gap-4">{own ? <ProfileAvatarEditor user={user} onSave={saveAvatar} onRemove={removeAvatar}/> : <UserAvatar src={user.avatar} name={user.name} size="lg"/>}<div className="min-w-0 flex-1"><h1 className="text-3xl font-black">{user.name}</h1><p className="mt-1 text-sm text-stone-500">@{user.username} · {user.neighborhood}</p><p className="mt-4 max-w-xl text-sm leading-6 text-stone-600">{user.bio}</p></div>{own && isAdmin && <Link href="/admin" aria-label="Abrir painel administrativo" className="shrink-0 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-black text-stone-700 shadow-sm">Painel admin</Link>}{!own && <Button variant={followingUser ? "soft" : "solid"} onClick={() => void toggleUserFollow(user)}>{followingUser ? "Seguindo" : "Seguir"}</Button>}</div>
           <div className="mt-7 flex gap-6 text-sm"><button type="button" onClick={() => setProfileList("places")} className="rounded-lg text-left transition hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><b className="block text-lg">{visitedIds.length}</b>lugares</button><button type="button" onClick={() => setProfileList("followers")} className="rounded-lg text-left transition hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><b className="block text-lg">{followers}</b>seguidores</button><button type="button" onClick={() => setProfileList("following")} className="rounded-lg text-left transition hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><b className="block text-lg">{following}</b>seguindo</button></div>
         </section>
         <aside className="mt-8 rounded-3xl bg-orange-50 p-5 lg:mt-0"><h2 className="text-lg font-black">Seu gosto</h2>{taste.length ? <ol className="mt-4 space-y-2">{taste.map((item, index) => <li key={item.cuisine} className="flex items-center gap-3 text-sm font-bold"><span className="grid h-6 w-6 place-items-center rounded-full bg-orange-500 text-xs text-white">{index + 1}</span>{item.cuisine}</li>)}</ol> : <p className="mt-3 text-sm leading-6 text-stone-600">Avalie lugares para construir seu perfil gastronômico.</p>}</aside>

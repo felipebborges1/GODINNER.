@@ -3,15 +3,15 @@ import { mockRestaurantCoordinates } from "@/lib/distance";
 
 const photo = (id: string, query: string) => ({ id, url: `https://images.unsplash.com/${query}?auto=format&fit=crop&w=1200&q=85`, alt: "Imagem ilustrativa para o protótipo GODINNER" });
 
-const userRows: Array<[string, string, string, string, string, string, number, number]> = [
-  ["u1","bia.fonseca","Bia Fonseca","https://i.pravatar.cc/160?img=47","Café, vinho natural e mesas na calçada.","Vila da Serra",438,216],
-  ["u2","caio.mattos","Caio Mattos","https://i.pravatar.cc/160?img=12","Sempre em busca do próximo balcão.","Belvedere",281,174],
-  ["u3","luma.freire","Luma Freire","https://i.pravatar.cc/160?img=32","Amo almoço demorado e sobremesa dividida.","Vale do Sereno",692,301],
-  ["u4","duda.costa","Duda Costa","https://i.pravatar.cc/160?img=44","BH pelo prato e pelo copo.","Savassi",359,203],
-  ["u5","nando.torres","Nando Torres","https://i.pravatar.cc/160?img=11","Pizza, futebol e bons negronis.","Nova Lima",189,118],
-  ["u6","clara.lima","Clara Lima","https://i.pravatar.cc/160?img=49","Meu roteiro muda conforme o pão de queijo.","Funcionários",524,268],
-  ["u7","leo.sena","Léo Sena","https://i.pravatar.cc/160?img=14","Cozinha mineira, cafés e lugares tranquilos.","Serra",247,126],
-  ["u8","marina.rosa","Marina Rosa","https://i.pravatar.cc/160?img=45","Pequenos lugares, grandes histórias.","Lourdes",316,221],
+const userRows: Array<[string, string, string, string | null, string, string, number, number]> = [
+  ["u1","bia.fonseca","Bia Fonseca",null,"Café, vinho natural e mesas na calçada.","Vila da Serra",438,216],
+  ["u2","caio.mattos","Caio Mattos",null,"Sempre em busca do próximo balcão.","Belvedere",281,174],
+  ["u3","luma.freire","Luma Freire",null,"Amo almoço demorado e sobremesa dividida.","Vale do Sereno",692,301],
+  ["u4","duda.costa","Duda Costa",null,"BH pelo prato e pelo copo.","Savassi",359,203],
+  ["u5","nando.torres","Nando Torres",null,"Pizza, futebol e bons negronis.","Nova Lima",189,118],
+  ["u6","clara.lima","Clara Lima",null,"Meu roteiro muda conforme o pão de queijo.","Funcionários",524,268],
+  ["u7","leo.sena","Léo Sena",null,"Cozinha mineira, cafés e lugares tranquilos.","Serra",247,126],
+  ["u8","marina.rosa","Marina Rosa",null,"Pequenos lugares, grandes histórias.","Lourdes",316,221],
 ];
 export const CURRENT_USER_ID = "u1";
 export const users: User[] = userRows.map(([id, username, name, avatar, bio, neighborhood, followers, following]) => ({ id, username, name, avatar, bio, neighborhood, followers, following, role: id === CURRENT_USER_ID ? "admin" : "user" }));
