@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CURRENT_USER_ID, mockData, users } from "@/data/mocks";
 import { normalize } from "@/lib/search";
 import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/lib/supabase/env";
@@ -8,7 +8,8 @@ import { mapFollow, mapList, mapProfile, mapRestaurant, mapReview, mapReviewPhot
 import { publishReviewPersisted } from "@/lib/data/repositories";
 import { createSignedImageUrl, removeProfileAvatar, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
-import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, User } from "@/types";
+import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
+import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewSocialSummary, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
@@ -27,6 +28,9 @@ type AppContextValue = {
   restaurants: Restaurant[];
   lists: RestaurantList[];
   follows: Follow[];
+  reviewSocial: Record<string, ReviewSocialSummary>;
+  reviewComments: Record<string, ReviewComment[]>;
+  reviewCommentsHasMore: Record<string, boolean>;
   isToastOpen: boolean;
   toastMessage: string;
   showToast: (message?: string) => void;
@@ -38,6 +42,10 @@ type AppContextValue = {
   deleteList: (listId: string) => Promise<boolean>;
   removeRestaurantFromList: (listId: string, restaurantId: string) => Promise<boolean>;
   toggleFollow: (userId: string) => Promise<boolean>;
+  toggleReviewLike: (reviewId: string) => Promise<boolean>;
+  loadReviewComments: (reviewId: string) => Promise<void>;
+  createReviewComment: (reviewId: string, body: string) => Promise<ReviewComment | null>;
+  deleteReviewComment: (reviewId: string, commentId: string) => Promise<boolean>;
   submitRestaurant: (draft: RestaurantSubmission) => Promise<{ restaurant?: Restaurant; duplicate?: Restaurant; error?: string }>;
   publishReview: (draft: Omit<Review, "id" | "userId" | "createdAt">) => Promise<Review | null>;
   updateProfileAvatar: (file: File | null) => Promise<{ ok: boolean; avatar: string | null; error?: string }>;
@@ -61,6 +69,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [restaurants, setRestaurants] = useState(dataMode === "mock" ? mockData.restaurants : []);
   const [follows, setFollows] = useState(dataMode === "mock" ? mockData.follows : []);
   const [profiles, setProfiles] = useState<User[]>(dataMode === "mock" ? users : []);
+  const [reviewSocial, setReviewSocial] = useState<Record<string, ReviewSocialSummary>>(() => Object.fromEntries((dataMode === "mock" ? mockData.reviews : []).map((review) => [review.id, emptyReviewSocialSummary()])));
+  const [reviewComments, setReviewComments] = useState<Record<string, ReviewComment[]>>({});
+  const [reviewCommentsHasMore, setReviewCommentsHasMore] = useState<Record<string, boolean>>({});
+  const pendingCommentReviews = useRef(new Set<string>());
   const [isLoading, setIsLoading] = useState(dataMode === "supabase" && backendConfigured);
   const [isAuthLoading, setIsAuthLoading] = useState(dataMode === "supabase" && backendConfigured);
   const [dataError, setDataError] = useState<string | null>(supabaseConfigurationError);
@@ -118,6 +130,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
       if (!active || requestId !== loadSequence) return;
       const mappedReviews = (reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotos.filter((photo): photo is NonNullable<typeof photo> => photo?.reviewId === review.id)));
+      const socialRows = mappedReviews.length
+        ? await client.from("review_social_summaries").select("review_id, like_count, comment_count, liked_by_me").in("review_id", mappedReviews.map((review) => review.id))
+        : { data: [], error: null };
+      if (!active || requestId !== loadSequence) return;
+      if (socialRows.error) {
+        setDataError("Não conseguimos carregar as interações agora.");
+        setIsLoading(false);
+        return;
+      }
       const ratingsByRestaurant = new Map<string, number[]>();
       mappedReviews.forEach((review) => {
         const ratings = ratingsByRestaurant.get(review.restaurantId) ?? [];
@@ -133,6 +154,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       }));
       setReviews(mappedReviews);
+      setReviewSocial(Object.fromEntries(mappedReviews.map((review) => {
+        const social = socialRows.data?.find((item) => item.review_id === review.id);
+        return [review.id, social ? { likeCount: Number(social.like_count), commentCount: Number(social.comment_count), likedByMe: social.liked_by_me } : emptyReviewSocialSummary()];
+      })));
+      setReviewComments({});
+      setReviewCommentsHasMore({});
       setLists((listRows.data ?? []).map((list) => mapList(list, (itemRows.data ?? []).filter((item) => item.list_id === list.id).map((item) => item.restaurant_id))));
       setFollows((followRows.data ?? []).map(mapFollow));
       setDataError(null);
@@ -159,6 +186,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setProfiles([]);
         setRestaurants([]);
         setReviews([]);
+        setReviewSocial({});
+        setReviewComments({});
+        setReviewCommentsHasMore({});
         setLists([]);
         setFollows([]);
         setIsLoading(false);
@@ -279,6 +309,92 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setFollows((current) => existing ? current.filter((follow) => !(follow.followerId === currentUserId && follow.followingId === userId)) : [...current, { followerId: currentUserId, followingId: userId, createdAt: new Date().toISOString() }]);
     return !existing;
   }, [backendConfigured, currentUserId, follows]);
+  const toggleReviewLike = useCallback(async (reviewId: string) => {
+    if (!currentUserId || !reviews.some((review) => review.id === reviewId)) return false;
+    const before = reviewSocial[reviewId] ?? emptyReviewSocialSummary();
+    const after = toggleReviewLikeSummary(before);
+    setReviewSocial((current) => ({ ...current, [reviewId]: after }));
+    if (dataMode === "supabase" && backendConfigured) {
+      const client = createSupabaseBrowserClient();
+      if (!client) {
+        setReviewSocial((current) => ({ ...current, [reviewId]: before }));
+        return false;
+      }
+      const result = before.likedByMe
+        ? await client.from("review_likes").delete().eq("review_id", reviewId)
+        : await client.from("review_likes").insert({ review_id: reviewId });
+      if (result.error) {
+        setReviewSocial((current) => ({ ...current, [reviewId]: before }));
+        showToast("Não foi possível atualizar a curtida.");
+        return false;
+      }
+    }
+    return after.likedByMe;
+  }, [backendConfigured, currentUserId, reviewSocial, reviews, showToast]);
+  const loadReviewComments = useCallback(async (reviewId: string) => {
+    const offset = reviewComments[reviewId]?.length ?? 0;
+    if (!reviews.some((review) => review.id === reviewId) || (offset > 0 && !reviewCommentsHasMore[reviewId])) return;
+    if (dataMode !== "supabase" || !backendConfigured) {
+      setReviewCommentsHasMore((current) => ({ ...current, [reviewId]: false }));
+      return;
+    }
+    const client = createSupabaseBrowserClient();
+    if (!client) return;
+    const response = await client.from("review_comments").select("id, review_id, user_id, body, created_at, updated_at").eq("review_id", reviewId).order("created_at", { ascending: true }).range(offset, offset + REVIEW_COMMENTS_PAGE_SIZE);
+    if (response.error) {
+      showToast("Não foi possível carregar os comentários.");
+      return;
+    }
+    const received = response.data ?? [];
+    const nextComments = received.slice(0, REVIEW_COMMENTS_PAGE_SIZE).map((comment) => ({ id: comment.id, reviewId: comment.review_id, userId: comment.user_id, body: comment.body, createdAt: comment.created_at, updatedAt: comment.updated_at }));
+    setReviewComments((current) => ({ ...current, [reviewId]: [...(current[reviewId] ?? []), ...nextComments.filter((comment) => !(current[reviewId] ?? []).some((item) => item.id === comment.id))] }));
+    setReviewCommentsHasMore((current) => ({ ...current, [reviewId]: received.length > REVIEW_COMMENTS_PAGE_SIZE }));
+  }, [backendConfigured, reviewComments, reviewCommentsHasMore, reviews, showToast]);
+  const createReviewComment = useCallback(async (reviewId: string, value: string) => {
+    if (!currentUserId || !reviews.some((review) => review.id === reviewId)) return null;
+    const checked = validateReviewComment(value);
+    if (checked.error || pendingCommentReviews.current.has(reviewId)) return null;
+    pendingCommentReviews.current.add(reviewId);
+    try {
+      let comment: ReviewComment;
+      if (dataMode === "supabase" && backendConfigured) {
+        const client = createSupabaseBrowserClient();
+        if (!client) return null;
+        const response = await client.from("review_comments").insert({ review_id: reviewId, body: checked.body }).select("id, review_id, user_id, body, created_at, updated_at").single();
+        if (response.error || !response.data) {
+          showToast("Não foi possível publicar o comentário.");
+          return null;
+        }
+        comment = { id: response.data.id, reviewId: response.data.review_id, userId: response.data.user_id, body: response.data.body, createdAt: response.data.created_at, updatedAt: response.data.updated_at };
+      } else {
+        const now = new Date().toISOString();
+        comment = { id: `comment-${Date.now()}`, reviewId, userId: currentUserId, body: checked.body, createdAt: now, updatedAt: now };
+      }
+      setReviewComments((current) => ({ ...current, [reviewId]: [...(current[reviewId] ?? []), comment] }));
+      setReviewSocial((current) => ({ ...current, [reviewId]: { ...(current[reviewId] ?? emptyReviewSocialSummary()), commentCount: (current[reviewId]?.commentCount ?? 0) + 1 } }));
+      showToast("Comentário publicado.");
+      return comment;
+    } finally {
+      pendingCommentReviews.current.delete(reviewId);
+    }
+  }, [backendConfigured, currentUserId, reviews, showToast]);
+  const deleteReviewComment = useCallback(async (reviewId: string, commentId: string) => {
+    const comment = reviewComments[reviewId]?.find((item) => item.id === commentId);
+    if (!comment || !canManageReviewComment(comment, currentUserId, isAdmin)) return false;
+    if (dataMode === "supabase" && backendConfigured) {
+      const client = createSupabaseBrowserClient();
+      if (!client) return false;
+      const response = await client.from("review_comments").delete().eq("id", commentId);
+      if (response.error) {
+        showToast("Não foi possível remover o comentário.");
+        return false;
+      }
+    }
+    setReviewComments((current) => ({ ...current, [reviewId]: (current[reviewId] ?? []).filter((item) => item.id !== commentId) }));
+    setReviewSocial((current) => ({ ...current, [reviewId]: { ...(current[reviewId] ?? emptyReviewSocialSummary()), commentCount: Math.max(0, (current[reviewId]?.commentCount ?? 0) - 1) } }));
+    showToast("Comentário removido.");
+    return true;
+  }, [backendConfigured, currentUserId, isAdmin, reviewComments, showToast]);
   const updateProfileAvatar = useCallback(async (file: File | null) => {
     if (!currentUserId) return { ok: false, avatar: null, error: "Entre para alterar sua foto." };
     const current = profiles.find((profile) => profile.id === currentUserId);
@@ -375,6 +491,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const review = { ...draft, photos: reviewPhotos, id: reviewId, userId: currentUserId, createdAt: new Date().toISOString() };
     setReviews((current) => [review, ...current]);
+    setReviewSocial((current) => ({ ...current, [reviewId]: emptyReviewSocialSummary() }));
     setLists((current) => current.map((list) => {
       if (list.ownerId !== currentUserId) return list;
       if (list.type === "visited" && !list.restaurantIds.includes(draft.restaurantId)) return { ...list, restaurantIds: [draft.restaurantId, ...list.restaurantIds] };
@@ -415,6 +532,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, submitRestaurant, publishReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, currentUserId, dataError, deleteList, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleWantToVisit, updateList, updateProfileAvatar, updateRestaurantAdmin]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewComments, reviewCommentsHasMore, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewComments, createReviewComment, deleteReviewComment, submitRestaurant, publishReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, createReviewComment, currentUserId, dataError, deleteList, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadReviewComments, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, updateList, updateProfileAvatar, updateRestaurantAdmin]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -21,7 +21,10 @@ export type AnalyticsEvent =
   | "ai_recommendation_clicked"
   | "profile_photo_added"
   | "profile_photo_changed"
-  | "profile_photo_removed";
+  | "profile_photo_removed"
+  | "review_liked"
+  | "review_unliked"
+  | "review_comment_created";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 
