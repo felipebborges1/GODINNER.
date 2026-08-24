@@ -44,9 +44,9 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
     ctx.showToast(result.ok ? "Dados salvos" : result.error ?? "Não foi possível salvar");
     if (result.ok) setEditing(false);
   };
-  const moderate = (kind: "approve" | "reject" | "merge") => {
+  const moderate = async (kind: "approve" | "reject" | "merge") => {
     const result = kind === "approve"
-      ? ctx.approveRestaurant(id)
+      ? await ctx.approveRestaurant(id)
       : kind === "reject"
         ? ctx.rejectRestaurant(id, reason)
         : ctx.mergeRestaurant(id, compareId ?? "");

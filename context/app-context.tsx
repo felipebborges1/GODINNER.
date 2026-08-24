@@ -51,7 +51,7 @@ type AppContextValue = {
   updateProfileAvatar: (file: File | null) => Promise<{ ok: boolean; avatar: string | null; error?: string }>;
   isAdmin: boolean;
   updateRestaurantAdmin: (restaurantId: string, draft: AdminRestaurantDraft) => AdminResult;
-  approveRestaurant: (restaurantId: string) => AdminResult;
+  approveRestaurant: (restaurantId: string) => Promise<AdminResult>;
   rejectRestaurant: (restaurantId: string, reason: string) => AdminResult;
   mergeRestaurant: (pendingId: string, targetPublishedId: string) => AdminResult;
 };
@@ -510,12 +510,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === restaurantId ? restaurant : item));
     return { ok: true, restaurant };
   }, [adminGuard, restaurants]);
-  const approveRestaurant = useCallback((restaurantId: string): AdminResult => {
+  const approveRestaurant = useCallback(async (restaurantId: string): Promise<AdminResult> => {
     const error = adminGuard(); if (error) return { ok: false, error };
     const current = restaurants.find((item) => item.id === restaurantId); if (!current) return { ok: false, error: "Restaurante não encontrado." }; if (current.status !== "pending_review") return { ok: false, error: "Restaurante já moderado." };
-    const restaurant = { ...current, status: "published" as const, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString(), rejectionReason: undefined, mergedIntoId: undefined };
+    const moderatedAt = new Date().toISOString();
+    const restaurant = { ...current, status: "published" as const, moderatedBy: currentUserId ?? undefined, moderatedAt, rejectionReason: undefined, mergedIntoId: undefined };
+    if (dataMode === "supabase" && backendConfigured) {
+      const client = createSupabaseBrowserClient();
+      if (!client) return { ok: false, error: "Não foi possível conectar à moderação." };
+      const persisted = await client.from("restaurants").update({ status: "published", moderated_by: currentUserId, moderated_at: moderatedAt, rejection_reason: null, merged_into_id: null }).eq("id", restaurantId).eq("status", "pending_review").select("id").maybeSingle();
+      if (persisted.error || !persisted.data) return { ok: false, error: "Não foi possível publicar este restaurante." };
+    }
     setRestaurants((items) => items.map((item) => item.id === restaurantId ? restaurant : item)); return { ok: true, restaurant };
-  }, [adminGuard, currentUserId, restaurants]);
+  }, [adminGuard, backendConfigured, currentUserId, restaurants]);
   const rejectRestaurant = useCallback((restaurantId: string, reason: string): AdminResult => {
     const error = adminGuard(); if (error) return { ok: false, error }; if (!reason.trim()) return { ok: false, error: "Informe o motivo da rejeição." };
     const current = restaurants.find((item) => item.id === restaurantId); if (!current) return { ok: false, error: "Restaurante não encontrado." }; if (current.status !== "pending_review") return { ok: false, error: "Restaurante já moderado." };
