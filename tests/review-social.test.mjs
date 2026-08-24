@@ -38,3 +38,8 @@ test("social migration keeps authorship and visibility inside RLS", async () => 
   assert.match(migration, /user_id = auth\.uid\(\) or public\.is_admin\(\)/);
   assert.match(migration, /security_invoker = true/);
 });
+
+test("visitor_comment_click_opens_loginwall", async () => {
+  const reviewActions = await readFile(new URL("../components/review/review-social-actions.tsx", import.meta.url), "utf8");
+  assert.match(reviewActions, /onClick=\{\(\) => \{ if \(!requireLogin\(\)\) return; void openComments\(\); \}\}/);
+});
