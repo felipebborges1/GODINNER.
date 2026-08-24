@@ -15,7 +15,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { useAppContext } from "@/hooks/use-app-context";
 import { countFriendsWhoVisited, getFriendIds } from "@/lib/restaurant-social";
 import { filterRestaurants } from "@/lib/search";
-import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance";
+import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 
@@ -66,23 +66,20 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     router.replace(next.size ? `${path}?${next}` : path);
   };
 
-  const applyFallbackLocation = (message: string) => {
-    setPosition(FALLBACK_COORDINATES);
-    setParam("nearby", "true");
-    showToast(message);
-  };
-
   const requestNearby = () => {
-    if (!navigator.geolocation) { applyFallbackLocation("Localização indisponível — usando Vila da Serra"); return; }
+    if (!navigator.geolocation) {
+      showToast("Localização indisponível — permita o acesso para usar este filtro");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => { setPosition({ latitude: coords.latitude, longitude: coords.longitude }); setParam("nearby", "true"); showToast("Localização permitida — distâncias calculadas"); },
       (error) => {
         const message = error.code === error.PERMISSION_DENIED
-          ? "Permissão negada — usando Vila da Serra"
+          ? "Permissão negada — permita o acesso para usar este filtro"
           : error.code === error.TIMEOUT
-            ? "Tempo esgotado — usando Vila da Serra"
-            : "Localização indisponível — usando Vila da Serra";
-        applyFallbackLocation(message);
+            ? "Tempo esgotado — tente novamente para usar este filtro"
+            : "Localização indisponível — permita o acesso para usar este filtro";
+        showToast(message);
       },
       { timeout: 8000, maximumAge: 300000 },
     );
@@ -90,7 +87,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
 
   const eligibleRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status !== "rejected" && (restaurant.status !== "pending_review" || restaurant.submittedBy === currentUserId)), [restaurants, currentUserId]);
   const visibleRestaurants = useMemo(() => {
-    const origin = position ?? (params.nearby || params.distance ? FALLBACK_COORDINATES : null);
+    const origin = position;
     if (!origin) return eligibleRestaurants;
     return eligibleRestaurants.map((restaurant) => ({
       ...restaurant,
@@ -99,8 +96,16 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   }, [eligibleRestaurants, params.distance, params.nearby, position]);
 
   const results = useMemo(
-    () => filterRestaurants(visibleRestaurants, params, lists, currentUserId, reviews),
-    [visibleRestaurants, params, lists, currentUserId, reviews],
+    () => filterRestaurants(
+      visibleRestaurants,
+      position || (!params.nearby && !params.distance)
+        ? params
+        : Object.fromEntries(Object.entries(params).filter(([key]) => key !== "nearby" && key !== "distance")),
+      lists,
+      currentUserId,
+      reviews,
+    ),
+    [visibleRestaurants, params, position, lists, currentUserId, reviews],
   );
   const friendIds = useMemo(
     () => getFriendIds(follows, currentUserId ?? ""),
@@ -130,7 +135,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
       {aiSearchEnabled && <div className="mt-5"><AiSearchPanel restaurants={eligibleRestaurants} /></div>}
       <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
         {quick.map(([key, value, label]) => (
-          <FilterChip key={label} label={label} active={params[key] === value} onClick={() => key === "nearby" ? requestNearby() : setParam(key, params[key] === value ? undefined : value)} />
+          <FilterChip key={label} label={label} active={params[key] === value} onClick={() => key === "nearby" ? (params.nearby ? setParam("nearby") : requestNearby()) : setParam(key, params[key] === value ? undefined : value)} />
         ))}
       </div>
       <div className="mt-4 flex items-center justify-between">
