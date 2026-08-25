@@ -17,28 +17,28 @@ export const CURRENT_USER_ID = "u1";
 export const users: User[] = userRows.map(([id, username, name, avatar, bio, neighborhood, followers, following]) => ({ id, username, name, avatar, bio, neighborhood, followers, following, role: id === CURRENT_USER_ID ? "admin" : "user" }));
 
 const restaurantRows: Array<[string,string,string,string,string,"Belo Horizonte"|"Nova Lima",number,number,number,string]> = [
-  ["r1","cozinha-do-sereno","Cozinha do Sereno","Contemporânea","$$$","Nova Lima",8.8,9.1,124,"photo-1515003197210-e0cd71810b5f"],
-  ["r2","forno-da-alameda","Forno da Alameda","Italiana","$$","Nova Lima",8.6,8.9,98,"photo-1579751626657-72bc17010498"],
-  ["r3","bar-da-mata","Bar da Mata","Brasileira","$$","Belo Horizonte",8.4,8.7,231,"photo-1515003197210-e0cd71810b5f"],
-  ["r4","nori-vila","Nori Vila","Japonesa","$$$","Nova Lima",8.9,9.3,162,"photo-1579584425555-c3ce17fd4351"],
-  ["r5","cafe-janela","Café Janela","Café","$","Belo Horizonte",8.2,8.8,76,"photo-1501339847302-ac426a4a7cbb"],
-  ["r6","brasa-vale","Brasa Vale","Carnes","$$$$","Nova Lima",9.0,9.2,185,"photo-1544025162-d76694265947"],
-  ["r7","casa-nuvem","Casa Nuvem","Contemporânea","$$$","Belo Horizonte",8.7,9.0,113,"photo-1414235077428-338989a2e8c0"],
-  ["r8","pao-e-prosa","Pão & Prosa","Padaria","$","Belo Horizonte",8.3,8.6,145,"photo-1509440159596-0249088772ff"],
-  ["r9","quintal-belvedere","Quintal Belvedere","Brasileira","$$$","Belo Horizonte",8.5,8.9,104,"photo-1559339352-11d035aa65de"],
-  ["r10","taqueria-oliva","Taqueria Oliva","Mexicana","$$","Belo Horizonte",8.1,8.5,88,"photo-1551504734-5ee1c4a1479b"],
-  ["r11","mare-alta","Maré Alta","Frutos do mar","$$$$","Nova Lima",8.8,9.0,97,"photo-1547592180-85f173990554"],
-  ["r12","pasta-fresca","Pasta Fresca","Italiana","$$$","Belo Horizonte",8.6,8.8,127,"photo-1551183053-bf91a1d81141"],
-  ["r13","oriente-rua","Oriente Rua","Asiática","$$","Belo Horizonte",8.4,8.7,113,"photo-1547592180-85f173990554"],
-  ["r14","vinho-e-pao","Vinho & Pão","Wine bar","$$$","Nova Lima",8.9,9.4,69,"photo-1473973916745-60839aebf06e"],
-  ["r15","acompanha","Acompanha","Mineira","$$","Belo Horizonte",8.5,8.8,202,"photo-1601050690597-df0568f70950"],
-  ["r16","katsu-casa","Katsu Casa","Japonesa","$$$","Belo Horizonte",8.7,9.1,81,"photo-1579871494447-9811cf80d66c"],
-  ["r17","mini-mercado","Mini Mercado","Café","$$","Nova Lima",8.0,8.4,56,"photo-1495474472287-4d71bcdd2085"],
-  ["r18","miso-bar","Miso Bar","Asiática","$$$","Belo Horizonte",8.6,8.9,72,"photo-1515003197210-e0cd71810b5f"],
-  ["r19","sol-da-serra","Sol da Serra","Brasileira","$$","Nova Lima",8.3,8.7,91,"photo-1515003197210-e0cd71810b5f"],
-  ["r20","torta-de-vo","Torta de Vó","Confeitaria","$","Belo Horizonte",8.1,8.6,63,"photo-1551024506-0bccd828d307"],
+  ["r1","cozinha-do-sereno","Cozinha do Sereno","Contemporânea","$$$","Nova Lima",4.4,4.55,124,"photo-1515003197210-e0cd71810b5f"],
+  ["r2","forno-da-alameda","Forno da Alameda","Italiana","$$","Nova Lima",4.3,4.45,98,"photo-1579751626657-72bc17010498"],
+  ["r3","bar-da-mata","Bar da Mata","Brasileira","$$","Belo Horizonte",4.2,4.35,231,"photo-1515003197210-e0cd71810b5f"],
+  ["r4","nori-vila","Nori Vila","Japonesa","$$$","Nova Lima",4.45,4.65,162,"photo-1579584425555-c3ce17fd4351"],
+  ["r5","cafe-janela","Café Janela","Café","$","Belo Horizonte",4.1,4.4,76,"photo-1501339847302-ac426a4a7cbb"],
+  ["r6","brasa-vale","Brasa Vale","Carnes","$$$$","Nova Lima",4.5,4.6,185,"photo-1544025162-d76694265947"],
+  ["r7","casa-nuvem","Casa Nuvem","Contemporânea","$$$","Belo Horizonte",4.35,4.5,113,"photo-1414235077428-338989a2e8c0"],
+  ["r8","pao-e-prosa","Pão & Prosa","Padaria","$","Belo Horizonte",4.15,4.3,145,"photo-1509440159596-0249088772ff"],
+  ["r9","quintal-belvedere","Quintal Belvedere","Brasileira","$$$","Belo Horizonte",4.25,4.45,104,"photo-1559339352-11d035aa65de"],
+  ["r10","taqueria-oliva","Taqueria Oliva","Mexicana","$$","Belo Horizonte",4.05,4.25,88,"photo-1551504734-5ee1cf80d66c"],
+  ["r11","mare-alta","Maré Alta","Frutos do mar","$$$$","Nova Lima",4.4,4.5,97,"photo-1547592180-85f173990554"],
+  ["r12","pasta-fresca","Pasta Fresca","Italiana","$$$","Belo Horizonte",4.3,4.4,127,"photo-1551183053-bf91a1d81141"],
+  ["r13","oriente-rua","Oriente Rua","Asiática","$$","Belo Horizonte",4.2,4.35,113,"photo-1547592180-85f173990554"],
+  ["r14","vinho-e-pao","Vinho & Pão","Wine bar","$$$","Nova Lima",4.45,4.7,69,"photo-1473973916745-60839aebf06e"],
+  ["r15","acompanha","Acompanha","Mineira","$$","Belo Horizonte",4.25,4.4,202,"photo-1601050690597-df0568f70950"],
+  ["r16","katsu-casa","Katsu Casa","Japonesa","$$$","Belo Horizonte",4.35,4.55,81,"photo-1579871494447-9811cf80d66c"],
+  ["r17","mini-mercado","Mini Mercado","Café","$$","Nova Lima",4,4.2,56,"photo-1495474472287-4d71bcdd2085"],
+  ["r18","miso-bar","Miso Bar","Asiática","$$$","Belo Horizonte",4.3,4.45,72,"photo-1515003197210-e0cd71810b5f"],
+  ["r19","sol-da-serra","Sol da Serra","Brasileira","$$","Nova Lima",4.15,4.35,91,"photo-1515003197210-e0cd71810b5f"],
+  ["r20","torta-de-vo","Torta de Vó","Confeitaria","$","Belo Horizonte",4.05,4.3,63,"photo-1551024506-0bccd828d307"],
 ];
-export const restaurants: Restaurant[] = restaurantRows.map(([id,slug,name,cuisine,priceRange,city,godinnerRating,friendsRating,reviewCount,image],i) => { const coverPhoto = photo(`${id}-cover`, image); const tags = ["r2", "r4", "r7", "r11", "r12", "r14", "r16", "r18"].includes(id) ? ["date"] : []; const category = ["r3", "r14", "r18"].includes(id) ? "bar" : "restaurant"; if (category === "bar") tags.push("bar"); if (i >= 15) tags.push("new"); return {id,slug,name,cuisine:[cuisine],tags,category,chef:["Ana","Rafa","Luiz","Maya"][i%4],occasions:[tags.includes("date")?"date":"friends",i%3===0?"family":"business"],isOpenNow:i%4!==0,distanceKm:Number((0.5+i*.28).toFixed(1)),coordinates:mockRestaurantCoordinates(i, city),priceRange:priceRange as Restaurant["priceRange"],neighborhood:i%3===0?"Vila da Serra":i%3===1?"Belvedere":"Vale do Sereno",city,address:`Endereço ilustrativo, ${i+10}`,godinnerRating:godinnerRating / 2,friendsRating:friendsRating / 2,reviewCount,coverPhoto,photos:[coverPhoto]}; });
+export const restaurants: Restaurant[] = restaurantRows.map(([id,slug,name,cuisine,priceRange,city,godinnerRating,friendsRating,reviewCount,image],i) => { const coverPhoto = photo(`${id}-cover`, image); const tags = ["r2", "r4", "r7", "r11", "r12", "r14", "r16", "r18"].includes(id) ? ["date"] : []; const category = ["r3", "r14", "r18"].includes(id) ? "bar" : "restaurant"; if (category === "bar") tags.push("bar"); if (i >= 15) tags.push("new"); return {id,slug,name,cuisine:[cuisine],tags,category,chef:["Ana","Rafa","Luiz","Maya"][i%4],occasions:[tags.includes("date")?"date":"friends",i%3===0?"family":"business"],isOpenNow:i%4!==0,distanceKm:Number((0.5+i*.28).toFixed(1)),coordinates:mockRestaurantCoordinates(i, city),priceRange:priceRange as Restaurant["priceRange"],neighborhood:i%3===0?"Vila da Serra":i%3===1?"Belvedere":"Vale do Sereno",city,address:`Endereço ilustrativo, ${i+10}`,godinnerRating,friendsRating,reviewCount,coverPhoto,photos:[coverPhoto]}; });
 
 const galleryImages = ["photo-1414235077428-338989a2e8c0", "photo-1547592180-85f173990554", "photo-1551183053-bf91a1d81141", "photo-1473973916745-60839aebf06e"];
 restaurants.forEach((restaurant) => {
@@ -46,7 +46,7 @@ restaurants.forEach((restaurant) => {
 });
 
 const comments = ["Volto pelo ambiente e pelo atendimento gentil.","Mesa bonita, comida precisa e clima ótimo para ir sem pressa.","Um dos meus favoritos na região. Vale dividir as entradas.","Gostei muito da carta e da energia do salão.","Experiência gostosa e sem firulas — quero repetir logo."];
-export const reviews: Review[] = Array.from({ length: 30 }, (_, i) => { const isDimensional = i % 5 === 0; const foodRating = isDimensional ? 5 : null; const serviceRating = isDimensional ? 4 : null; const ambienceRating = isDimensional ? 4 : null; const legacyRating = isDimensional ? null : Number((8 + (i % 20) / 10).toFixed(1)); return { id:`rev-${i+1}`, userId:users[i%users.length].id, restaurantId:restaurants[i%restaurants.length].id, rating:isDimensional ? (5 + 4 + 4) / 3 : (legacyRating ?? 0) / 2, legacyRating, ratingMethod:isDimensional ? "dimensions" : "legacy", foodRating, serviceRating, ambienceRating, comment:comments[i%comments.length], photos:i%3===0?[restaurants[i%restaurants.length].coverPhoto]:[], amountPerPerson:55+(i%8)*25, visitDate:`2026-0${(i%6)+2}-${String((i%24)+1).padStart(2,"0")}`, createdAt:`2026-08-${String((i%10)+1).padStart(2,"0")}` }; });
+export const reviews: Review[] = Array.from({ length: 30 }, (_, i) => { const isDimensional = i % 5 === 0; const foodRating = isDimensional ? 5 : null; const serviceRating = isDimensional ? 4 : null; const ambienceRating = isDimensional ? 4 : null; const historicalRating = isDimensional ? null : Number((4 + (i % 20) / 20).toFixed(2)); return { id:`rev-${i+1}`, userId:users[i%users.length].id, restaurantId:restaurants[i%restaurants.length].id, rating:isDimensional ? (5 + 4 + 4) / 3 : historicalRating ?? 0, ratingMethod:isDimensional ? "dimensions" : "legacy", foodRating, serviceRating, ambienceRating, comment:comments[i%comments.length], photos:i%3===0?[restaurants[i%restaurants.length].coverPhoto]:[], amountPerPerson:55+(i%8)*25, visitDate:`2026-0${(i%6)+2}-${String((i%24)+1).padStart(2,"0")}`, createdAt:`2026-08-${String((i%10)+1).padStart(2,"0")}` }; });
 
 const restaurantListRows: Array<[string, string, string, string, boolean, string, NonNullable<RestaurantList["type"]>]> = [
   ["l1","u1","Quero conhecer","Para a próxima saída.",true,"r1","want"],["l2","u1","Já fui","Memórias boas pela cidade.",true,"r3","visited"],["l3","u1","Favoritos","Lugares que sempre indico.",true,"r4","favorites"],["l4","u3","Date night","Luz baixa e bons drinks.",true,"r14","custom"],["l5","u4","Almoços de sexta","Para esticar a conversa.",true,"r7","custom"],["l6","u6","Cafés para trabalhar","Wi-fi e café de verdade.",false,"r5","custom"]

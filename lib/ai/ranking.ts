@@ -73,7 +73,7 @@ export function rankAiRecommendations({ restaurants, reviews, intent, position }
     if (intent.category === restaurant.category) score += 20;
     if (distance !== null) score += Math.max(0, 35 - distance * 3);
     score += knownKeywords.filter((term) => restaurantText(restaurant).includes(normalize(term))).length * 8;
-    if (rating !== null) score += rating * 2 + Math.min(reviewCount, 10);
+    if (rating !== null) score += rating * 4 + Math.min(reviewCount, 10);
     if (intent.maxPricePerPerson !== null && communitySpend && communitySpend.average <= intent.maxPricePerPerson) score += 25;
     return { restaurant, rating, reviewCount, distance, communitySpend, score };
   }).sort((a, b) => b.score - a.score || (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY) || a.restaurant.name.localeCompare(b.restaurant.name));

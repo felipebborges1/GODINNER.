@@ -16,15 +16,13 @@ export function getDimensionalReviewScore(foodRating: unknown, serviceRating: un
 }
 
 /** A single, intentionally simple score policy for the Beta period. */
-export function getReviewScore(review: Pick<Review, "rating" | "legacyRating" | "ratingMethod" | "foodRating" | "serviceRating" | "ambienceRating">) {
-  if (review.ratingMethod === "dimensions") {
-    return getDimensionalReviewScore(review.foodRating, review.serviceRating, review.ambienceRating);
-  }
-  if (typeof review.legacyRating === "number" && Number.isFinite(review.legacyRating)) return review.legacyRating / 2;
-  return typeof review.rating === "number" && Number.isFinite(review.rating) ? review.rating : null;
+export function getReviewScore(review: Pick<Review, "rating">) {
+  return typeof review.rating === "number" && Number.isFinite(review.rating) && review.rating >= 0 && review.rating <= 5
+    ? review.rating
+    : null;
 }
 
-export function averageReviewScore(reviews: Array<Pick<Review, "rating" | "legacyRating" | "ratingMethod" | "foodRating" | "serviceRating" | "ambienceRating">>) {
+export function averageReviewScore(reviews: Array<Pick<Review, "rating">>) {
   const scores = reviews.map(getReviewScore).filter((score): score is number => score !== null);
   return scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null;
 }
@@ -51,5 +49,6 @@ export function normalizeRatingFilter(value: string | undefined) {
   if (!value) return undefined;
   const parsed = Number(value.replace(",", "."));
   if (!Number.isFinite(parsed)) return undefined;
+  // Transitional URL compatibility only: persisted ratings are always 0–5.
   return parsed > 5 ? parsed / 2 : parsed;
 }

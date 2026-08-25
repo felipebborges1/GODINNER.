@@ -7,7 +7,7 @@ export interface Restaurant { id: string; slug: string; name: string; cuisine: s
 export interface ReviewSocialSummary { likeCount: number; commentCount: number; likedByMe: boolean; }
 export interface ReviewComment { id: string; reviewId: string; userId: string; body: string; createdAt: string; updatedAt: string; }
 export type ReviewRatingMethod = "legacy" | "dimensions";
-export interface Review { id: string; userId: string; restaurantId: string; rating: number; legacyRating: number | null; ratingMethod: ReviewRatingMethod; foodRating: number | null; serviceRating: number | null; ambienceRating: number | null; comment: string; photos: RestaurantPhoto[]; amountPerPerson?: number; visitDate: string; createdAt: string; updatedAt?: string; }
+export interface Review { id: string; userId: string; restaurantId: string; rating: number; ratingMethod: ReviewRatingMethod; foodRating: number | null; serviceRating: number | null; ambienceRating: number | null; comment: string; photos: RestaurantPhoto[]; amountPerPerson?: number; visitDate: string; createdAt: string; updatedAt?: string; }
 export type ReviewDraft = Pick<Review, "restaurantId" | "comment" | "photos" | "amountPerPerson" | "visitDate" | "foodRating" | "serviceRating" | "ambienceRating">;
 export type ReviewUpdateDraft = Pick<Review, "comment" | "photos" | "amountPerPerson" | "visitDate">;
 export interface RestaurantList { id: string; ownerId: string; name: string; description: string; isPublic: boolean; coverPhoto: string; restaurantIds: string[]; type?: "want" | "visited" | "favorites" | "custom"; }

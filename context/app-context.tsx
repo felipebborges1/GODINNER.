@@ -9,7 +9,7 @@ import { deleteReviewPersisted, publishReviewPersisted, updateReviewPersisted } 
 import { createSignedImageUrl, removeProfileAvatar, removeReviewPhotos, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
-import { averageReviewScore, getReviewScore } from "@/lib/review-rating";
+import { averageReviewScore, getDimensionalReviewScore, getReviewScore } from "@/lib/review-rating";
 import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
@@ -504,7 +504,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       reviewPhotos = uploaded.map(({ photo }) => photo);
     }
     const now = new Date().toISOString();
-    const review: Review = { ...draft, photos: reviewPhotos, rating: getReviewScore({ rating: 0, legacyRating: null, ratingMethod: "dimensions", foodRating: draft.foodRating, serviceRating: draft.serviceRating, ambienceRating: draft.ambienceRating }) ?? 0, legacyRating: null, ratingMethod: "dimensions", id: reviewId, userId: currentUserId, createdAt: now, updatedAt: now };
+    const review: Review = { ...draft, photos: reviewPhotos, rating: getDimensionalReviewScore(draft.foodRating, draft.serviceRating, draft.ambienceRating) ?? 0, ratingMethod: "dimensions", id: reviewId, userId: currentUserId, createdAt: now, updatedAt: now };
     setReviews((current) => [review, ...current]);
     setReviewSocial((current) => ({ ...current, [reviewId]: emptyReviewSocialSummary() }));
     setLists((current) => current.map((list) => {
