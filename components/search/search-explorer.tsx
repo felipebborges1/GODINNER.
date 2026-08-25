@@ -15,6 +15,7 @@ import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { useAppContext } from "@/hooks/use-app-context";
 import { countFriendsWhoVisited, getFriendIds } from "@/lib/restaurant-social";
 import { filterRestaurants } from "@/lib/search";
+import { normalizeRatingFilter } from "@/lib/review-rating";
 import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
@@ -30,7 +31,7 @@ const quick = [
   ["cuisine", "japanese", "Japonês"],
   ["cuisine", "italian", "Italiano"],
   ["price", "100", "Até R$100"],
-  ["rating", "8", "Nota 8+"],
+  ["rating", "4", "Nota 4+"],
   ["occasion", "date", "Date"],
   ["openNow", "true", "Aberto agora"],
 ] as const;
@@ -52,6 +53,16 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     const active = ["nearby", "city", "neighborhood", "distance", "type", "cuisine", "price", "occasion", "rating", "history", "chef", "openNow"].some((key) => searchParams.has(key));
     if (q || active) trackEvent(q ? "search_performed" : "filter_applied", q ? { hasQuery: true } : { hasFilter: true });
   }, [searchParams]);
+
+  useEffect(() => {
+    const current = searchParams.get("rating");
+    const normalized = normalizeRatingFilter(current ?? undefined);
+    if (!current || normalized === undefined || Number(current) <= 5 || Number(current) === normalized) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("rating", String(normalized));
+    pendingParams.current = next.toString();
+    router.replace(`${path}?${next}`);
+  }, [path, router, searchParams]);
 
   const setParam = (key: string, value?: string) => {
     const next = new URLSearchParams(pendingParams.current);

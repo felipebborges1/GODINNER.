@@ -7,6 +7,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { users } from "@/data/mocks";
 import { useAppContext } from "@/hooks/use-app-context";
 import { normalize } from "@/lib/search";
+import { averageReviewScore, formatRating } from "@/lib/review-rating";
 import type { Restaurant } from "@/types";
 import { AdminShell } from "./admin-shell";
 
@@ -118,7 +119,8 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
           <section className="rounded-3xl bg-white p-5 shadow-sm">
             <h2 className="font-black">Conteúdo associado</h2>
             <Info label="Reviews" value={String(reviews.length)} />
-            <Info label="Média" value={reviews.length ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : "—"} />
+            <Info label="Média" value={formatRating(averageReviewScore(reviews))} />
+            {reviews.map((review) => <div key={review.id} className="mt-3 border-t pt-3 text-sm"><b>Nota: {formatRating(review.rating)}</b>{review.ratingMethod === "dimensions" ? <p className="mt-1 text-stone-600">Comida: {review.foodRating} · Serviço: {review.serviceRating} · Ambiente: {review.ambienceRating}</p> : <p className="mt-1 text-stone-600">Metodologia: avaliação geral anterior{review.legacyRating !== null ? ` · ${review.legacyRating.toFixed(1)}/10 original` : ""}</p>}</div>)}
             <Info label="Listas" value={String(ctx.lists.filter((list) => list.restaurantIds.includes(restaurant.id)).length)} />
             <Info label="Fotos" value={String(reviews.flatMap((review) => review.photos).length)} />
           </section>

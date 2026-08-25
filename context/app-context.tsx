@@ -9,7 +9,8 @@ import { publishReviewPersisted } from "@/lib/data/repositories";
 import { createSignedImageUrl, removeProfileAvatar, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
-import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewSocialSummary, User } from "@/types";
+import { averageReviewScore, getReviewScore } from "@/lib/review-rating";
+import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewSocialSummary, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
@@ -47,7 +48,7 @@ type AppContextValue = {
   createReviewComment: (reviewId: string, body: string) => Promise<ReviewComment | null>;
   deleteReviewComment: (reviewId: string, commentId: string) => Promise<boolean>;
   submitRestaurant: (draft: RestaurantSubmission) => Promise<{ restaurant?: Restaurant; duplicate?: Restaurant; error?: string }>;
-  publishReview: (draft: Omit<Review, "id" | "userId" | "createdAt">) => Promise<Review | null>;
+  publishReview: (draft: ReviewDraft) => Promise<Review | null>;
   updateProfileAvatar: (file: File | null) => Promise<{ ok: boolean; avatar: string | null; error?: string }>;
   isAdmin: boolean;
   updateRestaurantAdmin: (restaurantId: string, draft: AdminRestaurantDraft) => AdminResult;
@@ -139,18 +140,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         return;
       }
-      const ratingsByRestaurant = new Map<string, number[]>();
+      const ratingsByRestaurant = new Map<string, Review[]>();
       mappedReviews.forEach((review) => {
-        const ratings = ratingsByRestaurant.get(review.restaurantId) ?? [];
-        ratings.push(review.rating);
-        ratingsByRestaurant.set(review.restaurantId, ratings);
+        const restaurantReviews = ratingsByRestaurant.get(review.restaurantId) ?? [];
+        restaurantReviews.push(review);
+        ratingsByRestaurant.set(review.restaurantId, restaurantReviews);
       });
       setRestaurants(mappedRestaurants.map((restaurant) => {
-        const ratings = ratingsByRestaurant.get(restaurant.id) ?? [];
+        const restaurantReviews = ratingsByRestaurant.get(restaurant.id) ?? [];
+        const rating = averageReviewScore(restaurantReviews);
         return {
           ...restaurant,
-          godinnerRating: ratings.length ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1)) : 0,
-          reviewCount: ratings.length,
+          godinnerRating: rating ?? 0,
+          reviewCount: restaurantReviews.filter((review) => getReviewScore(review) !== null).length,
         };
       }));
       setReviews(mappedReviews);
@@ -468,7 +470,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((current) => [...current, restaurant]);
     return { restaurant };
   }, [backendConfigured, currentUserId, restaurants]);
-  const publishReview = useCallback(async (draft: Omit<Review, "id" | "userId" | "createdAt">) => {
+  const publishReview = useCallback(async (draft: ReviewDraft) => {
     if (!currentUserId) return null;
     const restaurant = restaurants.find((item) => item.id === draft.restaurantId);
     if (!restaurant || restaurant.status === "rejected") return null;
@@ -484,12 +486,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (upload.error || !upload.data) return null;
         uploaded.push({ storagePath: upload.data.path, position, photo: { ...photo, url: upload.data.url, file: undefined } });
       }
-      const persisted = await publishReviewPersisted(client, { restaurantId: draft.restaurantId, rating: draft.rating, comment: draft.comment, amountPerPerson: draft.amountPerPerson, visitDate: draft.visitDate, photos: uploaded.map(({ storagePath, position }) => ({ storagePath, position })) });
+      const persisted = await publishReviewPersisted(client, { restaurantId: draft.restaurantId, foodRating: draft.foodRating as number, serviceRating: draft.serviceRating as number, ambienceRating: draft.ambienceRating as number, comment: draft.comment, amountPerPerson: draft.amountPerPerson, visitDate: draft.visitDate, photos: uploaded.map(({ storagePath, position }) => ({ storagePath, position })) });
       if (persisted.error || !persisted.data) return null;
       reviewId = persisted.data;
       reviewPhotos = uploaded.map(({ photo }) => photo);
     }
-    const review = { ...draft, photos: reviewPhotos, id: reviewId, userId: currentUserId, createdAt: new Date().toISOString() };
+    const review: Review = { ...draft, photos: reviewPhotos, rating: getReviewScore({ rating: 0, legacyRating: null, ratingMethod: "dimensions", foodRating: draft.foodRating, serviceRating: draft.serviceRating, ambienceRating: draft.ambienceRating }) ?? 0, legacyRating: null, ratingMethod: "dimensions", id: reviewId, userId: currentUserId, createdAt: new Date().toISOString() };
     setReviews((current) => [review, ...current]);
     setReviewSocial((current) => ({ ...current, [reviewId]: emptyReviewSocialSummary() }));
     setLists((current) => current.map((list) => {
@@ -499,7 +501,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return list;
     }));
     return review;
-  }, [backendConfigured, currentUserId, restaurants]);
+  }, [backendConfigured, currentUserId, dataMode, restaurants]);
   const adminGuard = useCallback(() => isAdmin ? null : "Acesso restrito.", [isAdmin]);
   const updateRestaurantAdmin = useCallback((restaurantId: string, draft: AdminRestaurantDraft): AdminResult => {
     const error = adminGuard(); if (error) return { ok: false, error };
@@ -533,7 +535,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const error = adminGuard(); if (error) return { ok: false, error }; const source = restaurants.find((item) => item.id === pendingId); const target = restaurants.find((item) => item.id === targetId);
     if (!source || !target || source.id === target.id || source.status !== "pending_review" || (target.status ?? "published") !== "published") return { ok: false, error: "Destino inválido para mesclagem." };
     const movedReviews = reviews.filter((review) => review.restaurantId === source.id); const targetReviews = [...reviews.filter((review) => review.restaurantId === target.id), ...movedReviews];
-    const ratings = targetReviews.map((review) => review.rating); const restaurant = { ...target, godinnerRating: ratings.length ? Number((ratings.reduce((sum, value) => sum + value, 0) / ratings.length).toFixed(1)) : target.godinnerRating, reviewCount: targetReviews.length, photos: [...target.photos, ...movedReviews.flatMap((review) => review.photos)] };
+    const rating = averageReviewScore(targetReviews); const restaurant = { ...target, godinnerRating: rating ?? target.godinnerRating, reviewCount: targetReviews.filter((review) => getReviewScore(review) !== null).length, photos: [...target.photos, ...movedReviews.flatMap((review) => review.photos)] };
     setReviews((items) => items.map((review) => review.restaurantId === source.id ? { ...review, restaurantId: target.id } : review));
     setLists((items) => items.map((list) => ({ ...list, restaurantIds: [...new Set(list.restaurantIds.map((id) => id === source.id ? target.id : id))] })));
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));

@@ -1,6 +1,7 @@
 import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance";
 import { calculateCommunitySpend, formatCommunitySpend, type CommunitySpend } from "@/lib/community-spend";
 import { normalize } from "@/lib/search";
+import { averageReviewScore } from "@/lib/review-rating";
 import type { Restaurant, Review } from "@/types";
 import { restaurantMatchesCuisine } from "./cuisine";
 import type { AiRecommendation, AiRecommendationResponse, AiSearchIntent, AiSearchPosition } from "./types";
@@ -14,8 +15,8 @@ function restaurantText(restaurant: Restaurant) {
 }
 
 function ratingFor(reviews: Review[], restaurantId: string) {
-  const values = reviews.filter((review) => review.restaurantId === restaurantId).map((review) => review.rating);
-  return { rating: values.length ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)) : null, reviewCount: values.length };
+  const restaurantReviews = reviews.filter((review) => review.restaurantId === restaurantId);
+  return { rating: averageReviewScore(restaurantReviews), reviewCount: restaurantReviews.length };
 }
 
 function candidateReasons(restaurant: Restaurant, intent: AiSearchIntent, rating: number | null, distance: number | null, communitySpend: CommunitySpend | null) {

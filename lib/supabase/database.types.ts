@@ -24,6 +24,7 @@ export interface Database {
     };
     Functions: {
       publish_review: { Args: { p_restaurant_id: string; p_rating: number; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: string };
+      publish_review_dimensions: { Args: { p_restaurant_id: string; p_food_rating: number; p_service_rating: number; p_ambience_rating: number; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: string };
       merge_restaurant: { Args: { p_pending_id: string; p_target_id: string }; Returns: string };
       claim_follow_push_event: { Args: { p_following_id: string }; Returns: Array<{ event_id: string; follower_id: string; following_id: string }> };
     };
@@ -38,7 +39,7 @@ export type ProfileUpdate = Partial<ProfileInsert>;
 export type RestaurantRow = { id: string; slug: string; name: string; address: string; city: string; neighborhood: string; latitude: number; longitude: number; category: RestaurantCategory; cuisines: string[]; price_range: PriceRange; instagram: string | null; website: string | null; phone: string | null; chef: string; cover_photo_url: string | null; cover_photo_path: string | null; google_place_id: string | null; status: RestaurantStatus; submitted_by: string | null; submitted_at: string | null; moderated_by: string | null; moderated_at: string | null; rejection_reason: string | null; merged_into_id: string | null; created_at: string; updated_at: string; };
 export type RestaurantInsert = Omit<RestaurantRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
 export type RestaurantUpdate = Partial<RestaurantInsert>;
-export type ReviewRow = { id: string; user_id: string; restaurant_id: string; rating: number; comment: string; amount_per_person: number | null; visit_date: string; created_at: string; updated_at: string; };
+export type ReviewRow = { id: string; user_id: string; restaurant_id: string; rating: number | null; rating_method: "legacy" | "dimensions"; food_rating: number | null; service_rating: number | null; ambience_rating: number | null; comment: string; amount_per_person: number | null; visit_date: string; created_at: string; updated_at: string; };
 export type ReviewInsert = Omit<ReviewRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
 export type ReviewUpdate = Partial<ReviewInsert>;
 export type ReviewPhotoRow = { id: string; review_id: string; storage_path: string; position: number; created_at: string; };

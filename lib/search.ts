@@ -1,4 +1,5 @@
 import { calculateCommunitySpend } from "@/lib/community-spend";
+import { normalizeRatingFilter } from "@/lib/review-rating";
 import type { Restaurant, RestaurantList, Review } from "@/types";
 
 export type SearchParams = Record<string, string>;
@@ -19,6 +20,7 @@ export function filterRestaurants(
   reviews: Review[] = [],
 ) {
   const q = normalize(params.q ?? "");
+  const normalizedRating = normalizeRatingFilter(params.rating);
   const history = params.history;
   const ids = history
     ? new Set(lists.find((list) => list.ownerId === userId && list.type === history)?.restaurantIds ?? [])
@@ -41,7 +43,7 @@ export function filterRestaurants(
       (!params.type || restaurant.category === params.type) &&
       (!params.price || (params.price === "100" ? ["$", "$$"].includes(restaurant.priceRange) : restaurant.priceRange === params.price)) &&
       (!params.occasion || restaurant.occasions.includes(params.occasion)) &&
-      (!params.rating || restaurant.godinnerRating >= Number(params.rating)) &&
+      (normalizedRating === undefined || restaurant.godinnerRating >= normalizedRating) &&
       (!params.chef || normalize(restaurant.chef) === params.chef) &&
       (!params.openNow || restaurant.isOpenNow) &&
       (!params.nearby || restaurant.distanceKm <= 5) &&

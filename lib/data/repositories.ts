@@ -49,10 +49,12 @@ export async function removeFollow(client: Client, followerId: string, following
   return result(response.error ? null : true, response.error);
 }
 
-export async function publishReviewPersisted(client: Client, input: { restaurantId: string; rating: number; comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }> }) {
-  const response = await client.rpc("publish_review", {
+export async function publishReviewPersisted(client: Client, input: { restaurantId: string; foodRating: number; serviceRating: number; ambienceRating: number; comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }> }) {
+  const response = await client.rpc("publish_review_dimensions", {
     p_restaurant_id: input.restaurantId,
-    p_rating: input.rating,
+    p_food_rating: input.foodRating,
+    p_service_rating: input.serviceRating,
+    p_ambience_rating: input.ambienceRating,
     p_comment: input.comment,
     p_amount_per_person: input.amountPerPerson ?? null,
     p_visit_date: input.visitDate,
