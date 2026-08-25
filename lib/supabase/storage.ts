@@ -40,6 +40,14 @@ export async function removeProfileAvatar(path: string) {
   return { error: result.error };
 }
 
+export async function removeReviewPhotos(paths: string[]) {
+  if (!paths.length) return { error: null };
+  const supabase = createSupabaseBrowserClient();
+  if (!supabase) return { error: new Error("Supabase não está configurado.") };
+  const result = await supabase.storage.from("review-photos").remove(paths);
+  return { error: result.error };
+}
+
 export async function createSignedImageUrl(scope: "avatars" | "restaurant-submissions" | "review-photos", path: string, expiresIn = 60 * 60) {
   const supabase = createSupabaseBrowserClient();
   if (!supabase) return { data: null, error: new Error("Supabase não está configurado.") };

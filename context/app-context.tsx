@@ -5,16 +5,26 @@ import { normalize } from "@/lib/search";
 import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/lib/supabase/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { mapFollow, mapList, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
-import { publishReviewPersisted } from "@/lib/data/repositories";
-import { createSignedImageUrl, removeProfileAvatar, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
+import { deleteReviewPersisted, publishReviewPersisted, updateReviewPersisted } from "@/lib/data/repositories";
+import { createSignedImageUrl, removeProfileAvatar, removeReviewPhotos, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
 import { averageReviewScore, getReviewScore } from "@/lib/review-rating";
-import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewSocialSummary, User } from "@/types";
+import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
 export type AdminResult = { ok: boolean; error?: string; restaurant?: Restaurant };
+
+function refreshRestaurantReviewStats(restaurants: Restaurant[], reviews: Review[], restaurantId: string) {
+  const restaurantReviews = reviews.filter((review) => review.restaurantId === restaurantId);
+  const rating = averageReviewScore(restaurantReviews);
+  return restaurants.map((restaurant) => restaurant.id === restaurantId ? {
+    ...restaurant,
+    godinnerRating: rating ?? 0,
+    reviewCount: restaurantReviews.filter((review) => getReviewScore(review) !== null).length,
+  } : restaurant);
+}
 
 type AppContextValue = {
   dataMode: "mock" | "supabase";
@@ -49,6 +59,8 @@ type AppContextValue = {
   deleteReviewComment: (reviewId: string, commentId: string) => Promise<boolean>;
   submitRestaurant: (draft: RestaurantSubmission) => Promise<{ restaurant?: Restaurant; duplicate?: Restaurant; error?: string }>;
   publishReview: (draft: ReviewDraft) => Promise<Review | null>;
+  updateReview: (reviewId: string, draft: ReviewUpdateDraft) => Promise<Review | null>;
+  deleteReview: (reviewId: string) => Promise<{ ok: boolean; cleanupFailed?: boolean }>;
   updateProfileAvatar: (file: File | null) => Promise<{ ok: boolean; avatar: string | null; error?: string }>;
   isAdmin: boolean;
   updateRestaurantAdmin: (restaurantId: string, draft: AdminRestaurantDraft) => AdminResult;
@@ -491,7 +503,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       reviewId = persisted.data;
       reviewPhotos = uploaded.map(({ photo }) => photo);
     }
-    const review: Review = { ...draft, photos: reviewPhotos, rating: getReviewScore({ rating: 0, legacyRating: null, ratingMethod: "dimensions", foodRating: draft.foodRating, serviceRating: draft.serviceRating, ambienceRating: draft.ambienceRating }) ?? 0, legacyRating: null, ratingMethod: "dimensions", id: reviewId, userId: currentUserId, createdAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const review: Review = { ...draft, photos: reviewPhotos, rating: getReviewScore({ rating: 0, legacyRating: null, ratingMethod: "dimensions", foodRating: draft.foodRating, serviceRating: draft.serviceRating, ambienceRating: draft.ambienceRating }) ?? 0, legacyRating: null, ratingMethod: "dimensions", id: reviewId, userId: currentUserId, createdAt: now, updatedAt: now };
     setReviews((current) => [review, ...current]);
     setReviewSocial((current) => ({ ...current, [reviewId]: emptyReviewSocialSummary() }));
     setLists((current) => current.map((list) => {
@@ -502,6 +515,87 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
     return review;
   }, [backendConfigured, currentUserId, dataMode, restaurants]);
+  const updateReview = useCallback(async (reviewId: string, draft: ReviewUpdateDraft) => {
+    const existing = reviews.find((review) => review.id === reviewId);
+    if (!existing || !currentUserId || (existing.userId !== currentUserId && !isAdmin)) return null;
+    const restaurant = restaurants.find((item) => item.id === existing.restaurantId);
+    if (!restaurant) return null;
+    let nextPhotos = draft.photos;
+    let updatedAt = new Date().toISOString();
+    if (dataMode === "supabase" && backendConfigured) {
+      const client = createSupabaseBrowserClient();
+      if (!client) return null;
+      const uploaded: Array<{ path: string; photo: Review["photos"][number] }> = [];
+      for (const photo of draft.photos) {
+        if (!photo.file) continue;
+        const upload = await uploadUserImage(currentUserId, photo.file, "review-photos");
+        if (upload.error || !upload.data) {
+          await removeReviewPhotos(uploaded.map((item) => item.path));
+          showToast("Não foi possível enviar uma das fotos.");
+          return null;
+        }
+        uploaded.push({ path: upload.data.path, photo: { ...photo, storagePath: upload.data.path, url: upload.data.url, file: undefined } });
+      }
+      const uploadedByLocalId = new Map(uploaded.map((item) => [item.photo.id, item.photo]));
+      nextPhotos = draft.photos.map((photo) => photo.file ? uploadedByLocalId.get(photo.id)! : photo);
+      if (nextPhotos.some((photo) => !photo.storagePath)) {
+        await removeReviewPhotos(uploaded.map((item) => item.path));
+        showToast("Não foi possível identificar uma foto existente.");
+        return null;
+      }
+      const persisted = await updateReviewPersisted(client, reviewId, {
+        comment: draft.comment,
+        amountPerPerson: draft.amountPerPerson,
+        visitDate: draft.visitDate,
+        photos: nextPhotos.map((photo, position) => ({ storagePath: photo.storagePath!, position })),
+        });
+        if (persisted.error || !persisted.data) {
+          await removeReviewPhotos(uploaded.map((item) => item.path));
+          console.error("[review:update]", JSON.stringify(persisted.error?.cause));
+          showToast(persisted.error?.message || "Não foi possível atualizar a experiência.");
+          return null;
+        }
+      updatedAt = persisted.data.updated_at;
+      const cleanup = await removeReviewPhotos(persisted.data.removed_paths ?? []);
+      if (cleanup.error) showToast("Experiência atualizada, mas uma foto antiga não pôde ser removida.");
+    }
+    const updated: Review = {
+      ...existing,
+      ...draft,
+      photos: nextPhotos,
+      updatedAt,
+    };
+    const nextReviews = reviews.map((review) => review.id === reviewId ? updated : review);
+    setReviews(nextReviews);
+    showToast("Experiência atualizada.");
+    return updated;
+  }, [backendConfigured, currentUserId, isAdmin, restaurants, reviews, showToast]);
+  const deleteReview = useCallback(async (reviewId: string) => {
+    const existing = reviews.find((review) => review.id === reviewId);
+    if (!existing || !currentUserId || (existing.userId !== currentUserId && !isAdmin)) return { ok: false };
+    let cleanupFailed = false;
+    let visitedEntryRemoved = false;
+    if (dataMode === "supabase" && backendConfigured) {
+      const client = createSupabaseBrowserClient();
+      if (!client) return { ok: false };
+      const persisted = await deleteReviewPersisted(client, reviewId);
+      if (persisted.error || !persisted.data) { showToast("Não foi possível excluir a experiência."); return { ok: false }; }
+      visitedEntryRemoved = persisted.data.visited_entry_removed;
+      const cleanup = await removeReviewPhotos(persisted.data.removed_paths ?? []);
+      cleanupFailed = Boolean(cleanup.error);
+    } else {
+      visitedEntryRemoved = !reviews.some((review) => review.id !== reviewId && review.userId === existing.userId && review.restaurantId === existing.restaurantId);
+    }
+    const nextReviews = reviews.filter((review) => review.id !== reviewId);
+    setReviews(nextReviews);
+    setRestaurants((current) => refreshRestaurantReviewStats(current, nextReviews, existing.restaurantId));
+    setReviewSocial((current) => { const { [reviewId]: _removed, ...rest } = current; return rest; });
+    setReviewComments((current) => { const { [reviewId]: _removed, ...rest } = current; return rest; });
+    setReviewCommentsHasMore((current) => { const { [reviewId]: _removed, ...rest } = current; return rest; });
+    if (visitedEntryRemoved) setLists((current) => current.map((list) => list.ownerId === existing.userId && list.type === "visited" ? { ...list, restaurantIds: list.restaurantIds.filter((id) => id !== existing.restaurantId) } : list));
+    showToast(cleanupFailed ? "Experiência excluída, mas uma foto não pôde ser removida." : "Experiência excluída.");
+    return { ok: true, cleanupFailed };
+  }, [backendConfigured, currentUserId, isAdmin, reviews, showToast]);
   const adminGuard = useCallback(() => isAdmin ? null : "Acesso restrito.", [isAdmin]);
   const updateRestaurantAdmin = useCallback((restaurantId: string, draft: AdminRestaurantDraft): AdminResult => {
     const error = adminGuard(); if (error) return { ok: false, error };
@@ -541,6 +635,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewComments, reviewCommentsHasMore, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewComments, createReviewComment, deleteReviewComment, submitRestaurant, publishReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, createReviewComment, currentUserId, dataError, deleteList, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadReviewComments, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, updateList, updateProfileAvatar, updateRestaurantAdmin]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewComments, reviewCommentsHasMore, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewComments, createReviewComment, deleteReviewComment, submitRestaurant, publishReview, updateReview, deleteReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadReviewComments, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, updateList, updateProfileAvatar, updateRestaurantAdmin, updateReview]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

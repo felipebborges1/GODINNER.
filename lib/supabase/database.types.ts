@@ -25,6 +25,8 @@ export interface Database {
     Functions: {
       publish_review: { Args: { p_restaurant_id: string; p_rating: number; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: string };
       publish_review_dimensions: { Args: { p_restaurant_id: string; p_food_rating: number; p_service_rating: number; p_ambience_rating: number; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: string };
+      update_review_owned: { Args: { p_review_id: string; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: Array<{ review_id: string; updated_at: string; removed_paths: string[] }> };
+      delete_review_owned: { Args: { p_review_id: string }; Returns: Array<{ review_id: string; removed_paths: string[]; visited_entry_removed: boolean }> };
       merge_restaurant: { Args: { p_pending_id: string; p_target_id: string }; Returns: string };
       claim_follow_push_event: { Args: { p_following_id: string }; Returns: Array<{ event_id: string; follower_id: string; following_id: string }> };
     };

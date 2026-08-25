@@ -24,7 +24,9 @@ export type AnalyticsEvent =
   | "profile_photo_removed"
   | "review_liked"
   | "review_unliked"
-  | "review_comment_created";
+  | "review_comment_created"
+  | "review_edited"
+  | "review_deleted";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 

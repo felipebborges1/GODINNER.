@@ -63,6 +63,24 @@ export async function publishReviewPersisted(client: Client, input: { restaurant
   return result(response.data, response.error);
 }
 
+type ReviewUpdateMutationInput = { comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }> };
+
+export async function updateReviewPersisted(client: Client, reviewId: string, input: ReviewUpdateMutationInput) {
+  const response = await client.rpc("update_review_owned", {
+    p_review_id: reviewId,
+    p_comment: input.comment,
+    p_amount_per_person: input.amountPerPerson ?? null,
+    p_visit_date: input.visitDate,
+    p_photos: input.photos.map((photo) => ({ storage_path: photo.storagePath, position: photo.position })),
+  });
+  return result(response.data?.[0] ?? null, response.error);
+}
+
+export async function deleteReviewPersisted(client: Client, reviewId: string) {
+  const response = await client.rpc("delete_review_owned", { p_review_id: reviewId });
+  return result(response.data?.[0] ?? null, response.error);
+}
+
 export async function mergeRestaurantPersisted(client: Client, pendingId: string, targetId: string) {
   const response = await client.rpc("merge_restaurant", { p_pending_id: pendingId, p_target_id: targetId });
   return result(response.data, response.error);
