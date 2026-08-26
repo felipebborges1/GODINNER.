@@ -137,10 +137,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return mapRestaurant({ ...restaurant, cover_photo_url: signed.data ?? restaurant.cover_photo_url });
       }));
       if (!active || requestId !== loadSequence) return;
-      const reviewPhotos = await Promise.all((reviewPhotoRows.data ?? []).map(async (photo) => {
-        const signed = await client.storage.from("review-photos").createSignedUrl(photo.storage_path, 60 * 60);
-        return signed.data?.signedUrl ? mapReviewPhoto(photo, signed.data.signedUrl) : null;
-      }));
+      // Review photos are public only through their published review. Keep the
+      // Storage bucket private and let the server issue the short-lived URL.
+      const reviewPhotos = (reviewPhotoRows.data ?? []).map((photo) =>
+        mapReviewPhoto(photo, `/api/review-photo/${photo.id}`),
+      );
       if (!active || requestId !== loadSequence) return;
       const mappedReviews = (reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotos.filter((photo): photo is NonNullable<typeof photo> => photo?.reviewId === review.id)));
       const socialRows = mappedReviews.length

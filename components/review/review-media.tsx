@@ -65,6 +65,10 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ro
         priority={eager && index === 0}
         loading={eager && index === 0 ? undefined : index === activeIndex + 1 ? "eager" : "lazy"}
         sizes={sizes}
+        // The route performs the authorization check and redirects to a
+        // short-lived Storage URL. Let the browser follow that redirect
+        // directly; Next's optimizer rejects redirect-only image responses.
+        unoptimized={photo.url.startsWith("/api/review-photo/")}
         className="object-contain p-1"
       />
     </div>)}
