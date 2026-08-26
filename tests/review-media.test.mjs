@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import { readFile } from "node:fs/promises";
+import test from "node:test";
+import vm from "node:vm";
+import ts from "typescript";
 
 const mediaUrl = new URL("../lib/review-media.ts", import.meta.url);
 const componentUrl = new URL("../components/review/review-media.tsx", import.meta.url);
@@ -10,7 +12,8 @@ test("review media keeps upload position and cycles without losing a photo", asy
   const media = await readFile(mediaUrl, "utf8");
   assert.match(media, /photo\.position/);
   assert.match(media, /moveReviewPhotoIndex/);
-  assert.match(media, /\(index \+ direction \+ photoCount\) % photoCount/);
+  assert.match(media, /Math\.min\(Math\.max\(index \+ direction, 0\), photoCount - 1\)/);
+  assert.match(media, /getReviewPhotoSwipeDirection/);
 });
 
 test("review media has the required controls for a multi-photo gallery and lightbox", async () => {
@@ -21,7 +24,26 @@ test("review media has the required controls for a multi-photo gallery and light
   assert.match(component, /Fechar galeria/);
   assert.match(component, /event\.key === "Escape"/);
   assert.match(component, /onTouchStart/);
+  assert.match(component, /touchAction: "pan-y"/);
+  assert.match(component, /motion-reduce:transition-none/);
   assert.match(component, /object-contain/);
+});
+
+test("review photo navigation stops at both ends and ignores vertical or short gestures", async () => {
+  const source = await readFile(mediaUrl, "utf8");
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
+  const compiledModule = { exports: {} };
+  vm.runInNewContext(compiled.outputText, { exports: compiledModule.exports, module: compiledModule });
+  const { getReviewPhotoSwipeDirection, moveReviewPhotoIndex } = compiledModule.exports;
+
+  assert.equal(moveReviewPhotoIndex(0, 5, -1), 0);
+  assert.equal(moveReviewPhotoIndex(0, 5, 1), 1);
+  assert.equal(moveReviewPhotoIndex(4, 5, 1), 4);
+  assert.equal(moveReviewPhotoIndex(4, 5, -1), 3);
+  assert.equal(getReviewPhotoSwipeDirection(200, 100, 120, 110), 1);
+  assert.equal(getReviewPhotoSwipeDirection(120, 100, 200, 110), -1);
+  assert.equal(getReviewPhotoSwipeDirection(200, 100, 180, 100), null);
+  assert.equal(getReviewPhotoSwipeDirection(200, 100, 190, 180), null);
 });
 
 test("review repository reads every review photo ordered by upload position", async () => {

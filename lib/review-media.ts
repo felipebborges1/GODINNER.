@@ -13,5 +13,17 @@ export function orderReviewPhotos(photos: RestaurantPhoto[]) {
 
 export function moveReviewPhotoIndex(index: number, photoCount: number, direction: -1 | 1) {
   if (photoCount <= 1) return 0;
-  return (index + direction + photoCount) % photoCount;
+  return Math.min(Math.max(index + direction, 0), photoCount - 1);
+}
+
+/**
+ * Keeps the page scroll untouched unless a deliberate horizontal gesture was
+ * made inside a review gallery. The gallery intentionally does not loop.
+ */
+export function getReviewPhotoSwipeDirection(startX: number, startY: number, endX: number, endY: number): -1 | 1 | null {
+  const deltaX = endX - startX;
+  const deltaY = endY - startY;
+
+  if (Math.abs(deltaX) < 40 || Math.abs(deltaX) <= Math.abs(deltaY)) return null;
+  return deltaX < 0 ? 1 : -1;
 }
