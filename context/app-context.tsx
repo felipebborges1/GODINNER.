@@ -5,12 +5,12 @@ import { normalize } from "@/lib/search";
 import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/lib/supabase/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { mapFollow, mapList, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
-import { deleteReviewPersisted, publishReviewPersisted, updateReviewPersisted } from "@/lib/data/repositories";
+import { deleteReviewPersisted, listReviewLikes, publishReviewPersisted, REVIEW_LIKES_PAGE_SIZE, updateReviewPersisted } from "@/lib/data/repositories";
 import { createSignedImageUrl, removeProfileAvatar, removeReviewPhotos, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
 import { averageReviewScore, getDimensionalReviewScore, getReviewScore } from "@/lib/review-rating";
-import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
+import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewLikeUser, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
@@ -40,6 +40,10 @@ type AppContextValue = {
   lists: RestaurantList[];
   follows: Follow[];
   reviewSocial: Record<string, ReviewSocialSummary>;
+  reviewLikes: Record<string, ReviewLikeUser[]>;
+  reviewLikesHasMore: Record<string, boolean>;
+  reviewLikesLoading: Record<string, boolean>;
+  reviewLikesError: Record<string, boolean>;
   reviewComments: Record<string, ReviewComment[]>;
   reviewCommentsHasMore: Record<string, boolean>;
   isToastOpen: boolean;
@@ -54,6 +58,7 @@ type AppContextValue = {
   removeRestaurantFromList: (listId: string, restaurantId: string) => Promise<boolean>;
   toggleFollow: (userId: string) => Promise<boolean>;
   toggleReviewLike: (reviewId: string) => Promise<boolean>;
+  loadReviewLikes: (reviewId: string, options?: { reset?: boolean }) => Promise<void>;
   loadReviewComments: (reviewId: string) => Promise<void>;
   createReviewComment: (reviewId: string, body: string) => Promise<ReviewComment | null>;
   deleteReviewComment: (reviewId: string, commentId: string) => Promise<boolean>;
@@ -83,9 +88,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [follows, setFollows] = useState(dataMode === "mock" ? mockData.follows : []);
   const [profiles, setProfiles] = useState<User[]>(dataMode === "mock" ? users : []);
   const [reviewSocial, setReviewSocial] = useState<Record<string, ReviewSocialSummary>>(() => Object.fromEntries((dataMode === "mock" ? mockData.reviews : []).map((review) => [review.id, emptyReviewSocialSummary()])));
+  const [reviewLikes, setReviewLikes] = useState<Record<string, ReviewLikeUser[]>>({});
+  const [reviewLikesHasMore, setReviewLikesHasMore] = useState<Record<string, boolean>>({});
+  const [reviewLikesLoading, setReviewLikesLoading] = useState<Record<string, boolean>>({});
+  const [reviewLikesError, setReviewLikesError] = useState<Record<string, boolean>>({});
   const [reviewComments, setReviewComments] = useState<Record<string, ReviewComment[]>>({});
   const [reviewCommentsHasMore, setReviewCommentsHasMore] = useState<Record<string, boolean>>({});
   const pendingCommentReviews = useRef(new Set<string>());
+  const pendingLikeReviews = useRef(new Set<string>());
   const [isLoading, setIsLoading] = useState(dataMode === "supabase" && backendConfigured);
   const [isAuthLoading, setIsAuthLoading] = useState(dataMode === "supabase" && backendConfigured);
   const [dataError, setDataError] = useState<string | null>(supabaseConfigurationError);
@@ -173,6 +183,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const social = socialRows.data?.find((item) => item.review_id === review.id);
         return [review.id, social ? { likeCount: Number(social.like_count), commentCount: Number(social.comment_count), likedByMe: social.liked_by_me } : emptyReviewSocialSummary()];
       })));
+      setReviewLikes({});
+      setReviewLikesHasMore({});
+      setReviewLikesLoading({});
+      setReviewLikesError({});
       setReviewComments({});
       setReviewCommentsHasMore({});
       setLists((listRows.data ?? []).map((list) => mapList(list, (itemRows.data ?? []).filter((item) => item.list_id === list.id).map((item) => item.restaurant_id))));
@@ -327,8 +341,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleReviewLike = useCallback(async (reviewId: string) => {
     if (!currentUserId || !reviews.some((review) => review.id === reviewId)) return false;
     const before = reviewSocial[reviewId] ?? emptyReviewSocialSummary();
+    const likesBefore = reviewLikes[reviewId];
     const after = toggleReviewLikeSummary(before);
     setReviewSocial((current) => ({ ...current, [reviewId]: after }));
+    setReviewLikes((current) => {
+      const loaded = current[reviewId];
+      if (!loaded || !currentUserId) return current;
+      const currentProfile = profiles.find((profile) => profile.id === currentUserId);
+      if (before.likedByMe) return { ...current, [reviewId]: loaded.filter((item) => item.userId !== currentUserId) };
+      if (!currentProfile || loaded.some((item) => item.userId === currentUserId)) return current;
+      return { ...current, [reviewId]: [{ userId: currentProfile.id, username: currentProfile.username, name: currentProfile.name, avatar: currentProfile.avatar, likedAt: new Date().toISOString() }, ...loaded] };
+    });
     if (dataMode === "supabase" && backendConfigured) {
       const client = createSupabaseBrowserClient();
       if (!client) {
@@ -340,12 +363,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         : await client.from("review_likes").insert({ review_id: reviewId });
       if (result.error) {
         setReviewSocial((current) => ({ ...current, [reviewId]: before }));
+        setReviewLikes((current) => likesBefore === undefined ? current : { ...current, [reviewId]: likesBefore });
         showToast("Não foi possível atualizar a curtida.");
         return false;
       }
     }
     return after.likedByMe;
-  }, [backendConfigured, currentUserId, reviewSocial, reviews, showToast]);
+  }, [backendConfigured, currentUserId, profiles, reviewLikes, reviewSocial, reviews, showToast]);
+  const loadReviewLikes = useCallback(async (reviewId: string, options?: { reset?: boolean }) => {
+    const reset = Boolean(options?.reset);
+    const existing = reset ? [] : reviewLikes[reviewId] ?? [];
+    if (!reviews.some((review) => review.id === reviewId) || pendingLikeReviews.current.has(reviewId) || (!reset && existing.length > 0 && !reviewLikesHasMore[reviewId])) return;
+    if (dataMode !== "supabase" || !backendConfigured) {
+      setReviewLikes((current) => ({ ...current, [reviewId]: existing }));
+      setReviewLikesHasMore((current) => ({ ...current, [reviewId]: false }));
+      return;
+    }
+    const client = createSupabaseBrowserClient();
+    if (!client) return;
+    pendingLikeReviews.current.add(reviewId);
+    setReviewLikesLoading((current) => ({ ...current, [reviewId]: true }));
+    setReviewLikesError((current) => ({ ...current, [reviewId]: false }));
+    try {
+      const response = await listReviewLikes(client, reviewId, existing.length);
+      if (response.error) {
+        setReviewLikesError((current) => ({ ...current, [reviewId]: true }));
+        return;
+      }
+      const received = response.data ?? [];
+      const nextUsers = received.slice(0, REVIEW_LIKES_PAGE_SIZE).flatMap((like) => {
+        const profile = profiles.find((user) => user.id === like.user_id);
+        return profile ? [{ userId: profile.id, username: profile.username, name: profile.name, avatar: profile.avatar, likedAt: like.created_at }] : [];
+      });
+      setReviewLikes((current) => {
+        const previous = reset ? [] : current[reviewId] ?? [];
+        return { ...current, [reviewId]: [...previous, ...nextUsers.filter((user) => !previous.some((item) => item.userId === user.userId))] };
+      });
+      setReviewLikesHasMore((current) => ({ ...current, [reviewId]: received.length > REVIEW_LIKES_PAGE_SIZE }));
+    } finally {
+      pendingLikeReviews.current.delete(reviewId);
+      setReviewLikesLoading((current) => ({ ...current, [reviewId]: false }));
+    }
+  }, [backendConfigured, profiles, reviewLikes, reviewLikesHasMore, reviews]);
   const loadReviewComments = useCallback(async (reviewId: string) => {
     const offset = reviewComments[reviewId]?.length ?? 0;
     if (!reviews.some((review) => review.id === reviewId) || (offset > 0 && !reviewCommentsHasMore[reviewId])) return;
@@ -636,6 +695,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewComments, reviewCommentsHasMore, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewComments, createReviewComment, deleteReviewComment, submitRestaurant, publishReview, updateReview, deleteReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadReviewComments, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, updateList, updateProfileAvatar, updateRestaurantAdmin, updateReview]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewLikes, reviewLikesHasMore, reviewLikesLoading, reviewLikesError, reviewComments, reviewCommentsHasMore, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewLikes, loadReviewComments, createReviewComment, deleteReviewComment, submitRestaurant, publishReview, updateReview, deleteReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadReviewComments, loadReviewLikes, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewLikes, reviewLikesError, reviewLikesHasMore, reviewLikesLoading, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, updateList, updateProfileAvatar, updateRestaurantAdmin, updateReview]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

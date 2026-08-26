@@ -8,6 +8,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { useAppContext } from "@/hooks/use-app-context";
 import { trackEvent } from "@/lib/analytics";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENT_MAX_LENGTH, validateReviewComment } from "@/lib/review-social";
+import { ReviewLikesDialog } from "./review-likes-dialog";
 
 export function ReviewSocialActions({ reviewId }: { reviewId: string }) {
   const { currentUserId, isAdmin, users, reviewSocial, reviewComments, reviewCommentsHasMore, toggleReviewLike, loadReviewComments, createReviewComment, deleteReviewComment } = useAppContext();
@@ -19,6 +20,7 @@ export function ReviewSocialActions({ reviewId }: { reviewId: string }) {
   const [comment, setComment] = useState("");
   const [commentError, setCommentError] = useState<string | null>(null);
   const [isLiking, setIsLiking] = useState(false);
+  const [likesOpen, setLikesOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const summary = reviewSocial[reviewId] ?? emptyReviewSocialSummary();
   const next = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
@@ -56,7 +58,8 @@ export function ReviewSocialActions({ reviewId }: { reviewId: string }) {
 
   return <div className="mt-4 border-t border-stone-100 pt-3">
     <div className="flex items-center gap-1">
-      <button type="button" onClick={() => void like()} disabled={isLiking} aria-pressed={summary.likedByMe} aria-label={summary.likedByMe ? "Remover curtida" : "Curtir review"} className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-60 ${summary.likedByMe ? "bg-orange-50 text-orange-600" : "text-stone-600 hover:bg-stone-100"}`}><Heart size={18} fill={summary.likedByMe ? "currentColor" : "none"}/>{summary.likeCount > 0 && <span>{summary.likeCount}</span>}</button>
+      <button type="button" onClick={() => void like()} disabled={isLiking} aria-pressed={summary.likedByMe} aria-label={summary.likedByMe ? "Remover curtida" : "Curtir review"} className={`grid min-h-11 min-w-11 place-items-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-60 ${summary.likedByMe ? "bg-orange-50 text-orange-600" : "text-stone-600 hover:bg-stone-100"}`}><Heart size={18} fill={summary.likedByMe ? "currentColor" : "none"}/></button>
+      {summary.likeCount > 0 && <button type="button" onClick={() => setLikesOpen(true)} aria-label={`Ver ${summary.likeCount} ${summary.likeCount === 1 ? "pessoa que curtiu esta review" : "pessoas que curtiram esta review"}`} className="min-h-11 rounded-full px-2 text-sm font-bold text-stone-600 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">{summary.likeCount} {summary.likeCount === 1 ? "curtida" : "curtidas"}</button>}
       <button type="button" onClick={() => { if (!requireLogin()) return; void openComments(); }} aria-expanded={commentsOpen} aria-controls={`review-comments-${reviewId}`} className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-bold text-stone-600 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><MessageCircle size={18}/><span>{summary.commentCount ? `${summary.commentCount} ${summary.commentCount === 1 ? "comentário" : "comentários"}` : "Comentar"}</span></button>
     </div>
     {commentsOpen && <div id={`review-comments-${reviewId}`} className="mt-3 space-y-3">
@@ -69,5 +72,6 @@ export function ReviewSocialActions({ reviewId }: { reviewId: string }) {
       {commentError && <p role="alert" className="text-xs font-semibold text-red-600">{commentError}</p>}
     </div>}
     <LoginWall open={loginOpen} onClose={() => setLoginOpen(false)} next={next}/>
+    <ReviewLikesDialog reviewId={reviewId} open={likesOpen} onClose={() => setLikesOpen(false)}/>
   </div>;
 }

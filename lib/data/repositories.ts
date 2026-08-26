@@ -4,6 +4,7 @@ import { toDataError, type DataError } from "./errors";
 
 type Client = SupabaseClient<Database>;
 export type RepositoryResult<T> = { data: T | null; error: DataError | null };
+export const REVIEW_LIKES_PAGE_SIZE = 20;
 
 function result<T>(data: T | null, error: unknown = null): RepositoryResult<T> {
   return error ? { data: null, error: toDataError(error) } : { data, error: null };
@@ -60,6 +61,16 @@ export async function publishReviewPersisted(client: Client, input: { restaurant
     p_visit_date: input.visitDate,
     p_photos: input.photos.map((photo) => ({ storage_path: photo.storagePath, position: photo.position })),
   });
+  return result(response.data, response.error);
+}
+
+export async function listReviewLikes(client: Client, reviewId: string, offset = 0) {
+  const response = await client
+    .from("review_likes")
+    .select("user_id, created_at")
+    .eq("review_id", reviewId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + REVIEW_LIKES_PAGE_SIZE);
   return result(response.data, response.error);
 }
 

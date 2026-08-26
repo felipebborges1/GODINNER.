@@ -43,3 +43,24 @@ test("visitor_comment_click_opens_loginwall", async () => {
   const reviewActions = await readFile(new URL("../components/review/review-social-actions.tsx", import.meta.url), "utf8");
   assert.match(reviewActions, /onClick=\{\(\) => \{ if \(!requireLogin\(\)\) return; void openComments\(\); \}\}/);
 });
+
+test("likes list reuses visible-review RLS and is paginated by recency", async () => {
+  const repository = await readFile(new URL("../lib/data/repositories.ts", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20260824000000_review_social_engagement.sql", import.meta.url), "utf8");
+  assert.match(repository, /export const REVIEW_LIKES_PAGE_SIZE = 20/);
+  assert.match(repository, /\.order\("created_at", \{ ascending: false \}\)/);
+  assert.match(repository, /\.range\(offset, offset \+ REVIEW_LIKES_PAGE_SIZE\)/);
+  assert.match(migration, /review_likes_read_visible_review/);
+  assert.match(migration, /grant select on public\.review_likes/);
+});
+
+test("likes count opens its own dialog without toggling the heart", async () => {
+  const reviewActions = await readFile(new URL("../components/review/review-social-actions.tsx", import.meta.url), "utf8");
+  const dialog = await readFile(new URL("../components/review/review-likes-dialog.tsx", import.meta.url), "utf8");
+  assert.match(reviewActions, /onClick=\{\(\) => setLikesOpen\(true\)\}/);
+  assert.match(reviewActions, /<ReviewLikesDialog reviewId=\{reviewId\} open=\{likesOpen\}/);
+  assert.match(dialog, /Ainda não há curtidas\./);
+  assert.match(dialog, /Carregar mais/);
+  assert.match(dialog, /event\.key === "Escape"/);
+  assert.match(dialog, /<UserAvatar src=\{user\.avatar\} name=\{user\.name\}/);
+});
