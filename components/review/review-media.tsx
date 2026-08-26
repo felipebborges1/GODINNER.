@@ -97,7 +97,7 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ro
         {galleryTrack("(min-width: 1024px) 576px, (min-width: 640px) 480px, 100vw", priority)}
       </button>
       {photoCount > 1 && <>
-        <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-stone-950/80 px-2.5 py-1 text-xs font-bold text-white">{activeIndex + 1} / {photoCount}</span>
+        <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-stone-950/80 px-2.5 py-1 text-xs font-bold text-white">{activeIndex + 1} / {photoCount}</span>
         <span className="sr-only" aria-live="polite">Foto {activeIndex + 1} de {photoCount}</span>
         <button type="button" onClick={() => move(-1)} aria-label="Foto anterior" className="absolute left-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-stone-950 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:grid"><ChevronLeft size={20}/></button>
         <button type="button" onClick={() => move(1)} aria-label="Próxima foto" className="absolute right-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-stone-950 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:grid"><ChevronRight size={20}/></button>
