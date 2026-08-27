@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node --test tests/sprint9-contracts.test.mjs tests/ai-cuisine-matching.test.mjs tests/user-initials.test.mjs tests/community-spend.test.mjs tests/review-social.test.mjs tests/home-search.test.mjs tests/review-rating.test.mjs tests/review-edit-delete.test.mjs tests/review-media.test.mjs"
+    "test": "node --test tests/sprint9-contracts.test.mjs tests/ai-cuisine-matching.test.mjs tests/user-initials.test.mjs tests/community-spend.test.mjs tests/review-social.test.mjs tests/home-search.test.mjs tests/review-rating.test.mjs tests/review-edit-delete.test.mjs tests/review-media.test.mjs tests/profile-avatar-upload.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",

@@ -29,10 +29,19 @@ function cropSquare(source: SourceImage, position: number) {
       const cropX = source.width > source.height ? offset : 0;
       const cropY = source.height > source.width ? offset : 0;
       const canvas = document.createElement("canvas");
-      canvas.width = side;
-      canvas.height = side;
-      canvas.getContext("2d")?.drawImage(image, cropX, cropY, side, side, 0, 0, side, side);
-      canvas.toBlob((blob) => blob ? resolve(new File([blob], "avatar.webp", { type: "image/webp" })) : reject(new Error("Não foi possível preparar o recorte.")), "image/webp", 0.92);
+      const outputSide = Math.min(side, avatarImageRequirements.maxOutputDimension);
+      canvas.width = outputSide;
+      canvas.height = outputSide;
+      const context = canvas.getContext("2d");
+      if (!context) { reject(new Error("Não foi possível preparar o recorte.")); return; }
+      context.drawImage(image, cropX, cropY, side, side, 0, 0, outputSide, outputSide);
+      canvas.toBlob((blob) => {
+        if (!blob || !avatarImageRequirements.acceptedTypes.has(blob.type)) { reject(new Error("Não foi possível preparar o recorte.")); return; }
+        const extension = blob.type === "image/jpeg" ? "jpg" : blob.type === "image/png" ? "png" : "webp";
+        const cropped = new File([blob], `avatar.${extension}`, { type: blob.type });
+        if (cropped.size > avatarImageRequirements.maxBytes) { reject(new Error("A foto processada ficou maior que 5 MB. Escolha outra imagem.")); return; }
+        resolve(cropped);
+      }, "image/webp", 0.86);
     };
     image.onerror = () => reject(new Error("Não foi possível preparar o recorte."));
     image.src = source.url;
@@ -51,7 +60,7 @@ export function ProfileAvatarEditor({ user, onSave, onRemove }: { user: User; on
   async function selectFile(file?: File) {
     if (!file) return;
     setError("");
-    if (!avatarImageRequirements.acceptedTypes.has(file.type)) { setError("Escolha uma imagem JPG, PNG ou WebP."); return; }
+    if (!avatarImageRequirements.acceptedTypes.has(file.type)) { setError("Este formato de foto não é compatível. Escolha uma foto JPG, PNG ou WebP."); return; }
     if (file.size > avatarImageRequirements.maxBytes) { setError("A imagem deve ter no máximo 5 MB."); return; }
     try {
       const metadata = await readImage(file);

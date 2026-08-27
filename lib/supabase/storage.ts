@@ -2,11 +2,39 @@ import { createSupabaseBrowserClient } from "./browser";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-export const avatarImageRequirements = { minDimension: 320, maxBytes: MAX_IMAGE_BYTES, acceptedTypes: ALLOWED_IMAGE_TYPES };
+const AVATAR_MAX_OUTPUT_DIMENSION = 1600;
+
+export const avatarImageRequirements = {
+  minDimension: 320,
+  maxBytes: MAX_IMAGE_BYTES,
+  maxOutputDimension: AVATAR_MAX_OUTPUT_DIMENSION,
+  acceptedTypes: ALLOWED_IMAGE_TYPES,
+};
+
+export function getAvatarFileValidationError(file: File) {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) return "Este formato de foto não é compatível. Escolha uma foto JPG, PNG ou WebP.";
+  if (file.size > MAX_IMAGE_BYTES) return "A imagem deve ter no máximo 5 MB.";
+  return null;
+}
+
+function storageExtension(type: string) {
+  if (type === "image/jpeg") return "jpg";
+  if (type === "image/png") return "png";
+  return "webp";
+}
+
+export function getAvatarUploadErrorMessage(error: unknown) {
+  const details = error && typeof error === "object" ? error as { statusCode?: number | string; message?: string } : {};
+  const status = String(details.statusCode ?? "");
+  const message = String(details.message ?? "").toLowerCase();
+  if (status === "401" || message.includes("jwt") || message.includes("not authenticated")) return "Sua sessão expirou. Entre novamente para enviar sua foto.";
+  if (status === "413" || message.includes("file size") || message.includes("too large") || message.includes("exceed")) return "A foto processada ficou maior que 5 MB. Escolha outra imagem.";
+  return "Não foi possível enviar sua foto. Tente novamente.";
+}
 
 export function createSafeStoragePath(userId: string, file: File, scope: "avatars" | "restaurant-submissions" | "review-photos") {
   if (!ALLOWED_IMAGE_TYPES.has(file.type) || file.size > MAX_IMAGE_BYTES) throw new Error("Escolha uma imagem JPG, PNG ou WebP de até 5 MB.");
-  const extension = file.type.split("/")[1];
+  const extension = storageExtension(file.type);
   return `${userId}/${crypto.randomUUID()}.${extension}`;
 }
 
@@ -24,10 +52,11 @@ export async function uploadUserImage(userId: string, file: File, scope: "avatar
 }
 
 export async function uploadProfileAvatar(userId: string, file: File) {
-  if (!ALLOWED_IMAGE_TYPES.has(file.type) || file.size > MAX_IMAGE_BYTES) return { data: null, error: new Error("Escolha uma imagem JPG, PNG ou WebP de até 5 MB.") };
+  const validationError = getAvatarFileValidationError(file);
+  if (validationError) return { data: null, error: new Error(validationError) };
   const supabase = createSupabaseBrowserClient();
   if (!supabase) return { data: null, error: new Error("Supabase não está configurado.") };
-  const path = `${userId}/avatar-${crypto.randomUUID()}.webp`;
+  const path = createSafeStoragePath(userId, file, "avatars");
   const uploaded = await supabase.storage.from("avatars").upload(path, file, { contentType: file.type, upsert: false });
   if (uploaded.error) return { data: null, error: uploaded.error };
   return { data: { path }, error: null };

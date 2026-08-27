@@ -6,7 +6,7 @@ import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/li
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { mapFollow, mapList, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
 import { deleteReviewPersisted, listReviewLikes, publishReviewPersisted, REVIEW_LIKES_PAGE_SIZE, updateReviewPersisted } from "@/lib/data/repositories";
-import { createSignedImageUrl, removeProfileAvatar, removeReviewPhotos, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
+import { createSignedImageUrl, getAvatarUploadErrorMessage, removeProfileAvatar, removeReviewPhotos, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
 import { averageReviewScore, getDimensionalReviewScore, getReviewScore } from "@/lib/review-rating";
@@ -496,7 +496,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ok: true, avatar: null };
     }
     const uploaded = await uploadProfileAvatar(currentUserId, file);
-    if (uploaded.error || !uploaded.data) return { ok: false, avatar: previousAvatar, error: "Não foi possível enviar sua foto." };
+    if (uploaded.error || !uploaded.data) return { ok: false, avatar: previousAvatar, error: getAvatarUploadErrorMessage(uploaded.error) };
     const updated = await client.from("profiles").update({ avatar_url: uploaded.data.path }).eq("id", currentUserId).select("*").single();
     if (updated.error) {
       await removeProfileAvatar(uploaded.data.path);
