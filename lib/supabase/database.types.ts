@@ -13,6 +13,7 @@ export interface Database {
       review_photos: { Row: ReviewPhotoRow; Insert: ReviewPhotoInsert; Update: ReviewPhotoUpdate; Relationships: [] };
       review_likes: { Row: ReviewLikeRow; Insert: ReviewLikeInsert; Update: ReviewLikeUpdate; Relationships: [] };
       review_comments: { Row: ReviewCommentRow; Insert: ReviewCommentInsert; Update: ReviewCommentUpdate; Relationships: [] };
+      notifications: { Row: NotificationRow; Insert: NotificationInsert; Update: NotificationUpdate; Relationships: [] };
       restaurant_lists: { Row: ListRow; Insert: ListInsert; Update: ListUpdate; Relationships: [] };
       restaurant_list_items: { Row: ListItemRow; Insert: ListItemInsert; Update: ListItemUpdate; Relationships: [] };
       follows: { Row: FollowRow; Insert: FollowInsert; Update: FollowUpdate; Relationships: [] };
@@ -28,6 +29,8 @@ export interface Database {
       delete_review_owned: { Args: { p_review_id: string }; Returns: Array<{ review_id: string; removed_paths: string[]; visited_entry_removed: boolean }> };
       merge_restaurant: { Args: { p_pending_id: string; p_target_id: string }; Returns: string };
       claim_follow_push_event: { Args: { p_following_id: string }; Returns: Array<{ event_id: string; follower_id: string; following_id: string }> };
+      mark_notification_read: { Args: { p_notification_id: string }; Returns: boolean };
+      mark_all_notifications_read: { Args: Record<string, never>; Returns: number };
     };
     Enums: { app_role: AppRole; restaurant_category: RestaurantCategory; restaurant_status: RestaurantStatus; list_type: ListType; price_range: PriceRange };
     CompositeTypes: Record<string, never>;
@@ -52,6 +55,10 @@ export type ReviewLikeUpdate = Partial<ReviewLikeInsert>;
 export type ReviewCommentRow = { id: string; review_id: string; user_id: string; body: string; created_at: string; updated_at: string; };
 export type ReviewCommentInsert = Omit<ReviewCommentRow, "id" | "user_id" | "created_at" | "updated_at"> & { id?: string; user_id?: string; created_at?: string; updated_at?: string; };
 export type ReviewCommentUpdate = Partial<Pick<ReviewCommentRow, "body">>;
+export type NotificationType = "follow" | "review_like" | "review_comment";
+export type NotificationRow = { id: string; recipient_user_id: string; actor_user_id: string; type: NotificationType; review_id: string | null; restaurant_id: string | null; comment_id: string | null; created_at: string; read_at: string | null; };
+export type NotificationInsert = Omit<NotificationRow, "id" | "created_at" | "read_at"> & { id?: string; created_at?: string; read_at?: string | null; };
+export type NotificationUpdate = Partial<Pick<NotificationRow, "read_at">>;
 export type ReviewSocialSummaryRow = { review_id: string; like_count: number; comment_count: number; liked_by_me: boolean; };
 export type ListRow = { id: string; owner_id: string; name: string; description: string; is_public: boolean; type: ListType; cover_photo_url: string | null; created_at: string; updated_at: string; };
 export type ListInsert = Omit<ListRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };

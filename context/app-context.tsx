@@ -4,13 +4,14 @@ import { CURRENT_USER_ID, mockData, users } from "@/data/mocks";
 import { normalize } from "@/lib/search";
 import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/lib/supabase/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { mapFollow, mapList, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
+import { mapFollow, mapList, mapNotification, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
 import { deleteReviewPersisted, listReviewLikes, publishReviewPersisted, REVIEW_LIKES_PAGE_SIZE, updateReviewPersisted } from "@/lib/data/repositories";
 import { createSignedImageUrl, getAvatarUploadErrorMessage, removeProfileAvatar, removeReviewPhotos, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { mockRestaurantCoordinates } from "@/lib/distance";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
+import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/notifications";
 import { averageReviewScore, getDimensionalReviewScore, getReviewScore } from "@/lib/review-rating";
-import type { Follow, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewLikeUser, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
+import type { Follow, InAppNotification, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewLikeUser, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
@@ -46,6 +47,11 @@ type AppContextValue = {
   reviewLikesError: Record<string, boolean>;
   reviewComments: Record<string, ReviewComment[]>;
   reviewCommentsHasMore: Record<string, boolean>;
+  notifications: InAppNotification[];
+  notificationsHasMore: boolean;
+  notificationsLoading: boolean;
+  notificationsError: boolean;
+  unreadNotificationCount: number;
   isToastOpen: boolean;
   toastMessage: string;
   showToast: (message?: string) => void;
@@ -62,6 +68,9 @@ type AppContextValue = {
   loadReviewComments: (reviewId: string) => Promise<void>;
   createReviewComment: (reviewId: string, body: string) => Promise<ReviewComment | null>;
   deleteReviewComment: (reviewId: string, commentId: string) => Promise<boolean>;
+  loadNotifications: (options?: { reset?: boolean }) => Promise<void>;
+  markNotificationRead: (notificationId: string) => Promise<boolean>;
+  markAllNotificationsRead: () => Promise<boolean>;
   submitRestaurant: (draft: RestaurantSubmission) => Promise<{ restaurant?: Restaurant; duplicate?: Restaurant; error?: string }>;
   publishReview: (draft: ReviewDraft) => Promise<Review | null>;
   updateReview: (reviewId: string, draft: ReviewUpdateDraft) => Promise<Review | null>;
@@ -94,6 +103,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [reviewLikesError, setReviewLikesError] = useState<Record<string, boolean>>({});
   const [reviewComments, setReviewComments] = useState<Record<string, ReviewComment[]>>({});
   const [reviewCommentsHasMore, setReviewCommentsHasMore] = useState<Record<string, boolean>>({});
+  const [notifications, setNotifications] = useState<InAppNotification[]>([]);
+  const [notificationsHasMore, setNotificationsHasMore] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState(false);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const pendingCommentReviews = useRef(new Set<string>());
   const pendingLikeReviews = useRef(new Set<string>());
   const [isLoading, setIsLoading] = useState(dataMode === "supabase" && backendConfigured);
@@ -218,6 +232,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setReviewSocial({});
         setReviewComments({});
         setReviewCommentsHasMore({});
+        setNotifications([]);
+        setNotificationsHasMore(false);
+        setNotificationsError(false);
+        setUnreadNotificationCount(0);
         setLists([]);
         setFollows([]);
         setIsLoading(false);
@@ -231,9 +249,84 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     return () => { active = false; authListener.subscription.unsubscribe(); };
   }, [backendConfigured, retryToken]);
+  useEffect(() => {
+    if (!currentUserId || dataMode !== "supabase" || !backendConfigured) return;
+    const client = createSupabaseBrowserClient();
+    if (!client) return;
+    const notificationsClient = client;
+    let active = true;
+    async function loadInitialNotifications() {
+      setNotificationsLoading(true);
+      setNotificationsError(false);
+      const [response, unread] = await Promise.all([
+        notificationsClient.from("notifications").select("*").order("created_at", { ascending: false }).range(0, NOTIFICATIONS_PAGE_SIZE),
+        notificationsClient.from("notifications").select("*", { count: "exact", head: true }).is("read_at", null),
+      ]);
+      if (!active) return;
+      if (response.error || unread.error) {
+        setNotificationsError(true);
+        setNotificationsLoading(false);
+        return;
+      }
+      const received = (response.data ?? []).map(mapNotification);
+      setNotifications(received.slice(0, NOTIFICATIONS_PAGE_SIZE));
+      setNotificationsHasMore(received.length > NOTIFICATIONS_PAGE_SIZE);
+      setUnreadNotificationCount(unread.count ?? 0);
+      setNotificationsLoading(false);
+    }
+    void loadInitialNotifications();
+    return () => { active = false; };
+  }, [backendConfigured, currentUserId, retryToken]);
   const retryData = useCallback(() => setRetryToken((value) => value + 1), []);
   const showToast = useCallback((message = "Pronto!") => { setToastMessage(message); setToastOpen(true); }, []);
   const hideToast = useCallback(() => setToastOpen(false), []);
+  const loadNotifications = useCallback(async (options?: { reset?: boolean }) => {
+    const reset = Boolean(options?.reset);
+    if (!currentUserId || notificationsLoading || (!reset && !notificationsHasMore)) return;
+    if (dataMode !== "supabase" || !backendConfigured) { setNotificationsHasMore(false); return; }
+    const client = createSupabaseBrowserClient();
+    if (!client) return;
+    setNotificationsLoading(true);
+    const offset = reset ? 0 : notifications.length;
+    const response = await client.from("notifications").select("*").order("created_at", { ascending: false }).range(offset, offset + NOTIFICATIONS_PAGE_SIZE);
+    if (response.error) {
+      setNotificationsError(true);
+      setNotificationsLoading(false);
+      return;
+    }
+      const received = (response.data ?? []).map(mapNotification);
+      setNotifications((current) => reset ? received.slice(0, NOTIFICATIONS_PAGE_SIZE) : [...current, ...received.slice(0, NOTIFICATIONS_PAGE_SIZE).filter((item) => !current.some((existing) => existing.id === item.id))]);
+      setNotificationsHasMore(received.length > NOTIFICATIONS_PAGE_SIZE);
+      setNotificationsError(false);
+      setNotificationsLoading(false);
+  }, [backendConfigured, currentUserId, notifications.length, notificationsHasMore, notificationsLoading]);
+  const markNotificationRead = useCallback(async (notificationId: string) => {
+    const notification = notifications.find((item) => item.id === notificationId);
+    if (!notification || notification.readAt || !currentUserId) return Boolean(notification);
+    if (dataMode === "supabase" && backendConfigured) {
+      const client = createSupabaseBrowserClient();
+      if (!client) return false;
+      const result = await client.rpc("mark_notification_read", { p_notification_id: notificationId });
+      if (result.error || !result.data) { showToast("Não foi possível marcar a notificação como lida."); return false; }
+    }
+    const readAt = new Date().toISOString();
+    setNotifications((current) => current.map((item) => item.id === notificationId ? { ...item, readAt } : item));
+    setUnreadNotificationCount((count) => Math.max(0, count - 1));
+    return true;
+  }, [backendConfigured, currentUserId, notifications, showToast]);
+  const markAllNotificationsRead = useCallback(async () => {
+    if (!currentUserId || unreadNotificationCount === 0) return true;
+    if (dataMode === "supabase" && backendConfigured) {
+      const client = createSupabaseBrowserClient();
+      if (!client) return false;
+      const result = await client.rpc("mark_all_notifications_read", {});
+      if (result.error) { showToast("Não foi possível marcar suas notificações como lidas."); return false; }
+    }
+    const readAt = new Date().toISOString();
+    setNotifications((current) => current.map((item) => item.readAt ? item : { ...item, readAt }));
+    setUnreadNotificationCount(0);
+    return true;
+  }, [backendConfigured, currentUserId, showToast, unreadNotificationCount]);
   const toggleWantToVisit = useCallback(async (restaurantId: string) => {
     if (restaurants.find((restaurant) => restaurant.id === restaurantId)?.status === "rejected") return false;
     const wantList = lists.find((list) => list.ownerId === currentUserId && list.type === "want");
@@ -695,6 +788,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewLikes, reviewLikesHasMore, reviewLikesLoading, reviewLikesError, reviewComments, reviewCommentsHasMore, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewLikes, loadReviewComments, createReviewComment, deleteReviewComment, submitRestaurant, publishReview, updateReview, deleteReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadReviewComments, loadReviewLikes, mergeRestaurant, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewLikes, reviewLikesError, reviewLikesHasMore, reviewLikesLoading, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, updateList, updateProfileAvatar, updateRestaurantAdmin, updateReview]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewLikes, reviewLikesHasMore, reviewLikesLoading, reviewLikesError, reviewComments, reviewCommentsHasMore, notifications, notificationsHasMore, notificationsLoading, notificationsError, unreadNotificationCount, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewLikes, loadReviewComments, createReviewComment, deleteReviewComment, loadNotifications, markNotificationRead, markAllNotificationsRead, submitRestaurant, publishReview, updateReview, deleteReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadNotifications, loadReviewComments, loadReviewLikes, markAllNotificationsRead, markNotificationRead, mergeRestaurant, notifications, notificationsError, notificationsHasMore, notificationsLoading, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewLikes, reviewLikesError, reviewLikesHasMore, reviewLikesLoading, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, unreadNotificationCount, updateList, updateProfileAvatar, updateRestaurantAdmin, updateReview]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

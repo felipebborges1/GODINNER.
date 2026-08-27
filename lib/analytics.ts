@@ -26,7 +26,10 @@ export type AnalyticsEvent =
   | "review_unliked"
   | "review_comment_created"
   | "review_edited"
-  | "review_deleted";
+  | "review_deleted"
+  | "notification_center_opened"
+  | "notification_opened"
+  | "notifications_mark_all_read";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 

@@ -1,5 +1,5 @@
-import type { Follow, Restaurant, RestaurantList, RestaurantPhoto, Review, User } from "@/types";
-import type { FollowRow, ListRow, ProfileRow, RestaurantRow, ReviewPhotoRow, ReviewRow } from "./database.types";
+import type { Follow, InAppNotification, Restaurant, RestaurantList, RestaurantPhoto, Review, User } from "@/types";
+import type { FollowRow, ListRow, NotificationRow, ProfileRow, RestaurantRow, ReviewPhotoRow, ReviewRow } from "./database.types";
 import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance";
 
 const placeholderImage = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
@@ -18,3 +18,4 @@ export function mapReview(row: ReviewRow, photos: RestaurantPhoto[] = []): Revie
 export function mapReviewPhoto(row: ReviewPhotoRow, url: string): RestaurantPhoto { return { id: row.id, reviewId: row.review_id, storagePath: row.storage_path, position: row.position, url, alt: "Foto da experiência" }; }
 export function mapList(row: ListRow, restaurantIds: string[]): RestaurantList { return { id: row.id, ownerId: row.owner_id, name: row.name, description: row.description, isPublic: row.is_public, coverPhoto: row.cover_photo_url ?? placeholderImage, restaurantIds, type: row.type }; }
 export function mapFollow(row: FollowRow): Follow { return { followerId: row.follower_id, followingId: row.following_id, createdAt: row.created_at }; }
+export function mapNotification(row: NotificationRow): InAppNotification { return { id: row.id, recipientUserId: row.recipient_user_id, actorUserId: row.actor_user_id, type: row.type, reviewId: row.review_id, restaurantId: row.restaurant_id, commentId: row.comment_id, createdAt: row.created_at, readAt: row.read_at }; }
