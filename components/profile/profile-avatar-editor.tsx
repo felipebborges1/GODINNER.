@@ -98,13 +98,13 @@ export function ProfileAvatarEditor({ user, onSave, onRemove }: { user: User; on
   const isPortrait = Boolean(source && source.height > source.width);
   const objectPosition = source ? `${isLandscape ? position : 50}% ${isPortrait ? position : 50}%` : "50% 50%";
 
-  return <div className="shrink-0">
+  return <div className="relative shrink-0">
     <button type="button" onClick={() => inputRef.current?.click()} className="group relative block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2" aria-label={user.avatar ? "Alterar foto de perfil" : "Adicionar foto de perfil"}>
       <UserAvatar src={user.avatar} name={user.name} size="lg"/>
       <span className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-orange-500 text-white shadow-sm ring-2 ring-white transition group-hover:bg-orange-600"><Camera size={14}/></span>
     </button>
     <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void selectFile(event.target.files?.[0])}/>
-    <div className="mt-3 flex flex-wrap gap-2">
+    <div className="absolute left-0 top-full z-10 mt-3 flex w-max flex-wrap gap-2">
       <button type="button" onClick={() => inputRef.current?.click()} disabled={Boolean(busy)} className="min-h-10 rounded-full bg-stone-100 px-3 text-xs font-black text-stone-800 transition hover:bg-stone-200 disabled:opacity-60">{user.avatar ? "Alterar foto" : "Adicionar foto"}</button>
       {user.avatar && <button type="button" onClick={() => void remove()} disabled={Boolean(busy)} className="inline-flex min-h-10 items-center gap-1 rounded-full px-3 text-xs font-black text-stone-600 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-60">{busy === "remove" ? <LoaderCircle className="animate-spin" size={14}/> : <Trash2 size={14}/>}Remover foto</button>}
     </div>
