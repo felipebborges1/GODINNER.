@@ -13,6 +13,7 @@ export interface Database {
       review_photos: { Row: ReviewPhotoRow; Insert: ReviewPhotoInsert; Update: ReviewPhotoUpdate; Relationships: [] };
       review_likes: { Row: ReviewLikeRow; Insert: ReviewLikeInsert; Update: ReviewLikeUpdate; Relationships: [] };
       review_comments: { Row: ReviewCommentRow; Insert: ReviewCommentInsert; Update: ReviewCommentUpdate; Relationships: [] };
+      review_comment_mentions: { Row: ReviewCommentMentionRow; Insert: ReviewCommentMentionInsert; Update: ReviewCommentMentionUpdate; Relationships: [] };
       notifications: { Row: NotificationRow; Insert: NotificationInsert; Update: NotificationUpdate; Relationships: [] };
       restaurant_lists: { Row: ListRow; Insert: ListInsert; Update: ListUpdate; Relationships: [] };
       restaurant_list_items: { Row: ListItemRow; Insert: ListItemInsert; Update: ListItemUpdate; Relationships: [] };
@@ -53,9 +54,12 @@ export type ReviewLikeRow = { review_id: string; user_id: string; created_at: st
 export type ReviewLikeInsert = Omit<ReviewLikeRow, "user_id" | "created_at"> & { user_id?: string; created_at?: string; };
 export type ReviewLikeUpdate = Partial<ReviewLikeInsert>;
 export type ReviewCommentRow = { id: string; review_id: string; user_id: string; body: string; created_at: string; updated_at: string; };
+export type ReviewCommentMentionRow = { comment_id: string; mentioned_user_id: string; created_at: string; };
+export type ReviewCommentMentionInsert = Omit<ReviewCommentMentionRow, "created_at"> & { created_at?: string; };
+export type ReviewCommentMentionUpdate = Partial<ReviewCommentMentionInsert>;
 export type ReviewCommentInsert = Omit<ReviewCommentRow, "id" | "user_id" | "created_at" | "updated_at"> & { id?: string; user_id?: string; created_at?: string; updated_at?: string; };
 export type ReviewCommentUpdate = Partial<Pick<ReviewCommentRow, "body">>;
-export type NotificationType = "follow" | "review_like" | "review_comment";
+export type NotificationType = "follow" | "review_like" | "review_comment" | "comment_mention";
 export type NotificationRow = { id: string; recipient_user_id: string; actor_user_id: string; type: NotificationType; review_id: string | null; restaurant_id: string | null; comment_id: string | null; created_at: string; read_at: string | null; };
 export type NotificationInsert = Omit<NotificationRow, "id" | "created_at" | "read_at"> & { id?: string; created_at?: string; read_at?: string | null; };
 export type NotificationUpdate = Partial<Pick<NotificationRow, "read_at">>;

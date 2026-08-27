@@ -11,7 +11,7 @@ import { mockRestaurantCoordinates } from "@/lib/distance";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
 import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/notifications";
 import { averageReviewScore, getDimensionalReviewScore, getReviewScore } from "@/lib/review-rating";
-import type { Follow, InAppNotification, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewLikeUser, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
+import type { CommentMention, Follow, InAppNotification, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewLikeUser, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: "Belo Horizonte" | "Nova Lima"; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
@@ -25,6 +25,17 @@ function refreshRestaurantReviewStats(restaurants: Restaurant[], reviews: Review
     godinnerRating: rating ?? 0,
     reviewCount: restaurantReviews.filter((review) => getReviewScore(review) !== null).length,
   } : restaurant);
+}
+
+function mapCommentMentions(rows: Array<{ comment_id: string; mentioned_user_id: string }>, profiles: User[]) {
+  const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
+  return rows.reduce<Record<string, CommentMention[]>>((mentions, row) => {
+    const profile = profilesById.get(row.mentioned_user_id);
+    if (!profile) return mentions;
+    const current = mentions[row.comment_id] ?? [];
+    mentions[row.comment_id] = [...current, { commentId: row.comment_id, userId: profile.id, username: profile.username }];
+    return mentions;
+  }, {});
 }
 
 type AppContextValue = {
@@ -513,10 +524,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const received = response.data ?? [];
-    const nextComments = received.slice(0, REVIEW_COMMENTS_PAGE_SIZE).map((comment) => ({ id: comment.id, reviewId: comment.review_id, userId: comment.user_id, body: comment.body, createdAt: comment.created_at, updatedAt: comment.updated_at }));
+    const page = received.slice(0, REVIEW_COMMENTS_PAGE_SIZE);
+    const mentionsResponse = page.length
+      ? await client.from("review_comment_mentions").select("comment_id, mentioned_user_id").in("comment_id", page.map((comment) => comment.id))
+      : { data: [], error: null };
+    if (mentionsResponse.error) showToast("Não foi possível carregar as menções dos comentários.");
+    const mentionsByComment = mapCommentMentions(mentionsResponse.data ?? [], profiles);
+    const nextComments = page.map((comment) => ({ id: comment.id, reviewId: comment.review_id, userId: comment.user_id, body: comment.body, createdAt: comment.created_at, updatedAt: comment.updated_at, mentions: mentionsByComment[comment.id] ?? [] }));
     setReviewComments((current) => ({ ...current, [reviewId]: [...(current[reviewId] ?? []), ...nextComments.filter((comment) => !(current[reviewId] ?? []).some((item) => item.id === comment.id))] }));
     setReviewCommentsHasMore((current) => ({ ...current, [reviewId]: received.length > REVIEW_COMMENTS_PAGE_SIZE }));
-  }, [backendConfigured, reviewComments, reviewCommentsHasMore, reviews, showToast]);
+  }, [backendConfigured, profiles, reviewComments, reviewCommentsHasMore, reviews, showToast]);
   const createReviewComment = useCallback(async (reviewId: string, value: string) => {
     if (!currentUserId || !reviews.some((review) => review.id === reviewId)) return null;
     const checked = validateReviewComment(value);
@@ -532,10 +549,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           showToast("Não foi possível publicar o comentário.");
           return null;
         }
-        comment = { id: response.data.id, reviewId: response.data.review_id, userId: response.data.user_id, body: response.data.body, createdAt: response.data.created_at, updatedAt: response.data.updated_at };
+        const mentionsResponse = await client.from("review_comment_mentions").select("comment_id, mentioned_user_id").eq("comment_id", response.data.id);
+        const mentions = mentionsResponse.error ? [] : (mapCommentMentions(mentionsResponse.data ?? [], profiles)[response.data.id] ?? []);
+        comment = { id: response.data.id, reviewId: response.data.review_id, userId: response.data.user_id, body: response.data.body, createdAt: response.data.created_at, updatedAt: response.data.updated_at, mentions };
       } else {
         const now = new Date().toISOString();
-        comment = { id: `comment-${Date.now()}`, reviewId, userId: currentUserId, body: checked.body, createdAt: now, updatedAt: now };
+        comment = { id: `comment-${Date.now()}`, reviewId, userId: currentUserId, body: checked.body, createdAt: now, updatedAt: now, mentions: [] };
       }
       setReviewComments((current) => ({ ...current, [reviewId]: [...(current[reviewId] ?? []), comment] }));
       setReviewSocial((current) => ({ ...current, [reviewId]: { ...(current[reviewId] ?? emptyReviewSocialSummary()), commentCount: (current[reviewId]?.commentCount ?? 0) + 1 } }));
@@ -544,7 +563,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } finally {
       pendingCommentReviews.current.delete(reviewId);
     }
-  }, [backendConfigured, currentUserId, reviews, showToast]);
+  }, [backendConfigured, currentUserId, profiles, reviews, showToast]);
   const deleteReviewComment = useCallback(async (reviewId: string, commentId: string) => {
     const comment = reviewComments[reviewId]?.find((item) => item.id === commentId);
     if (!comment || !canManageReviewComment(comment, currentUserId, isAdmin)) return false;

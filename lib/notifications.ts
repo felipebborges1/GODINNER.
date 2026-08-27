@@ -6,13 +6,15 @@ export function notificationCopy(notification: InAppNotification, actor?: User, 
   const name = actor?.name ?? "Alguém";
   if (notification.type === "follow") return `${name} começou a seguir você.`;
   if (notification.type === "review_like") return `${name} curtiu sua avaliação${restaurant ? ` do ${restaurant.name}` : ""}.`;
+  if (notification.type === "comment_mention") return `${name} mencionou você em um comentário${restaurant ? ` no ${restaurant.name}` : ""}.`;
   return `${name} comentou na sua avaliação${restaurant ? ` do ${restaurant.name}` : ""}.`;
 }
 
 export function notificationDestination(notification: InAppNotification, actor?: User, review?: Review, restaurant?: Restaurant) {
   if (notification.type === "follow") return actor ? `/user/${actor.username}` : null;
   if (!review || !restaurant) return null;
-  return `/restaurant/${restaurant.slug}`;
+  const context = notification.commentId ? `?review=${encodeURIComponent(review.id)}&comment=${encodeURIComponent(notification.commentId)}` : "";
+  return `/restaurant/${restaurant.slug}${context}`;
 }
 
 export function formatRelativeTime(value: string, now = new Date()) {
