@@ -23,13 +23,18 @@ test("reply notifications target the replied-to author without duplicate mention
   assert.match(migration, /on delete cascade/);
 });
 
-test("reply UI groups children under roots, supports cancellation and keeps visitors behind LoginWall", async () => {
+test("reply UI keeps thread presentation flat, separates reply targets from editable text, and keeps visitors behind LoginWall", async () => {
   const component = await readFile(new URL("../components/review/review-social-actions.tsx", import.meta.url), "utf8");
   assert.match(component, /repliesByRoot/);
+  assert.match(component, /commentsById/);
   assert.match(component, /Ver \$\{replies\.length\}/);
   assert.match(component, /Respondendo a @/);
-  assert.match(component, /Cancelar/);
+  assert.match(component, /aria-label="Cancelar resposta"/);
   assert.match(component, /startReply\(item\)/);
+  assert.match(component, /setComment\(""\)/);
+  assert.match(component, /replyTargetAuthor/);
+  assert.match(component, /@\{replyTargetAuthor\.username\}/);
+  assert.match(component, /ml-2 border-l border-orange-200/);
   assert.match(component, /if \(!requireLogin\(\)\) return;/);
   assert.match(component, /createReviewComment\(reviewId, validation\.body, replyTarget\?\.id \?\? null\)/);
 });
