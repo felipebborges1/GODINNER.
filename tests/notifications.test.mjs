@@ -25,6 +25,9 @@ test("notification copy and destinations use relationships rather than persisted
   const mention = { ...base, type: "comment_mention", reviewId: "review", restaurantId: "restaurant", commentId: "comment" };
   assert.equal(notificationCopy(mention, actor, restaurant), "Júlia mencionou você em um comentário no Merci.");
   assert.equal(notificationDestination(mention, actor, review, restaurant), "/restaurant/merci?review=review&comment=comment");
+  const reply = { ...base, type: "comment_reply", reviewId: "review", restaurantId: "restaurant", commentId: "reply" };
+  assert.equal(notificationCopy(reply, actor, restaurant), "Júlia respondeu ao seu comentário no Merci.");
+  assert.equal(notificationDestination(reply, actor, review, restaurant), "/restaurant/merci?review=review&comment=reply");
   assert.equal(notificationDestination(like, actor, undefined, restaurant), null);
 });
 

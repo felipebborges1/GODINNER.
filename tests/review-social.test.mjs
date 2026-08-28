@@ -24,7 +24,7 @@ test("validates and normalizes comments before persistence", () => {
 });
 
 test("only a comment owner or admin can manage a comment", () => {
-  const comment = { id: "comment-1", reviewId: "review-1", userId: "user-a", body: "Ótimo", createdAt: "2026-08-24T00:00:00Z", updatedAt: "2026-08-24T00:00:00Z", mentions: [] };
+  const comment = { id: "comment-1", reviewId: "review-1", userId: "user-a", body: "Ótimo", parentCommentId: null, replyToCommentId: null, createdAt: "2026-08-24T00:00:00Z", updatedAt: "2026-08-24T00:00:00Z", mentions: [] };
   assert.equal(canManageReviewComment(comment, "user-a", false), true);
   assert.equal(canManageReviewComment(comment, "user-b", false), false);
   assert.equal(canManageReviewComment(comment, "user-b", true), true);

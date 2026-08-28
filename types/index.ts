@@ -7,8 +7,8 @@ export interface Restaurant { id: string; slug: string; name: string; cuisine: s
 export interface ReviewSocialSummary { likeCount: number; commentCount: number; likedByMe: boolean; }
 export interface ReviewLikeUser { userId: string; username: string; name: string; avatar: string | null; likedAt: string; }
 export interface CommentMention { commentId: string; userId: string; username: string; }
-export interface ReviewComment { id: string; reviewId: string; userId: string; body: string; createdAt: string; updatedAt: string; mentions: CommentMention[]; }
-export type NotificationType = "follow" | "review_like" | "review_comment" | "comment_mention";
+export interface ReviewComment { id: string; reviewId: string; userId: string; body: string; createdAt: string; updatedAt: string; parentCommentId: string | null; replyToCommentId: string | null; mentions: CommentMention[]; }
+export type NotificationType = "follow" | "review_like" | "review_comment" | "comment_mention" | "comment_reply";
 export interface InAppNotification { id: string; recipientUserId: string; actorUserId: string; type: NotificationType; reviewId: string | null; restaurantId: string | null; commentId: string | null; createdAt: string; readAt: string | null; }
 export type ReviewRatingMethod = "legacy" | "dimensions";
 export interface Review { id: string; userId: string; restaurantId: string; rating: number; ratingMethod: ReviewRatingMethod; foodRating: number | null; serviceRating: number | null; ambienceRating: number | null; comment: string; photos: RestaurantPhoto[]; amountPerPerson?: number; visitDate: string; createdAt: string; updatedAt?: string; }

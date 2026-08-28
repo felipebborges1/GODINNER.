@@ -25,6 +25,7 @@ export type AnalyticsEvent =
   | "review_liked"
   | "review_unliked"
   | "review_comment_created"
+  | "comment_reply_created"
   | "review_edited"
   | "review_deleted"
   | "notification_center_opened"

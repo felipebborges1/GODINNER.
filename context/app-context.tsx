@@ -76,8 +76,8 @@ type AppContextValue = {
   toggleFollow: (userId: string) => Promise<boolean>;
   toggleReviewLike: (reviewId: string) => Promise<boolean>;
   loadReviewLikes: (reviewId: string, options?: { reset?: boolean }) => Promise<void>;
-  loadReviewComments: (reviewId: string) => Promise<void>;
-  createReviewComment: (reviewId: string, body: string) => Promise<ReviewComment | null>;
+  loadReviewComments: (reviewId: string, options?: { targetCommentId?: string | null }) => Promise<void>;
+  createReviewComment: (reviewId: string, body: string, replyToCommentId?: string | null) => Promise<ReviewComment | null>;
   deleteReviewComment: (reviewId: string, commentId: string) => Promise<boolean>;
   loadNotifications: (options?: { reset?: boolean }) => Promise<void>;
   markNotificationRead: (notificationId: string) => Promise<boolean>;
@@ -509,8 +509,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setReviewLikesLoading((current) => ({ ...current, [reviewId]: false }));
     }
   }, [backendConfigured, profiles, reviewLikes, reviewLikesHasMore, reviews]);
-  const loadReviewComments = useCallback(async (reviewId: string) => {
-    const offset = reviewComments[reviewId]?.length ?? 0;
+  const loadReviewComments = useCallback(async (reviewId: string, options?: { targetCommentId?: string | null }) => {
+    const offset = (reviewComments[reviewId] ?? []).filter((comment) => !comment.parentCommentId).length;
     if (!reviews.some((review) => review.id === reviewId) || (offset > 0 && !reviewCommentsHasMore[reviewId])) return;
     if (dataMode !== "supabase" || !backendConfigured) {
       setReviewCommentsHasMore((current) => ({ ...current, [reviewId]: false }));
@@ -518,23 +518,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const client = createSupabaseBrowserClient();
     if (!client) return;
-    const response = await client.from("review_comments").select("id, review_id, user_id, body, created_at, updated_at").eq("review_id", reviewId).order("created_at", { ascending: true }).range(offset, offset + REVIEW_COMMENTS_PAGE_SIZE);
+    const response = await client.from("review_comments").select("id, review_id, user_id, body, parent_comment_id, reply_to_comment_id, created_at, updated_at").eq("review_id", reviewId).is("parent_comment_id", null).order("created_at", { ascending: true }).range(offset, offset + REVIEW_COMMENTS_PAGE_SIZE);
     if (response.error) {
       showToast("Não foi possível carregar os comentários.");
       return;
     }
     const received = response.data ?? [];
     const page = received.slice(0, REVIEW_COMMENTS_PAGE_SIZE);
-    const mentionsResponse = page.length
-      ? await client.from("review_comment_mentions").select("comment_id, mentioned_user_id").in("comment_id", page.map((comment) => comment.id))
+    const targetResponse = options?.targetCommentId
+      ? await client.from("review_comments").select("id, review_id, user_id, body, parent_comment_id, reply_to_comment_id, created_at, updated_at").eq("id", options.targetCommentId).eq("review_id", reviewId).maybeSingle()
+      : { data: null, error: null };
+    if (targetResponse.error) showToast("Não foi possível abrir o comentário indicado.");
+    const targetRootId = targetResponse.data ? targetResponse.data.parent_comment_id ?? targetResponse.data.id : null;
+    const forcedRootResponse = targetRootId && !page.some((comment) => comment.id === targetRootId)
+      ? await client.from("review_comments").select("id, review_id, user_id, body, parent_comment_id, reply_to_comment_id, created_at, updated_at").eq("id", targetRootId).eq("review_id", reviewId).maybeSingle()
+      : { data: null, error: null };
+    if (forcedRootResponse.error) showToast("Não foi possível abrir a conversa indicada.");
+    const roots = [...page, ...(forcedRootResponse.data ? [forcedRootResponse.data] : [])];
+    const repliesResponse = roots.length
+      ? await client.from("review_comments").select("id, review_id, user_id, body, parent_comment_id, reply_to_comment_id, created_at, updated_at").eq("review_id", reviewId).in("parent_comment_id", roots.map((comment) => comment.id)).order("created_at", { ascending: true })
+      : { data: [], error: null };
+    if (repliesResponse.error) showToast("Não foi possível carregar as respostas.");
+    const loaded = [...roots, ...(repliesResponse.data ?? [])];
+    const mentionsResponse = loaded.length
+      ? await client.from("review_comment_mentions").select("comment_id, mentioned_user_id").in("comment_id", loaded.map((comment) => comment.id))
       : { data: [], error: null };
     if (mentionsResponse.error) showToast("Não foi possível carregar as menções dos comentários.");
     const mentionsByComment = mapCommentMentions(mentionsResponse.data ?? [], profiles);
-    const nextComments = page.map((comment) => ({ id: comment.id, reviewId: comment.review_id, userId: comment.user_id, body: comment.body, createdAt: comment.created_at, updatedAt: comment.updated_at, mentions: mentionsByComment[comment.id] ?? [] }));
+    const nextComments = loaded.map((comment) => ({ id: comment.id, reviewId: comment.review_id, userId: comment.user_id, body: comment.body, parentCommentId: comment.parent_comment_id, replyToCommentId: comment.reply_to_comment_id, createdAt: comment.created_at, updatedAt: comment.updated_at, mentions: mentionsByComment[comment.id] ?? [] }));
     setReviewComments((current) => ({ ...current, [reviewId]: [...(current[reviewId] ?? []), ...nextComments.filter((comment) => !(current[reviewId] ?? []).some((item) => item.id === comment.id))] }));
     setReviewCommentsHasMore((current) => ({ ...current, [reviewId]: received.length > REVIEW_COMMENTS_PAGE_SIZE }));
   }, [backendConfigured, profiles, reviewComments, reviewCommentsHasMore, reviews, showToast]);
-  const createReviewComment = useCallback(async (reviewId: string, value: string) => {
+  const createReviewComment = useCallback(async (reviewId: string, value: string, replyToCommentId?: string | null) => {
     if (!currentUserId || !reviews.some((review) => review.id === reviewId)) return null;
     const checked = validateReviewComment(value);
     if (checked.error || pendingCommentReviews.current.has(reviewId)) return null;
@@ -544,26 +559,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (dataMode === "supabase" && backendConfigured) {
         const client = createSupabaseBrowserClient();
         if (!client) return null;
-        const response = await client.from("review_comments").insert({ review_id: reviewId, body: checked.body }).select("id, review_id, user_id, body, created_at, updated_at").single();
+        const response = await client.rpc("create_review_comment", { p_review_id: reviewId, p_body: checked.body, p_reply_to_comment_id: replyToCommentId ?? null });
         if (response.error || !response.data) {
           showToast("Não foi possível publicar o comentário.");
           return null;
         }
         const mentionsResponse = await client.from("review_comment_mentions").select("comment_id, mentioned_user_id").eq("comment_id", response.data.id);
         const mentions = mentionsResponse.error ? [] : (mapCommentMentions(mentionsResponse.data ?? [], profiles)[response.data.id] ?? []);
-        comment = { id: response.data.id, reviewId: response.data.review_id, userId: response.data.user_id, body: response.data.body, createdAt: response.data.created_at, updatedAt: response.data.updated_at, mentions };
+        comment = { id: response.data.id, reviewId: response.data.review_id, userId: response.data.user_id, body: response.data.body, parentCommentId: response.data.parent_comment_id, replyToCommentId: response.data.reply_to_comment_id, createdAt: response.data.created_at, updatedAt: response.data.updated_at, mentions };
       } else {
         const now = new Date().toISOString();
-        comment = { id: `comment-${Date.now()}`, reviewId, userId: currentUserId, body: checked.body, createdAt: now, updatedAt: now, mentions: [] };
+        const target = replyToCommentId ? reviewComments[reviewId]?.find((item) => item.id === replyToCommentId) : null;
+        comment = { id: `comment-${Date.now()}`, reviewId, userId: currentUserId, body: checked.body, parentCommentId: target ? target.parentCommentId ?? target.id : null, replyToCommentId: target?.id ?? null, createdAt: now, updatedAt: now, mentions: [] };
       }
       setReviewComments((current) => ({ ...current, [reviewId]: [...(current[reviewId] ?? []), comment] }));
       setReviewSocial((current) => ({ ...current, [reviewId]: { ...(current[reviewId] ?? emptyReviewSocialSummary()), commentCount: (current[reviewId]?.commentCount ?? 0) + 1 } }));
-      showToast("Comentário publicado.");
+      showToast(replyToCommentId ? "Resposta publicada." : "Comentário publicado.");
       return comment;
     } finally {
       pendingCommentReviews.current.delete(reviewId);
     }
-  }, [backendConfigured, currentUserId, profiles, reviews, showToast]);
+  }, [backendConfigured, currentUserId, profiles, reviewComments, reviews, showToast]);
   const deleteReviewComment = useCallback(async (reviewId: string, commentId: string) => {
     const comment = reviewComments[reviewId]?.find((item) => item.id === commentId);
     if (!comment || !canManageReviewComment(comment, currentUserId, isAdmin)) return false;
@@ -576,8 +592,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
     }
-    setReviewComments((current) => ({ ...current, [reviewId]: (current[reviewId] ?? []).filter((item) => item.id !== commentId) }));
-    setReviewSocial((current) => ({ ...current, [reviewId]: { ...(current[reviewId] ?? emptyReviewSocialSummary()), commentCount: Math.max(0, (current[reviewId]?.commentCount ?? 0) - 1) } }));
+    const deletedIds = new Set([commentId, ...(reviewComments[reviewId] ?? []).filter((item) => item.parentCommentId === commentId).map((item) => item.id)]);
+    setReviewComments((current) => ({ ...current, [reviewId]: (current[reviewId] ?? []).filter((item) => !deletedIds.has(item.id)) }));
+    setReviewSocial((current) => ({ ...current, [reviewId]: { ...(current[reviewId] ?? emptyReviewSocialSummary()), commentCount: Math.max(0, (current[reviewId]?.commentCount ?? 0) - deletedIds.size) } }));
     showToast("Comentário removido.");
     return true;
   }, [backendConfigured, currentUserId, isAdmin, reviewComments, showToast]);

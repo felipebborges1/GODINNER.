@@ -7,6 +7,7 @@ export function notificationCopy(notification: InAppNotification, actor?: User, 
   if (notification.type === "follow") return `${name} começou a seguir você.`;
   if (notification.type === "review_like") return `${name} curtiu sua avaliação${restaurant ? ` do ${restaurant.name}` : ""}.`;
   if (notification.type === "comment_mention") return `${name} mencionou você em um comentário${restaurant ? ` no ${restaurant.name}` : ""}.`;
+  if (notification.type === "comment_reply") return `${name} respondeu ao seu comentário${restaurant ? ` no ${restaurant.name}` : ""}.`;
   return `${name} comentou na sua avaliação${restaurant ? ` do ${restaurant.name}` : ""}.`;
 }
 
