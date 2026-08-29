@@ -13,7 +13,7 @@ export function NewRestaurantClient() {
   const { submitRestaurant } = useAppContext();
   const [name, setName] = useState(query.get("name") ?? "");
   const [address, setAddress] = useState("");
-  const [city, setCity] = useState<"Belo Horizonte" | "Nova Lima">("Belo Horizonte");
+  const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [coordinates, setCoordinates] = useState<RestaurantCoordinates>();
   const [created, setCreated] = useState<Restaurant | null>(null);
@@ -27,7 +27,8 @@ export function NewRestaurantClient() {
     const next: Record<string, string> = {};
     if (name.trim().length < 2) next.name = "Informe um nome válido.";
     if (!address.trim()) next.address = "Informe o endereço.";
-    if (!neighborhood.trim()) next.neighborhood = "Informe o bairro.";
+    if (!city.trim()) next.city = "Informe a cidade.";
+    if (!coordinates) next.coordinates = "Marque a localização no mapa para continuar.";
     setErrors(next);
     if (Object.keys(next).length || busy.current) return;
     busy.current = true;
@@ -49,7 +50,8 @@ export function NewRestaurantClient() {
       <Field label="Nome do restaurante" error={errors.name}><input className="input" value={name} onChange={(event) => setName(event.target.value)} /></Field>
       <LocationPicker value={coordinates} onChange={setCoordinates} onAddressResolved={(result) => { setAddress(result.address); if (result.city) setCity(result.city); if (result.neighborhood) setNeighborhood(result.neighborhood); }} />
       <Field label="Endereço" error={errors.address}><input className="input" value={address} onChange={(event) => setAddress(event.target.value)} /></Field>
-      <div className="grid gap-4 sm:grid-cols-2"><Field label="Cidade"><select className="input" value={city} onChange={(event) => setCity(event.target.value as typeof city)}><option>Belo Horizonte</option><option>Nova Lima</option></select></Field><Field label="Bairro" error={errors.neighborhood}><input className="input" value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} /></Field></div>
+      <div className="grid gap-4 sm:grid-cols-2"><Field label="Cidade" error={errors.city}><input className="input" value={city} onChange={(event) => setCity(event.target.value)} /></Field><Field label="Bairro"><input className="input" value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} /></Field></div>
+      {errors.coordinates && <p role="alert" className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600">{errors.coordinates}</p>}
       <p className="rounded-2xl bg-stone-100 p-4 text-sm text-stone-600">O GODINNER completa os demais dados do lugar antes de validá-lo. Agora, o mais importante é a sua experiência.</p>
       {errors.submit && <p role="alert" className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600">{errors.submit}</p>}
       <button disabled={isSubmitting} className="w-full rounded-2xl bg-orange-500 py-4 font-black text-white disabled:opacity-60">{isSubmitting ? "Preparando sua review…" : "Continuar para minha review"}</button>

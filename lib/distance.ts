@@ -32,7 +32,7 @@ const BELO_HORIZONTE_COORDINATES: RestaurantCoordinates[] = [
   { latitude: -19.9604, longitude: -43.9602 },
 ];
 
-export function mockRestaurantCoordinates(index: number, city: "Belo Horizonte" | "Nova Lima") {
+export function mockRestaurantCoordinates(index: number, city: string) {
   const source = city === "Nova Lima" ? NOVA_LIMA_COORDINATES : BELO_HORIZONTE_COORDINATES;
   return source[index % source.length];
 }
