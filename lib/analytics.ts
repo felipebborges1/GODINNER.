@@ -30,7 +30,14 @@ export type AnalyticsEvent =
   | "review_deleted"
   | "notification_center_opened"
   | "notification_opened"
-  | "notifications_mark_all_read";
+  | "notifications_mark_all_read"
+  | "new_restaurant_search_started"
+  | "new_restaurant_place_selected"
+  | "new_restaurant_nearby_used"
+  | "new_restaurant_manual_fallback"
+  | "new_restaurant_created_from_google"
+  | "existing_restaurant_matched_from_google"
+  | "review_started_from_new_restaurant";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 

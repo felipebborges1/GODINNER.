@@ -1,4 +1,4 @@
-export type GoogleAddressComponent = { long_name: string; types: string[] };
+export type GoogleAddressComponent = { long_name?: string; longText?: string; shortText?: string; types: string[] };
 export type GoogleGeocoderResult = { formatted_address: string; address_components?: GoogleAddressComponent[] };
 
 /**
@@ -7,7 +7,10 @@ export type GoogleGeocoderResult = { formatted_address: string; address_componen
  */
 export function parseRestaurantAddress(result: GoogleGeocoderResult) {
   const components = result.address_components ?? [];
-  const get = (...types: string[]) => components.find((item) => types.some((type) => item.types.includes(type)))?.long_name;
+  const get = (...types: string[]) => {
+    const component = components.find((item) => types.some((type) => item.types.includes(type)));
+    return component?.long_name ?? component?.longText ?? component?.shortText;
+  };
 
   return {
     address: result.formatted_address,
