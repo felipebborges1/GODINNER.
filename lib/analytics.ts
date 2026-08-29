@@ -1,5 +1,11 @@
 export type AnalyticsEvent =
   | "discover_viewed"
+  | "discover_search_no_results"
+  | "discover_external_search_clicked"
+  | "discover_external_results_shown"
+  | "discover_external_place_selected"
+  | "discover_external_place_review_started"
+  | "discover_external_search_failed"
   | "search_performed"
   | "filter_applied"
   | "restaurant_viewed"

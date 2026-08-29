@@ -12,7 +12,7 @@ test("home search reuses the shared restaurant matcher and remains on Discover",
 
 test("home search has a clear action and keeps advanced search available", async () => {
   const page = await readFile(new URL("../app\/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /onClear=\{\(\) => setSearchQuery\(""\)\}/);
+  assert.match(page, /onClear=\{\(\) => \{ setSearchQuery\(""\); resetExternalSearch\(\); \}\}/);
   assert.match(page, /Explorar filtros/);
   assert.match(page, /Nenhum lugar encontrado\./);
 });
