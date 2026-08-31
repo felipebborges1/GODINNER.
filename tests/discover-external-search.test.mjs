@@ -44,3 +44,13 @@ test("Google Places client calls remain shared and server-side routes keep the k
   assert.doesNotMatch(service, /countryCode: "BR"/);
   assert.doesNotMatch(hook, /NEXT_PUBLIC_GOOGLE_PLACES_API_KEY/);
 });
+
+test("Discover external result cards stay responsive and reveal the selected-place confirmation", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /selectedPlaceConfirmationRef/);
+  assert.match(page, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
+  assert.match(page, /min-w-0 max-w-full/);
+  assert.match(page, /line-clamp-2/);
+  assert.match(page, /formatPlaceDistance/);
+  assert.match(page, /aria-pressed=\{isSelected\}/);
+});
