@@ -8,6 +8,7 @@ export type GooglePlaceCandidate = {
   neighborhood?: string;
   region?: string;
   country?: string;
+  countryCode?: string;
   coordinates?: RestaurantCoordinates;
   primaryType?: string;
   types: string[];

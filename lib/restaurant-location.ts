@@ -12,11 +12,15 @@ export function parseRestaurantAddress(result: GoogleGeocoderResult) {
     return component?.long_name ?? component?.longText ?? component?.shortText;
   };
 
+  const countryComponent = components.find((item) => item.types.includes("country"));
+  const countryCode = countryComponent?.shortText?.trim().toUpperCase();
+
   return {
     address: result.formatted_address,
     city: get("locality", "postal_town", "administrative_area_level_2", "administrative_area_level_1"),
     neighborhood: get("neighborhood", "sublocality_level_1", "sublocality"),
     region: get("administrative_area_level_1"),
     country: get("country"),
+    ...(countryCode && /^[A-Z]{2}$/.test(countryCode) ? { countryCode } : {}),
   };
 }

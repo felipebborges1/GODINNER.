@@ -55,7 +55,7 @@ export function filterRestaurants(
   const hasCommunityBudgetCompatibility = (restaurant: Restaurant) => {
     if (params.price !== "100") return false;
     const spend = calculateCommunitySpend(reviews.filter((review) => review.restaurantId === restaurant.id));
-    return Boolean(spend && spend.average <= 100);
+    return Boolean(spend && spend.currency === "BRL" && spend.average <= 100);
   };
 
   return result.sort((a, b) =>

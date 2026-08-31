@@ -26,7 +26,7 @@ function candidateReasons(restaurant: Restaurant, intent: AiSearchIntent, rating
   if (intent.neighborhoods.some((neighborhood) => normalize(neighborhood) === normalize(restaurant.neighborhood))) reasons.push(`${restaurant.neighborhood} compatível`);
   else if (intent.city === restaurant.city) reasons.push(`${restaurant.city} compatível`);
   if (intent.nearMe && distance !== null) reasons.push(`${distance.toFixed(1).replace(".", ",")} km de referência`);
-  if (intent.maxPricePerPerson !== null && communitySpend && communitySpend.average <= intent.maxPricePerPerson) reasons.push(`Gasto informado pela comunidade em torno de ${formatCommunitySpend(communitySpend.average)} por pessoa`);
+  if (intent.maxPricePerPerson !== null && communitySpend?.currency === "BRL" && communitySpend.average <= intent.maxPricePerPerson) reasons.push(`Gasto informado pela comunidade em torno de ${formatCommunitySpend(communitySpend.average, communitySpend.currency)} por pessoa`);
   if (rating !== null) reasons.push(`nota GODINNER ${rating.toFixed(1)}`);
   if (!reasons.length) reasons.push("opção do catálogo GODINNER");
   return reasons.slice(0, 3);
@@ -74,7 +74,7 @@ export function rankAiRecommendations({ restaurants, reviews, intent, position }
     if (distance !== null) score += Math.max(0, 35 - distance * 3);
     score += knownKeywords.filter((term) => restaurantText(restaurant).includes(normalize(term))).length * 8;
     if (rating !== null) score += rating * 4 + Math.min(reviewCount, 10);
-    if (intent.maxPricePerPerson !== null && communitySpend && communitySpend.average <= intent.maxPricePerPerson) score += 25;
+    if (intent.maxPricePerPerson !== null && communitySpend?.currency === "BRL" && communitySpend.average <= intent.maxPricePerPerson) score += 25;
     return { restaurant, rating, reviewCount, distance, communitySpend, score };
   }).sort((a, b) => b.score - a.score || (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY) || a.restaurant.name.localeCompare(b.restaurant.name));
 

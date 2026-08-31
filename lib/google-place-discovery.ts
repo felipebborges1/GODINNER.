@@ -47,6 +47,7 @@ function toCandidate(place: GooglePlaceApiPlace): GooglePlaceCandidate | null {
     neighborhood: address.neighborhood,
     region: address.region,
     country: address.country,
+    countryCode: address.countryCode,
     coordinates,
     primaryType: place.primaryType,
     types: place.types ?? [],
