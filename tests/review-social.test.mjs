@@ -44,6 +44,14 @@ test("visitor_comment_click_opens_loginwall", async () => {
   assert.match(reviewActions, /onClick=\{\(\) => \{ if \(!requireLogin\(\)\) return; void openComments\(\); \}\}/);
 });
 
+test("feed find-people CTA stays a clear, accessible secondary action", async () => {
+  const feed = await readFile(new URL("../app/feed/page.tsx", import.meta.url), "utf8");
+  assert.match(feed, /import \{ Search \} from "lucide-react"/);
+  assert.match(feed, /href="\/people"/);
+  assert.match(feed, /<Search size=\{16\} aria-hidden="true"\/>Encontrar pessoas/);
+  assert.match(feed, /border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100/);
+});
+
 test("likes list reuses visible-review RLS and is paginated by recency", async () => {
   const repository = await readFile(new URL("../lib/data/repositories.ts", import.meta.url), "utf8");
   const migration = await readFile(new URL("../supabase/migrations/20260824000000_review_social_engagement.sql", import.meta.url), "utf8");
