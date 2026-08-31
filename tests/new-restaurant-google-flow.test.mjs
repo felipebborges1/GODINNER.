@@ -40,6 +40,24 @@ test("new restaurant review flow keeps Google discovery, nearby search, map and 
   assert.match(component, /Permissão de localização negada|Não conseguimos acessar sua localização/);
 });
 
+test("public restaurant creation entry points lead with evaluation and preserve the contextual manual fallback", async () => {
+  const [desktopHeader, bottomNavigation, searchExplorer, selector, fallback] = await Promise.all([
+    readFile(new URL("../components/layout/desktop-header.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/layout/bottom-navigation.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/search/search-explorer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/review/restaurant-selector.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/restaurant/new-restaurant-client.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(desktopHeader, /href="\/review\/new"[^>]*><Plus size=\{16\}\/>Avaliar/);
+  assert.doesNotMatch(desktopHeader, /<Plus size=\{16\}\/>Registrar/);
+  assert.match(bottomNavigation, /href="\/review\/new" aria-label="Avaliar experiência"/);
+  assert.match(searchExplorer, /actionLabel=\{params\.q \? "Encontrar este lugar" : undefined\}/);
+  assert.match(selector, />Encontrar este lugar<\/Link>/);
+  assert.match(selector, /href=\{`\/restaurant\/new\?name=\$\{encodeURIComponent\(query\)\}`\}/);
+  assert.match(fallback, /Preencher manualmente/);
+});
+
 test("Google address components from Places API keep international city and country fields", async () => {
   const { parseRestaurantAddress } = await loadAddressParser();
   const barcelona = parseRestaurantAddress({

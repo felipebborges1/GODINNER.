@@ -19,7 +19,7 @@ export function DesktopHeader() {
       <Link href="/profile"><UserAvatar src={currentUser?.avatar} name={currentUser?.name ?? "Perfil"} size="sm"/></Link>
       <LogoutButton/>
     </> : <>
-      <Button href="/review/new"><Plus size={16}/>Registrar</Button>
+      <Button href="/review/new"><Plus size={16}/>Avaliar</Button>
       <Link href="/search" aria-label="Abrir busca" className="rounded-full p-2 text-stone-700 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:text-stone-200 dark:hover:bg-stone-800"><Search size={20}/></Link>
       <Link href="/login" className="rounded-full border border-stone-200 px-4 py-2 text-sm font-bold text-stone-700 transition hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800">Entrar</Link>
     </>}
