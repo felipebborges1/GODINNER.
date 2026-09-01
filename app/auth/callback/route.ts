@@ -6,19 +6,48 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const next = safeNext(url.searchParams.get("next"));
+  const isGoogleAttempt = url.searchParams.get("provider") === "google";
   const supabase = await createSupabaseServerClient();
+  if (url.searchParams.has("error")) {
+    logCallbackDiagnostic("oauth_cancelled_or_denied");
+    return loginError(url, "oauth");
+  }
   if (!code || !supabase) {
     logCallbackDiagnostic(!code ? "missing_code" : "supabase_client_unavailable");
-    return NextResponse.redirect(new URL("/login?error=auth_callback", url.origin));
+    return loginError(url, isGoogleAttempt ? "oauth" : "auth_callback");
   }
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
     logCallbackDiagnostic(classifyCallbackError(error), error);
-    return NextResponse.redirect(new URL("/login?error=auth_callback", url.origin));
+    return loginError(url, isGoogleAttempt ? "oauth" : "auth_callback");
   }
 
-  return NextResponse.redirect(new URL(next, url.origin));
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    logCallbackDiagnostic("session_user_unavailable", userError);
+    return loginError(url, "auth_callback");
+  }
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("username_needs_confirmation")
+    .eq("id", userData.user.id)
+    .maybeSingle();
+  if (profileError || !profile) {
+    logCallbackDiagnostic("profile_unavailable_after_auth", profileError);
+    return loginError(url, "auth_callback");
+  }
+
+  const destination = profile.username_needs_confirmation
+    ? `/onboarding?next=${encodeURIComponent(next)}`
+    : next;
+  return NextResponse.redirect(new URL(destination, url.origin));
+}
+
+function loginError(url: URL, error: "oauth" | "auth_callback") {
+  const login = new URL("/login", url.origin);
+  login.searchParams.set("error", error);
+  return NextResponse.redirect(login);
 }
 
 function classifyCallbackError(error: unknown) {

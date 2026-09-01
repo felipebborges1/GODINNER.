@@ -29,6 +29,7 @@ export interface Database {
       update_review_owned: { Args: { p_review_id: string; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: Array<{ review_id: string; updated_at: string; removed_paths: string[] }> };
       delete_review_owned: { Args: { p_review_id: string }; Returns: Array<{ review_id: string; removed_paths: string[]; visited_entry_removed: boolean }> };
       merge_restaurant: { Args: { p_pending_id: string; p_target_id: string }; Returns: string };
+      claim_profile_username: { Args: { requested_username: string }; Returns: ProfileRow };
       claim_follow_push_event: { Args: { p_following_id: string }; Returns: Array<{ event_id: string; follower_id: string; following_id: string }> };
       mark_notification_read: { Args: { p_notification_id: string }; Returns: boolean };
       mark_all_notifications_read: { Args: Record<string, never>; Returns: number };
@@ -39,7 +40,7 @@ export interface Database {
   };
 }
 
-export type ProfileRow = { id: string; username: string; name: string; avatar_url: string | null; bio: string; location: string; role: AppRole; created_at: string; updated_at: string; };
+export type ProfileRow = { id: string; username: string; username_needs_confirmation: boolean; name: string; avatar_url: string | null; bio: string; location: string; role: AppRole; created_at: string; updated_at: string; };
 export type ProfileInsert = Omit<ProfileRow, "created_at" | "updated_at"> & { created_at?: string; updated_at?: string };
 export type ProfileUpdate = Partial<ProfileInsert>;
 export type RestaurantRow = { id: string; slug: string; name: string; address: string; city: string; neighborhood: string; country_code: string | null; latitude: number; longitude: number; category: RestaurantCategory; cuisines: string[]; price_range: PriceRange; instagram: string | null; website: string | null; phone: string | null; chef: string; cover_photo_url: string | null; cover_photo_path: string | null; google_place_id: string | null; status: RestaurantStatus; submitted_by: string | null; submitted_at: string | null; moderated_by: string | null; moderated_at: string | null; rejection_reason: string | null; merged_into_id: string | null; created_at: string; updated_at: string; };

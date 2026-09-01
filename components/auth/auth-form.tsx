@@ -8,6 +8,16 @@ import { safeNext } from "@/lib/safe-next";
 import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 
+function GoogleIcon() {
+  return <span aria-hidden="true" className="grid h-5 w-5 place-items-center rounded-full border border-stone-300 bg-white text-xs font-black text-stone-700">G</span>;
+}
+
+function initialError(value: string | null) {
+  if (value === "oauth") return "Não foi possível entrar com Google. Tente novamente.";
+  if (value === "auth_callback") return "Não foi possível confirmar o e-mail. Solicite um novo link e tente novamente.";
+  return "";
+}
+
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -16,19 +26,59 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [error, setError] = useState(() => params.get("error") === "auth_callback" ? "Não foi possível confirmar o e-mail. Solicite um novo link e tente novamente." : "");
+  const [error, setError] = useState(() => initialError(params.get("error")));
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const next = safeNext(params.get("next"));
 
+  async function continueWithGoogle() {
+    setError("");
+    setMessage("");
+    const supabase = createSupabaseBrowserClient();
+    if (!supabase) {
+      setError("A autenticação Supabase ainda não foi configurada neste ambiente.");
+      return;
+    }
+    setBusy(true);
+    trackEvent("login_started", { provider: "google" });
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?provider=google&next=${encodeURIComponent(next)}`,
+        },
+      });
+      if (oauthError) {
+        trackEvent("login_failed", { provider: "google" });
+        setBusy(false);
+        setError("Não foi possível entrar com Google. Tente novamente.");
+      }
+    } catch {
+      trackEvent("login_failed", { provider: "google" });
+      setBusy(false);
+      setError("Não foi possível entrar com Google. Tente novamente.");
+    }
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (mode === "register") trackEvent("signup_started");
-    setError(""); setMessage("");
-    if (mode === "register" && password !== confirmation) { setError("As senhas precisam ser iguais."); return; }
-    if (password.length < 8) { setError("Use uma senha com pelo menos 8 caracteres."); return; }
+    if (mode === "register") trackEvent("signup_started", { provider: "email" });
+    else trackEvent("login_started", { provider: "email" });
+    setError("");
+    setMessage("");
+    if (mode === "register" && password !== confirmation) {
+      setError("As senhas precisam ser iguais.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Use uma senha com pelo menos 8 caracteres.");
+      return;
+    }
     const supabase = createSupabaseBrowserClient();
-    if (!supabase) { setError("A autenticação Supabase ainda não foi configurada neste ambiente."); return; }
+    if (!supabase) {
+      setError("A autenticação Supabase ainda não foi configurada neste ambiente.");
+      return;
+    }
     setBusy(true);
     try {
       const response = mode === "login"
@@ -42,12 +92,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             },
           });
       if (response.error) {
+        trackEvent(mode === "login" ? "login_failed" : "signup_failed", { provider: "email" });
         setBusy(false);
         setError("Não foi possível concluir. Verifique os dados e tente novamente.");
         return;
       }
       if (mode === "login") {
-        trackEvent("login_completed");
+        trackEvent("login_completed", { provider: "email" });
         window.location.replace(next);
         return;
       }
@@ -56,14 +107,18 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         setMessage("Cadastro criado. Confirme seu e-mail para entrar.");
         return;
       }
-      trackEvent("signup_completed");
+      trackEvent("signup_completed", { provider: "email" });
       router.replace(`/onboarding?next=${encodeURIComponent(next)}`);
       router.refresh();
     } catch {
+      trackEvent(mode === "login" ? "login_failed" : "signup_failed", { provider: "email" });
       setBusy(false);
       setError("Não foi possível concluir. Verifique sua conexão e tente novamente.");
     }
   }
 
-  return <main className="mx-auto max-w-md px-4 py-10 pb-28"><div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-100"><p className="text-sm font-black text-orange-600">GODINNER</p><h1 className="mt-2 text-3xl font-black">{mode === "login" ? "Entrar" : "Criar sua conta"}</h1><p className="mt-2 text-sm text-stone-500">{mode === "login" ? "Continue suas descobertas gastronômicas." : "Crie seu perfil e organize suas experiências."}</p><form onSubmit={submit} className="mt-6 space-y-4" aria-busy={busy}>{mode === "register" && <><label className="block text-sm font-bold">Nome<input className="input mt-1" value={name} onChange={(event) => setName(event.target.value)} required /></label><label className="block text-sm font-bold">Username<input className="input mt-1" value={username} onChange={(event) => setUsername(event.target.value.toLowerCase())} pattern="[a-z0-9_.]{2,32}" required /></label></>}<label className="block text-sm font-bold">E-mail<input className="input mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><div><div className="flex items-center justify-between gap-3"><label htmlFor="auth-password" className="text-sm font-bold">Senha</label>{mode === "login" && <Link className="text-xs font-black text-orange-600 hover:text-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500" href={`/forgot-password${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Esqueci a senha</Link>}</div><input id="auth-password" className="input mt-1" type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required /></div>{mode === "register" && <label className="block text-sm font-bold">Confirmar senha<input className="input mt-1" type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={8} required /></label>}{error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}{message && <p role="status" className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-700">{message}</p>}<Button type="submit" disabled={busy} className="min-h-12 w-full rounded-2xl">{busy ? mode === "login" ? "Entrando…" : "Criando conta…" : mode === "login" ? "Entrar" : "Criar conta"}</Button></form><p className="mt-6 text-center text-sm text-stone-500">{mode === "login" ? <>Ainda não tem conta? <Link className="font-black text-orange-600" href={`/register${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Criar conta</Link></> : <>Já tem conta? <Link className="font-black text-orange-600" href={`/login${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Entrar</Link></>}</p></div></main>;
+  const heading = mode === "login" ? "Entrar" : "Criar sua conta";
+  const googleLabel = busy ? "Conectando ao Google…" : "Continuar com Google";
+
+  return <main className="mx-auto max-w-md px-4 py-10 pb-28"><div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-100"><p className="text-sm font-black text-orange-600">GODINNER</p><h1 className="mt-2 text-3xl font-black">{heading}</h1><p className="mt-2 text-sm text-stone-500">{mode === "login" ? "Continue suas descobertas gastronômicas." : "Crie seu perfil e organize suas experiências."}</p><Button type="button" variant="soft" disabled={busy} onClick={() => void continueWithGoogle()} className="mt-6 min-h-12 w-full rounded-2xl border border-stone-200 bg-white text-stone-800 hover:bg-stone-50"><GoogleIcon/>{googleLabel}</Button><div className="my-6 flex items-center gap-3" aria-hidden="true"><span className="h-px flex-1 bg-stone-200"/><span className="text-xs font-bold uppercase tracking-wide text-stone-400">ou</span><span className="h-px flex-1 bg-stone-200"/></div><form onSubmit={submit} className="space-y-4" aria-busy={busy}>{mode === "register" && <><label className="block text-sm font-bold">Nome<input className="input mt-1" value={name} onChange={(event) => setName(event.target.value)} required /></label><label className="block text-sm font-bold">Username<input className="input mt-1" value={username} onChange={(event) => setUsername(event.target.value.toLowerCase())} pattern="[a-z0-9_.]{2,32}" required /></label></>}<label className="block text-sm font-bold">E-mail<input className="input mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><div><div className="flex items-center justify-between gap-3"><label htmlFor="auth-password" className="text-sm font-bold">Senha</label>{mode === "login" && <Link className="text-xs font-black text-orange-600 hover:text-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500" href={`/forgot-password${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Esqueci a senha</Link>}</div><input id="auth-password" className="input mt-1" type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required /></div>{mode === "register" && <label className="block text-sm font-bold">Confirmar senha<input className="input mt-1" type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={8} required /></label>}{error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}{message && <p role="status" className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-700">{message}</p>}<Button type="submit" disabled={busy} className="min-h-12 w-full rounded-2xl">{busy ? mode === "login" ? "Entrando…" : "Criando conta…" : mode === "login" ? "Entrar" : "Criar conta"}</Button></form><p className="mt-6 text-center text-sm text-stone-500">{mode === "login" ? <>Ainda não tem conta? <Link className="font-black text-orange-600" href={`/register${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Criar conta</Link></> : <>Já tem conta? <Link className="font-black text-orange-600" href={`/login${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Entrar</Link></>}</p></div></main>;
 }
