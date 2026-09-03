@@ -666,7 +666,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const upload = draft.photo?.file ? await uploadUserImage(currentUserId, draft.photo.file, "restaurant-submissions") : null;
       if (upload?.error || (draft.photo?.file && !upload?.data)) return { error: "Não foi possível enviar a foto." };
       const coordinates = draft.coordinates;
-      const inserted = await client.from("restaurants").insert({ slug: baseSlug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), country_code: null, accepts_duo_gourmet: null, latitude: coordinates.latitude, longitude: coordinates.longitude, category: draft.category, cuisines: draft.cuisine, price_range: draft.priceRange, instagram: draft.instagram ?? null, website: draft.site ?? null, phone: draft.phone ?? null, chef: draft.chef?.trim() ?? "", cover_photo_url: null, cover_photo_path: upload?.data?.path ?? null, google_place_id: null, status: "pending_review", submitted_by: currentUserId, submitted_at: new Date().toISOString(), moderated_by: null, moderated_at: null, rejection_reason: null, merged_into_id: null }).select("*").single();
+      const inserted = await client.from("restaurants").insert({ slug: baseSlug, name: draft.name.trim(), address: draft.address.trim(), city: draft.city, neighborhood: draft.neighborhood.trim(), country_code: null, accepts_duo_gourmet: null, duo_gourmet_checked_at: null, latitude: coordinates.latitude, longitude: coordinates.longitude, category: draft.category, cuisines: draft.cuisine, price_range: draft.priceRange, instagram: draft.instagram ?? null, website: draft.site ?? null, phone: draft.phone ?? null, chef: draft.chef?.trim() ?? "", cover_photo_url: null, cover_photo_path: upload?.data?.path ?? null, google_place_id: null, status: "pending_review", submitted_by: currentUserId, submitted_at: new Date().toISOString(), moderated_by: null, moderated_at: null, rejection_reason: null, merged_into_id: null }).select("*").single();
       if (inserted.error || !inserted.data) return { error: "Não foi possível cadastrar o restaurante." };
       const restaurant = mapRestaurant({ ...inserted.data, cover_photo_url: upload?.data?.url ?? null });
       setRestaurants((current) => [restaurant, ...current]);
@@ -852,7 +852,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const persisted = await client.from("restaurants").update({ status: "published", moderated_by: currentUserId, moderated_at: moderatedAt, rejection_reason: null, merged_into_id: null }).eq("id", restaurantId).eq("status", "pending_review").select("id").maybeSingle();
       if (persisted.error || !persisted.data) return { ok: false, error: "Não foi possível publicar este restaurante." };
     }
-    setRestaurants((items) => items.map((item) => item.id === restaurantId ? restaurant : item)); return { ok: true, restaurant };
+    setRestaurants((items) => items.map((item) => item.id === restaurantId ? restaurant : item));
+    void fetch(`/api/admin/restaurants/${restaurantId}/enrich`, { method: "POST" })
+      .then(async (response) => response.ok ? response.json() as Promise<{ restaurant?: Restaurant }> : null)
+      .then((payload) => { if (payload?.restaurant) setRestaurants((items) => items.map((item) => item.id === restaurantId ? { ...item, ...payload.restaurant!, coverPhoto: item.coverPhoto } : item)); })
+      .catch(() => undefined);
+    return { ok: true, restaurant };
   }, [adminGuard, backendConfigured, currentUserId, restaurants]);
   const rejectRestaurant = useCallback((restaurantId: string, reason: string): AdminResult => {
     const error = adminGuard(); if (error) return { ok: false, error }; if (!reason.trim()) return { ok: false, error: "Informe o motivo da rejeição." };

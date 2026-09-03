@@ -50,7 +50,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   useEffect(() => {
     pendingParams.current = searchParams.toString();
     const q = searchParams.get("q");
-    const active = ["nearby", "city", "neighborhood", "distance", "type", "cuisine", "price", "occasion", "rating", "history", "chef", "openNow"].some((key) => searchParams.has(key));
+    const active = ["nearby", "city", "neighborhood", "distance", "type", "cuisine", "price", "duo", "occasion", "rating", "history", "chef", "openNow"].some((key) => searchParams.has(key));
     if (q || active) trackEvent(q ? "search_performed" : "filter_applied", q ? { hasQuery: true } : { hasFilter: true });
   }, [searchParams]);
 
@@ -123,7 +123,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     [currentUserId, follows],
   );
   const view = params.view === "map" ? "map" : "list";
-  const labels: Record<string, string> = { nearby: "Perto de mim", city: "Cidade", neighborhood: "Bairro", distance: "Distância", type: "Categoria", cuisine: "Culinária", price: "Preço", occasion: "Ocasião", rating: "Nota", history: "Histórico", chef: "Chef", openNow: "Aberto agora" };
+  const labels: Record<string, string> = { nearby: "Perto de mim", city: "Cidade", neighborhood: "Bairro", distance: "Distância", type: "Categoria", cuisine: "Culinária", price: "Preço", duo: "Duo Gourmet", occasion: "Ocasião", rating: "Nota", history: "Histórico", chef: "Chef", openNow: "Aberto agora" };
   const valueLabels: Record<string, string> = {
     japanese: "Japonesa", italian: "Italiana", meat: "Carnes", brasileira: "Brasileira",
     mineira: "Mineira", contemporanea: "Contemporânea", restaurant: "Restaurante",
@@ -132,6 +132,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     "nova-lima": "Nova Lima", "vila-da-serra": "Vila da Serra",
   };
   const activeFilters = Object.entries(params).filter(([key]) => !["q", "view"].includes(key));
+  const activeFilterLabel = (key: string, value: string) => key === "duo" ? (value === "true" ? "Duo Gourmet" : "Duo Gourmet: Não") : key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`;
 
   if (isLoading) return <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10"><LoadingSkeleton className="h-9 w-52"/><LoadingSkeleton className="mt-5 h-12 max-w-xl"/><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <LoadingSkeleton key={index} className="h-80"/>)}</div></div>;
   if (dataError) return <div className="mx-auto max-w-2xl px-4 py-10"><ErrorState message={dataError} onRetry={retryData}/></div>;
@@ -164,7 +165,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
         onClear={clearFilters}
         count={results.length}
       />
-      {activeFilters.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-xs font-black text-stone-500">Filtros ativos:</span>{activeFilters.map(([key, value]) => <button key={key} onClick={() => setParam(key)} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`}<X size={13} /></button>)}{activeFilters.length > 1 && <button onClick={clearFilters} className="text-xs font-bold text-orange-600">Limpar tudo</button>}</div>}
+      {activeFilters.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-xs font-black text-stone-500">Filtros ativos:</span>{activeFilters.map(([key, value]) => <button key={key} onClick={() => setParam(key)} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{activeFilterLabel(key, value)}<X size={13} /></button>)}{activeFilters.length > 1 && <button onClick={clearFilters} className="text-xs font-bold text-orange-600">Limpar tudo</button>}</div>}
       <p className="mt-6 text-sm font-semibold text-stone-500">{results.length} {results.length === 1 ? "resultado" : "resultados"}</p>
       {view === "map" && results.length ? (
         <div className="mt-4"><MapView key={results.map((restaurant) => restaurant.id).join(",")} restaurants={results} /></div>

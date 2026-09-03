@@ -21,6 +21,7 @@ export function filterRestaurants(
 ) {
   const q = normalize(params.q ?? "");
   const normalizedRating = normalizeRatingFilter(params.rating);
+  const duo = params.duo === "true" || params.duo === "false" ? params.duo : undefined;
   const history = params.history;
   const ids = history
     ? new Set(lists.find((list) => list.ownerId === userId && list.type === history)?.restaurantIds ?? [])
@@ -48,6 +49,7 @@ export function filterRestaurants(
       (!params.openNow || restaurant.isOpenNow) &&
       (!params.nearby || restaurant.distanceKm <= 5) &&
       (!params.distance || restaurant.distanceKm <= Number(params.distance)) &&
+      (!duo || restaurant.acceptsDuoGourmet === (duo === "true")) &&
       (!ids || ids.has(restaurant.id))
     );
   });

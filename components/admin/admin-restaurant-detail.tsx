@@ -113,6 +113,8 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
             <Info label="Enviado em" value={restaurant.submittedAt ? new Date(restaurant.submittedAt).toLocaleString("pt-BR") : "—"} />
             <Info label="Moderado por" value={users.find((user) => user.id === restaurant.moderatedBy)?.name ?? "—"} />
             <Info label="Moderado em" value={restaurant.moderatedAt ? new Date(restaurant.moderatedAt).toLocaleString("pt-BR") : "—"} />
+            <Info label="Duo Gourmet" value={restaurant.acceptsDuoGourmet === true ? "✓ Confirmado" : restaurant.acceptsDuoGourmet === false ? "Não parceiro" : "Não verificado"} />
+            <Info label="Última verificação Duo" value={restaurant.duoGourmetCheckedAt ? new Date(restaurant.duoGourmetCheckedAt).toLocaleString("pt-BR") : "—"} />
             <Info label="Motivo" value={restaurant.rejectionReason ?? "—"} />
             {restaurant.mergedIntoId && <Info label="Mesclado em" value={ctx.restaurants.find((item) => item.id === restaurant.mergedIntoId)?.name ?? restaurant.mergedIntoId} />}
           </section>
