@@ -27,10 +27,11 @@ test("recommendation UI uses the shared maturity state for locked progress, read
   assert.match(section, /Escolhidos com base no seu gosto e na sua rede\./);
 });
 
-test("recommendation cards reuse RestaurantCard, preserve profile navigation, reason and native mobile swipe", () => {
+test("recommendation cards reuse RestaurantCard, preserve profile navigation, reason and native mobile scroll", () => {
   assert.match(section, /<RestaurantCard restaurant=\{recommendation\.restaurant\}/);
   assert.match(section, /data-recommendation-reason/);
-  assert.match(section, /touch-pan-x snap-x snap-mandatory/);
+  assert.match(section, /touch-auto snap-x snap-mandatory/);
+  assert.doesNotMatch(section, /touch-pan-x/);
   assert.match(section, /overflow-x-auto overscroll-x-contain/);
   assert.match(section, /onRestaurantClick=\{\(\) => trackEvent\("recommendation_clicked"/);
 });

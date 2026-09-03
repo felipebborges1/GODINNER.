@@ -67,7 +67,7 @@ export function AiSearchPanel({ restaurants }: { restaurants: Restaurant[] }) {
       <input value={query} onChange={(event) => setQuery(event.target.value)} maxLength={280} placeholder="Ex.: italiano até R$100 no Buritis" className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none ring-orange-400 focus:ring-2" aria-label="Pergunte ao GODINNER" />
       <button type="submit" disabled={!query.trim() || isSubmitting} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-stone-950 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? <LoaderCircle className="animate-spin" size={17}/> : "Encontrar"}</button>
     </form>
-    <div className="mt-3 flex gap-2 overflow-x-auto pb-1">{suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void submit(suggestion)} disabled={isSubmitting} className="shrink-0 rounded-full border border-orange-200 bg-white px-3 py-1.5 text-xs font-bold text-stone-700 disabled:opacity-50">{suggestion}</button>)}</div>
+    <div className="mt-3 flex touch-auto gap-2 overflow-x-auto pb-1">{suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void submit(suggestion)} disabled={isSubmitting} className="shrink-0 rounded-full border border-orange-200 bg-white px-3 py-1.5 text-xs font-bold text-stone-700 disabled:opacity-50">{suggestion}</button>)}</div>
     {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>}
     {result && <div className="mt-4">
       {result.notices.map((notice) => <p key={notice} className="mb-2 text-xs leading-5 text-stone-600">{notice}</p>)}

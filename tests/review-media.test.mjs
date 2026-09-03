@@ -5,6 +5,7 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const mediaUrl = new URL("../lib/review-media.ts", import.meta.url);
+const gesturesUrl = new URL("../lib/gestures.ts", import.meta.url);
 const componentUrl = new URL("../components/review/review-media.tsx", import.meta.url);
 const contextUrl = new URL("../context/app-context.tsx", import.meta.url);
 
@@ -30,10 +31,13 @@ test("review media has the required controls for a multi-photo gallery and light
 });
 
 test("review photo navigation stops at both ends and ignores vertical or short gestures", async () => {
-  const source = await readFile(mediaUrl, "utf8");
+  const [source, gestureSource] = await Promise.all([readFile(mediaUrl, "utf8"), readFile(gesturesUrl, "utf8")]);
+  const gestureCompiled = ts.transpileModule(gestureSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
+  const gestureModule = { exports: {} };
+  vm.runInNewContext(gestureCompiled.outputText, { exports: gestureModule.exports, module: gestureModule });
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
   const compiledModule = { exports: {} };
-  vm.runInNewContext(compiled.outputText, { exports: compiledModule.exports, module: compiledModule });
+  vm.runInNewContext(compiled.outputText, { exports: compiledModule.exports, module: compiledModule, require: (path) => path === "@/lib/gestures" ? gestureModule.exports : {} });
   const { getReviewPhotoSwipeDirection, moveReviewPhotoIndex } = compiledModule.exports;
 
   assert.equal(moveReviewPhotoIndex(0, 5, -1), 0);
@@ -44,6 +48,21 @@ test("review photo navigation stops at both ends and ignores vertical or short g
   assert.equal(getReviewPhotoSwipeDirection(120, 100, 200, 110), -1);
   assert.equal(getReviewPhotoSwipeDirection(200, 100, 180, 100), null);
   assert.equal(getReviewPhotoSwipeDirection(200, 100, 190, 180), null);
+});
+
+test("mobile gestures decide once from a shared threshold and keep vertical priority", async () => {
+  const source = await readFile(gesturesUrl, "utf8");
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
+  const compiledModule = { exports: {} };
+  vm.runInNewContext(compiled.outputText, { exports: compiledModule.exports, module: compiledModule });
+  const { getGestureIntent, getHorizontalSwipeDirection } = compiledModule.exports;
+
+  assert.equal(getGestureIntent(4, 3), null);
+  assert.equal(getGestureIntent(20, 50), "vertical");
+  assert.equal(getGestureIntent(50, 15), "horizontal");
+  assert.equal(getGestureIntent(20, 20), "vertical");
+  assert.equal(getHorizontalSwipeDirection(200, 100, 120, 110), 1);
+  assert.equal(getHorizontalSwipeDirection(200, 100, 180, 160), null);
 });
 
 test("review repository reads every review photo ordered by upload position", async () => {

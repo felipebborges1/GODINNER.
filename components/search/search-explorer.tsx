@@ -144,7 +144,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
         <SearchBar value={params.q ?? ""} onChange={(value) => setParam("q", value || undefined)} placeholder="Restaurante, comida, bairro ou chef" />
       </div>
       {aiSearchEnabled && <div className="mt-5"><AiSearchPanel restaurants={eligibleRestaurants} /></div>}
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+      <div className="mt-4 flex touch-auto gap-2 overflow-x-auto pb-2">
         {quick.map(([key, value, label]) => (
           <FilterChip key={label} label={label} active={params[key] === value} onClick={() => key === "nearby" ? (params.nearby ? setParam("nearby") : requestNearby()) : setParam(key, params[key] === value ? undefined : value)} />
         ))}

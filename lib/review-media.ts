@@ -1,4 +1,5 @@
 import type { RestaurantPhoto } from "@/types";
+import { getHorizontalSwipeDirection } from "@/lib/gestures";
 
 /**
  * Keep the upload sequence stable. The simple ordering is intentional for the
@@ -21,9 +22,5 @@ export function moveReviewPhotoIndex(index: number, photoCount: number, directio
  * made inside a review gallery. The gallery intentionally does not loop.
  */
 export function getReviewPhotoSwipeDirection(startX: number, startY: number, endX: number, endY: number): -1 | 1 | null {
-  const deltaX = endX - startX;
-  const deltaY = endY - startY;
-
-  if (Math.abs(deltaX) < 40 || Math.abs(deltaX) <= Math.abs(deltaY)) return null;
-  return deltaX < 0 ? 1 : -1;
+  return getHorizontalSwipeDirection(startX, startY, endX, endY);
 }
