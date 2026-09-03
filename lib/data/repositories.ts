@@ -50,8 +50,10 @@ export async function removeFollow(client: Client, followerId: string, following
   return result(response.error ? null : true, response.error);
 }
 
-export async function publishReviewPersisted(client: Client, input: { restaurantId: string; foodRating: number; serviceRating: number; ambienceRating: number; comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }> }) {
-  const response = await client.rpc("publish_review_dimensions", {
+export type PublishedReviewResult = { reviewId: string; recommendationsUnlocked: boolean };
+
+export async function publishReviewPersisted(client: Client, input: { restaurantId: string; foodRating: number; serviceRating: number; ambienceRating: number; comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }>; publicationKey?: string }) {
+  const response = await client.rpc("publish_review_with_recommendation_unlock", {
     p_restaurant_id: input.restaurantId,
     p_food_rating: input.foodRating,
     p_service_rating: input.serviceRating,
@@ -60,7 +62,14 @@ export async function publishReviewPersisted(client: Client, input: { restaurant
     p_amount_per_person: input.amountPerPerson ?? null,
     p_visit_date: input.visitDate,
     p_photos: input.photos.map((photo) => ({ storage_path: photo.storagePath, position: photo.position })),
+    p_publication_key: input.publicationKey ?? null,
   });
+  const row = response.data?.[0];
+  return result(row ? { reviewId: row.review_id, recommendationsUnlocked: row.recommendations_unlocked } : null, response.error ?? (row ? null : new Error("review_publish_empty")));
+}
+
+export async function claimRecommendationUnlockModal(client: Client) {
+  const response = await client.rpc("claim_recommendation_unlock_modal", {});
   return result(response.data, response.error);
 }
 

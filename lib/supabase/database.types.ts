@@ -26,6 +26,8 @@ export interface Database {
     };
     Functions: {
       publish_review_dimensions: { Args: { p_restaurant_id: string; p_food_rating: number; p_service_rating: number; p_ambience_rating: number; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: string };
+      publish_review_with_recommendation_unlock: { Args: { p_restaurant_id: string; p_food_rating: number; p_service_rating: number; p_ambience_rating: number; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }>; p_publication_key: string | null }; Returns: Array<{ review_id: string; recommendations_unlocked: boolean }> };
+      claim_recommendation_unlock_modal: { Args: Record<string, never>; Returns: boolean };
       update_review_owned: { Args: { p_review_id: string; p_comment: string; p_amount_per_person: number | null; p_visit_date: string; p_photos: Array<{ storage_path: string; position: number }> }; Returns: Array<{ review_id: string; updated_at: string; removed_paths: string[] }> };
       delete_review_owned: { Args: { p_review_id: string }; Returns: Array<{ review_id: string; removed_paths: string[]; visited_entry_removed: boolean }> };
       merge_restaurant: { Args: { p_pending_id: string; p_target_id: string }; Returns: string };
@@ -40,7 +42,7 @@ export interface Database {
   };
 }
 
-export type ProfileRow = { id: string; username: string; username_needs_confirmation: boolean; name: string; avatar_url: string | null; bio: string; location: string; role: AppRole; created_at: string; updated_at: string; };
+export type ProfileRow = { id: string; username: string; username_needs_confirmation: boolean; name: string; avatar_url: string | null; bio: string; location: string; role: AppRole; recommendations_unlocked_at: string | null; recommendations_unlock_seen_at: string | null; recommendations_unlock_review_id: string | null; created_at: string; updated_at: string; };
 export type ProfileInsert = Omit<ProfileRow, "created_at" | "updated_at"> & { created_at?: string; updated_at?: string };
 export type ProfileUpdate = Partial<ProfileInsert>;
 export type RestaurantRow = { id: string; slug: string; name: string; address: string; city: string; neighborhood: string; country_code: string | null; latitude: number; longitude: number; category: RestaurantCategory; cuisines: string[]; price_range: PriceRange; instagram: string | null; website: string | null; phone: string | null; chef: string; cover_photo_url: string | null; cover_photo_path: string | null; google_place_id: string | null; status: RestaurantStatus; submitted_by: string | null; submitted_at: string | null; moderated_by: string | null; moderated_at: string | null; rejection_reason: string | null; merged_into_id: string | null; created_at: string; updated_at: string; };

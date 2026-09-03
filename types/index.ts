@@ -12,7 +12,7 @@ export type NotificationType = "follow" | "review_like" | "review_comment" | "co
 export interface InAppNotification { id: string; recipientUserId: string; actorUserId: string; type: NotificationType; reviewId: string | null; restaurantId: string | null; commentId: string | null; createdAt: string; readAt: string | null; }
 export type ReviewRatingMethod = "legacy" | "dimensions";
 export interface Review { id: string; userId: string; restaurantId: string; rating: number; ratingMethod: ReviewRatingMethod; foodRating: number | null; serviceRating: number | null; ambienceRating: number | null; comment: string; photos: RestaurantPhoto[]; amountPerPerson?: number; currency?: string; visitDate: string; createdAt: string; updatedAt?: string; }
-export type ReviewDraft = Pick<Review, "restaurantId" | "comment" | "photos" | "amountPerPerson" | "visitDate" | "foodRating" | "serviceRating" | "ambienceRating">;
+export type ReviewDraft = Pick<Review, "restaurantId" | "comment" | "photos" | "amountPerPerson" | "visitDate" | "foodRating" | "serviceRating" | "ambienceRating"> & { publicationKey?: string };
 export type ReviewUpdateDraft = Pick<Review, "comment" | "photos" | "amountPerPerson" | "visitDate">;
 export interface RestaurantList { id: string; ownerId: string; name: string; description: string; isPublic: boolean; coverPhoto: string; restaurantIds: string[]; type?: "want" | "visited" | "favorites" | "custom"; }
 export interface Follow { followerId: string; followingId: string; createdAt: string; }

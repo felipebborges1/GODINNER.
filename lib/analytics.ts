@@ -50,7 +50,10 @@ export type AnalyticsEvent =
   | "recommendation_section_viewed"
   | "recommendation_impression"
   | "recommendation_clicked"
-  | "recommendation_unlock_progress_viewed";
+  | "recommendation_unlock_progress_viewed"
+  | "recommendation_unlocked"
+  | "recommendation_unlock_modal_viewed"
+  | "recommendation_unlock_cta_clicked";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 

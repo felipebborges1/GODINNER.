@@ -6,17 +6,19 @@ import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/li
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { mapFollow, mapList, mapNotification, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
 import type { RestaurantRow } from "@/lib/supabase/database.types";
-import { deleteReviewPersisted, listReviewLikes, publishReviewPersisted, REVIEW_LIKES_PAGE_SIZE, updateReviewPersisted } from "@/lib/data/repositories";
+import { claimRecommendationUnlockModal, deleteReviewPersisted, listReviewLikes, publishReviewPersisted, REVIEW_LIKES_PAGE_SIZE, updateReviewPersisted } from "@/lib/data/repositories";
 import { createSignedImageUrl, getAvatarUploadErrorMessage, removeProfileAvatar, removeReviewPhotos, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
 import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/notifications";
 import { getCurrencyForCountry } from "@/lib/currency";
 import { averageReviewScore, getDimensionalReviewScore, getReviewScore } from "@/lib/review-rating";
+import { isValidRecommendationReview, unlocksRecommendations } from "@/lib/recommendations/unlock";
 import type { CommentMention, Follow, InAppNotification, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewLikeUser, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
 
 export type RestaurantSubmission = { name: string; address: string; city: string; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
 export type AdminResult = { ok: boolean; error?: string; restaurant?: Restaurant };
+export type PublishedReview = { review: Review; recommendationsUnlocked: boolean };
 
 function refreshRestaurantReviewStats(restaurants: Restaurant[], reviews: Review[], restaurantId: string) {
   const restaurantReviews = reviews.filter((review) => review.restaurantId === restaurantId);
@@ -85,7 +87,8 @@ type AppContextValue = {
   markAllNotificationsRead: () => Promise<boolean>;
   submitRestaurant: (draft: RestaurantSubmission) => Promise<{ restaurant?: Restaurant; duplicate?: Restaurant; error?: string }>;
   createRestaurantFromGooglePlace: (placeId: string, overrides?: Pick<RestaurantSubmission, "address" | "city" | "neighborhood">) => Promise<{ restaurant?: Restaurant; existing?: boolean; error?: string }>;
-  publishReview: (draft: ReviewDraft) => Promise<Review | null>;
+  publishReview: (draft: ReviewDraft) => Promise<PublishedReview | null>;
+  claimRecommendationUnlock: () => Promise<boolean>;
   updateReview: (reviewId: string, draft: ReviewUpdateDraft) => Promise<Review | null>;
   deleteReview: (reviewId: string) => Promise<{ ok: boolean; cleanupFailed?: boolean }>;
   updateProfileAvatar: (file: File | null) => Promise<{ ok: boolean; avatar: string | null; error?: string }>;
@@ -123,6 +126,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const pendingCommentReviews = useRef(new Set<string>());
   const pendingLikeReviews = useRef(new Set<string>());
+  const claimedRecommendationUnlocks = useRef(new Set<string>());
   const [isLoading, setIsLoading] = useState(dataMode === "supabase" && backendConfigured);
   const [isAuthLoading, setIsAuthLoading] = useState(dataMode === "supabase" && backendConfigured);
   const [dataError, setDataError] = useState<string | null>(supabaseConfigurationError);
@@ -700,6 +704,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!restaurant || restaurant.status === "rejected") return null;
     let reviewId = `review-${Date.now()}`;
     let reviewPhotos = draft.photos;
+    let recommendationsUnlocked = false;
     if (dataMode === "supabase" && backendConfigured) {
       const client = createSupabaseBrowserClient();
       if (!client) return null;
@@ -710,13 +715,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (upload.error || !upload.data) return null;
         uploaded.push({ storagePath: upload.data.path, position, photo: { ...photo, url: upload.data.url, file: undefined } });
       }
-      const persisted = await publishReviewPersisted(client, { restaurantId: draft.restaurantId, foodRating: draft.foodRating as number, serviceRating: draft.serviceRating as number, ambienceRating: draft.ambienceRating as number, comment: draft.comment, amountPerPerson: draft.amountPerPerson, visitDate: draft.visitDate, photos: uploaded.map(({ storagePath, position }) => ({ storagePath, position })) });
+      const persisted = await publishReviewPersisted(client, { restaurantId: draft.restaurantId, foodRating: draft.foodRating as number, serviceRating: draft.serviceRating as number, ambienceRating: draft.ambienceRating as number, comment: draft.comment, amountPerPerson: draft.amountPerPerson, visitDate: draft.visitDate, photos: uploaded.map(({ storagePath, position }) => ({ storagePath, position })), publicationKey: draft.publicationKey });
       if (persisted.error || !persisted.data) return null;
-      reviewId = persisted.data;
+      reviewId = persisted.data.reviewId;
+      recommendationsUnlocked = persisted.data.recommendationsUnlocked;
       reviewPhotos = uploaded.map(({ photo }) => photo);
     }
     const now = new Date().toISOString();
     const review: Review = { ...draft, photos: reviewPhotos, currency: getCurrencyForCountry(restaurant.countryCode) ?? undefined, rating: getDimensionalReviewScore(draft.foodRating, draft.serviceRating, draft.ambienceRating) ?? 0, ratingMethod: "dimensions", id: reviewId, userId: currentUserId, createdAt: now, updatedAt: now };
+    if (dataMode === "mock") {
+      const validReviewCount = reviews.filter((item) => item.userId === currentUserId && isValidRecommendationReview(item)).length;
+      recommendationsUnlocked = unlocksRecommendations(validReviewCount, review);
+    }
     setReviews((current) => [review, ...current]);
     setReviewSocial((current) => ({ ...current, [reviewId]: emptyReviewSocialSummary() }));
     setLists((current) => current.map((list) => {
@@ -725,8 +735,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (list.type === "want" && list.restaurantIds.includes(draft.restaurantId)) return { ...list, restaurantIds: list.restaurantIds.filter((id) => id !== draft.restaurantId) };
       return list;
     }));
-    return review;
-  }, [backendConfigured, currentUserId, dataMode, restaurants]);
+    return { review, recommendationsUnlocked };
+  }, [backendConfigured, currentUserId, dataMode, restaurants, reviews]);
+  const claimRecommendationUnlock = useCallback(async () => {
+    if (!currentUserId) return false;
+    if (dataMode === "mock") {
+      if (claimedRecommendationUnlocks.current.has(currentUserId)) return false;
+      claimedRecommendationUnlocks.current.add(currentUserId);
+      return true;
+    }
+    if (!backendConfigured) return false;
+    const client = createSupabaseBrowserClient();
+    if (!client) return false;
+    const claimed = await claimRecommendationUnlockModal(client);
+    return !claimed.error && claimed.data === true;
+  }, [backendConfigured, currentUserId, dataMode]);
   const updateReview = useCallback(async (reviewId: string, draft: ReviewUpdateDraft) => {
     const existing = reviews.find((review) => review.id === reviewId);
     if (!existing || !currentUserId || (existing.userId !== currentUserId && !isAdmin)) return null;
@@ -847,6 +870,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewLikes, reviewLikesHasMore, reviewLikesLoading, reviewLikesError, reviewComments, reviewCommentsHasMore, notifications, notificationsHasMore, notificationsLoading, notificationsError, unreadNotificationCount, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewLikes, loadReviewComments, createReviewComment, deleteReviewComment, loadNotifications, markNotificationRead, markAllNotificationsRead, submitRestaurant, createRestaurantFromGooglePlace, publishReview, updateReview, deleteReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, createList, createRestaurantFromGooglePlace, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadNotifications, loadReviewComments, loadReviewLikes, markAllNotificationsRead, markNotificationRead, mergeRestaurant, notifications, notificationsError, notificationsHasMore, notificationsLoading, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewLikes, reviewLikesError, reviewLikesHasMore, reviewLikesLoading, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, unreadNotificationCount, updateList, updateProfileAvatar, updateRestaurantAdmin, updateReview]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewLikes, reviewLikesHasMore, reviewLikesLoading, reviewLikesError, reviewComments, reviewCommentsHasMore, notifications, notificationsHasMore, notificationsLoading, notificationsError, unreadNotificationCount, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewLikes, loadReviewComments, createReviewComment, deleteReviewComment, loadNotifications, markNotificationRead, markAllNotificationsRead, submitRestaurant, createRestaurantFromGooglePlace, publishReview, claimRecommendationUnlock, updateReview, deleteReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, claimRecommendationUnlock, createList, createRestaurantFromGooglePlace, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadNotifications, loadReviewComments, loadReviewLikes, markAllNotificationsRead, markNotificationRead, mergeRestaurant, notifications, notificationsError, notificationsHasMore, notificationsLoading, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewLikes, reviewLikesError, reviewLikesHasMore, reviewLikesLoading, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, unreadNotificationCount, updateList, updateProfileAvatar, updateRestaurantAdmin, updateReview]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
