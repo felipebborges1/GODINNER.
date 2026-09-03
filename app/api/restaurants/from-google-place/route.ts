@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const mapped = mapGooglePlaceType(details);
     const slug = `${slugFrom(details.name)}-${Date.now().toString(36)}`;
     const inserted = await client.from("restaurants").insert({
-      slug, name: details.name, address, city, neighborhood, country_code: details.countryCode ?? null,
+      slug, name: details.name, address, city, neighborhood, country_code: details.countryCode ?? null, accepts_duo_gourmet: null,
       latitude: details.coordinates!.latitude, longitude: details.coordinates!.longitude,
       category: mapped.category, cuisines: mapped.cuisine, price_range: "$$",
       instagram: null, website: null, phone: null, chef: "", cover_photo_url: null, cover_photo_path: null,

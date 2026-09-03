@@ -12,6 +12,7 @@ import { calculateCommunitySpend, formatCommunityExperienceCount, formatCommunit
 import { averageReviewScore, formatRating, getDimensionAverages } from "@/lib/review-rating";
 import type { Restaurant } from "@/types";
 import { CuisineChip } from "@/components/ui/cuisine-chip";
+import { DuoGourmetIndicator } from "@/components/ui/duo-gourmet-indicator";
 import { PriceBadge } from "@/components/ui/price-badge";
 import { RatingBadge } from "@/components/ui/rating-badge";
 import { ReviewCard } from "@/components/review/review-card";
@@ -53,7 +54,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
           <p className="text-sm font-semibold text-stone-500">{restaurant.category === "bar" ? "Bar" : "Restaurante"} · {restaurant.neighborhood}</p>
           <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">{restaurant.name}</h1>
           {restaurant.status === "pending_review" && <p className="mt-3 inline-flex rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">Aguardando validação</p>}
-          <div className="mt-4 flex flex-wrap gap-2">{restaurant.cuisine.map((cuisine) => <CuisineChip key={cuisine} cuisine={cuisine}/>) }<PriceBadge price={restaurant.priceRange}/></div>
+          <div className="mt-4 flex flex-wrap gap-2">{restaurant.cuisine.map((cuisine) => <CuisineChip key={cuisine} cuisine={cuisine}/>) }<PriceBadge price={restaurant.priceRange}/>{restaurant.acceptsDuoGourmet && <DuoGourmetIndicator/>}</div>
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-stone-600"><span className="inline-flex items-center gap-1"><MapPin size={16}/>{restaurant.neighborhood} · {restaurant.distanceKm.toFixed(1)} km</span>{restaurant.chef && <span className="inline-flex items-center gap-1"><Utensils size={16}/>Chef: {restaurant.chef}</span>}</div>
         </div>
         <section aria-label="Resumo de decisão" className="mt-6 grid grid-cols-2 gap-3 lg:mt-0 lg:grid-cols-3">
@@ -79,7 +80,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
         <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-10"><section><h2 className="text-2xl font-black">Seus amigos</h2>{friendReviews.length ? <div className="mt-4 grid gap-4">{friendReviews.map((review) => <div className="min-w-0" key={review.id}><ReviewCard review={review} user={users.find((user) => user.id === review.userId)!}/></div>)}</div> : <p className="mt-3 text-sm text-stone-500">Seus amigos ainda não avaliaram este lugar.</p>}</section>
           <section><h2 className="text-2xl font-black">Comunidade</h2>{communityReviews.length ? <div className="mt-4 grid gap-4">{communityReviews.map((review) => <div className="min-w-0" key={review.id}><ReviewCard review={review} user={users.find((user) => user.id === review.userId)!}/></div>)}</div> : <p className="mt-3 text-sm text-stone-500">Ainda não há avaliações da comunidade.</p>}</section></div>
-        <aside className="space-y-5"><section className="rounded-3xl bg-orange-50 p-5"><p className="text-sm font-black">Faixa editorial</p><p className="mt-2 text-2xl font-black">{restaurant.priceRange}</p><p className="mt-1 text-xs text-stone-500">Referência inicial do catálogo</p></section><section className="rounded-3xl border border-stone-100 p-5"><h2 className="text-lg font-black">Sobre</h2><p className="mt-3 flex items-start gap-2 text-sm text-stone-600"><MapPin size={17} className="mt-0.5 shrink-0"/>{restaurant.address}</p></section><section><h2 className="mb-3 text-lg font-black">Localização</h2><MapView restaurants={[restaurant]}/></section></aside>
+        <aside className="space-y-5">{restaurant.acceptsDuoGourmet && <section className="rounded-3xl border border-orange-100 bg-orange-50 p-5"><DuoGourmetIndicator/><p className="mt-3 text-xs text-stone-600">Benefício sujeito às regras e disponibilidade do Duo Gourmet.</p></section>}<section className="rounded-3xl bg-orange-50 p-5"><p className="text-sm font-black">Faixa editorial</p><p className="mt-2 text-2xl font-black">{restaurant.priceRange}</p><p className="mt-1 text-xs text-stone-500">Referência inicial do catálogo</p></section><section className="rounded-3xl border border-stone-100 p-5"><h2 className="text-lg font-black">Sobre</h2><p className="mt-3 flex items-start gap-2 text-sm text-stone-600"><MapPin size={17} className="mt-0.5 shrink-0"/>{restaurant.address}</p></section><section><h2 className="mb-3 text-lg font-black">Localização</h2><MapView restaurants={[restaurant]}/></section></aside>
       </div>
     </main>
     <SaveToListSheet open={listsOpen} onClose={() => setListsOpen(false)} restaurantId={restaurant.id}/>
