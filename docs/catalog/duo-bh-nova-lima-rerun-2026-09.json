@@ -1,0 +1,343 @@
+{
+  "appliedAt": "2026-09-03T21:01:03.864Z",
+  "auditPath": "C:\\dev\\godinner-web\\docs\\catalog\\duo-bh-nova-lima-discovery-2026-09.json",
+  "enriched": [
+    {
+      "id": "30000000-0000-4000-8000-000000000002",
+      "slug": "a2-bistro",
+      "googlePlaceId": "ChIJdxPWi26bpgARhdkSGuSs2HY"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000003",
+      "slug": "aje-bistro-bar",
+      "googlePlaceId": "ChIJJcG5Z62bpgARWTgEKhhH7I0"
+    },
+    {
+      "id": "10b09874-f458-43fd-91c5-5383d40b6ab0",
+      "slug": "akane-cozinha-japonesa-belvedere",
+      "googlePlaceId": "ChIJY6lqd2OZpgARsIVYja08H1g"
+    },
+    {
+      "id": "28edf23b-9af4-4a41-a1be-baf1e06e4e5d",
+      "slug": "azougue-fogo-bar-serra",
+      "googlePlaceId": "ChIJVVVBmb6ZpgARZgji3meK4fY"
+    },
+    {
+      "id": "8d8b15b7-b197-4c73-b95c-8bfd4883b30b",
+      "slug": "bar-do-juveninha-castelo",
+      "googlePlaceId": "ChIJO3XJNjyRpgARTlVs9jJGcwI"
+    },
+    {
+      "id": "288403b8-07e8-4ebb-8258-804f5e8bedc6",
+      "slug": "barolio-356",
+      "googlePlaceId": "ChIJDdAXZOu9pgAR4IO2RvLMi-U"
+    },
+    {
+      "id": "aa760f09-77cd-4a5b-a7bc-4ac1c348e01f",
+      "slug": "beco-d-italia-santa-tereza",
+      "googlePlaceId": "ChIJx2MztiGapgARwgpSGYmk1SU"
+    },
+    {
+      "id": "b92d7217-78c4-4e50-bd9f-673cfdf12c05",
+      "slug": "benjamin-bar-e-parrilla-padre-eustaquio",
+      "googlePlaceId": "ChIJubMql4uXpgARBRs-Em2Ra6A"
+    },
+    {
+      "id": "9fd95725-006a-4e7f-8109-1bb309af4455",
+      "slug": "restaurante-benvindo-lourdes",
+      "googlePlaceId": "ChIJIQ8HfWKXpgARCTAQ67KcS9I"
+    },
+    {
+      "id": "6e6a35e0-6e39-40cf-b4be-77e1aaead3ca",
+      "slug": "buteco-do-rod-ouro-preto",
+      "googlePlaceId": "ChIJafhFhq-RpgARyydj9zyB1IY"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000010",
+      "slug": "canto-de-mainha",
+      "googlePlaceId": "ChIJBQBQ3cKXpgARwJBNVQWURKA"
+    },
+    {
+      "id": "3376f49c-2f9f-4bca-9d1b-bf2d77c0b6ce",
+      "slug": "cae-restaurante-bar-carmo",
+      "googlePlaceId": "ChIJycePfM-ZpgARU0TM1O1xP9k"
+    },
+    {
+      "id": "92bd77fb-13c4-4a17-aeb0-de52c75ae9c0",
+      "slug": "esquina-sante-santa-tereza",
+      "googlePlaceId": "ChIJy3FHNrqbpgARn-lTa9YawSM"
+    },
+    {
+      "id": "d42271b1-ccd8-40ef-aaca-9476a2c4aa0d",
+      "slug": "eu-te-amo-burger-mangabeiras",
+      "googlePlaceId": "ChIJ_b_g90SZpgARTurqBuucBn0"
+    },
+    {
+      "id": "8ad94f9e-7768-4886-b610-f63c89c84b46",
+      "slug": "gastro-hub-restaurante-e-espaco-de-eventos-serra",
+      "googlePlaceId": "ChIJwRm9mo-ZpgAR-1v7Uj_uiMA"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000029",
+      "slug": "glouton",
+      "googlePlaceId": "ChIJFeUR4WGXpgARXjcWkFaBptY"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000008",
+      "slug": "gumbo-soulfood",
+      "googlePlaceId": "ChIJzQ9LkjOXpgARL9M91tupJSE"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000009",
+      "slug": "indian-gourmet",
+      "googlePlaceId": "ChIJaWFR22GXpgAR6bZ2nKSQFjE"
+    },
+    {
+      "id": "6961ea1e-6b82-45fb-9e19-0e3d1d79314d",
+      "slug": "la-traviata-osteria-sion-sion",
+      "googlePlaceId": "ChIJmcd1aACZpgARC-DR2Yls_Ow"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000012",
+      "slug": "massala-savassi",
+      "googlePlaceId": "ChIJUYA-Fo-ZpgARQQljIWoy8_8"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000001",
+      "slug": "mercado-da-boca-buritis",
+      "googlePlaceId": "ChIJr0nm7MGXpgARNHis6Azz1XE"
+    },
+    {
+      "id": "89aafab0-87bf-4ea6-a788-0a651a8e1d57",
+      "slug": "merci-bar-a-vin-casa-do-porto",
+      "googlePlaceId": "ChIJJ0onhnqXpgARCPga4MRGFnU"
+    },
+    {
+      "id": "50325197-86df-4c34-81a0-99b7590c52e4",
+      "slug": "ninetto-trattoria-belvedere",
+      "googlePlaceId": "ChIJs9WwFgCXpgARRp39KfMaRJM"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000030",
+      "slug": "ninita",
+      "googlePlaceId": "ChIJ-f63dbCXpgARBgk6hif7cgE"
+    },
+    {
+      "id": "8a3dbbef-e19a-4334-a068-b38ba94b83cb",
+      "slug": "nino-cucina-belo-horizonte-lourdes",
+      "googlePlaceId": "ChIJjQzeIIGXpgARVz3Xoo-g5fQ"
+    },
+    {
+      "id": "8e30a36d-2583-4b47-ba64-91b1cb0017bc",
+      "slug": "nonna-carmela-lourdes",
+      "googlePlaceId": "ChIJHdLs3GKXpgARPdxRMo_lbUA"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000011",
+      "slug": "o-italiano-restaurante",
+      "googlePlaceId": "ChIJMeJf3xq9pgAR_XIq15X8UlI"
+    },
+    {
+      "id": "1e63785c-f922-4fc0-82f8-5bf2c3654174",
+      "slug": "parrilla-savassi-158-funcionarios",
+      "googlePlaceId": "ChIJt2bY_M-ZpgAR-17NL5KImh4"
+    },
+    {
+      "id": "c0f051e9-8ca9-4750-bb03-503164d08d79",
+      "slug": "cucina-di-pastaio-mtgal832",
+      "googlePlaceId": "ChIJiUCyaQCZpgARGQ7j3AUUzzo"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000013",
+      "slug": "pescador-cozinha-do-litoral",
+      "googlePlaceId": "ChIJ-7GvcwC9pgARYVQpmczNoek"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000003",
+      "slug": "picco-skybar-food",
+      "googlePlaceId": "ChIJnwXvgJe9pgARs6lqTV4QhhI"
+    },
+    {
+      "id": "c1432458-f6d2-4073-870d-4b39f7f2da3c",
+      "slug": "porcao-bh-sao-bento",
+      "googlePlaceId": "ChIJuzYkRZOXpgARlBFdfJBcIds"
+    },
+    {
+      "id": "244b2685-b9d1-4808-8202-bd8a6b03fca6",
+      "slug": "restaurante-do-ano-savassi",
+      "googlePlaceId": "ChIJxYBu7dmZpgAR7qbdagqYqJA"
+    },
+    {
+      "id": "34a362b2-2a30-4142-921d-5f494dd765d3",
+      "slug": "sr-espetto-bh-castelo",
+      "googlePlaceId": "ChIJVTlY0w6RpgARtgeNMS6gPFI"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000008",
+      "slug": "steakbh-oficial",
+      "googlePlaceId": "ChIJFWf4uJyXpgARGARIPykiSC0"
+    },
+    {
+      "id": "d5766de0-f204-4c04-8696-ed85ac663f06",
+      "slug": "so-bar-castelo",
+      "googlePlaceId": "ChIJeVc7OBaRpgARxrGVeATFiEM"
+    },
+    {
+      "id": "0d1c2d0c-7f26-4269-8a47-a84635caee68",
+      "slug": "taberna-livorno-castelo",
+      "googlePlaceId": "ChIJpV2dLDKRpgARfkYp4t-QaJg"
+    },
+    {
+      "id": "092535f9-a490-43b8-ae6d-20ee5c2803e0",
+      "slug": "the-meat-club-santo-agostinho",
+      "googlePlaceId": "ChIJbeSO5mWXpgARQSV6w_Lq6r4"
+    },
+    {
+      "id": "ea7be427-89e6-481a-a99d-3a81aae17f65",
+      "slug": "uluru-cafe-patio-savassi-restaurante-cafeteria-brunch-na-savassi-sao-pedro",
+      "googlePlaceId": "ChIJjVJJEQCZpgARe_u7yiSK7Us"
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000012",
+      "slug": "valle-gastronomico",
+      "googlePlaceId": "ChIJ56LF9va9pgARTXIf43p4OGU"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000020",
+      "slug": "zaika-tandoor",
+      "googlePlaceId": "ChIJs-r3SQeZpgAR8T82TFy4muY"
+    },
+    {
+      "id": "986f8ea2-0152-4035-90c2-6bc7b922d499",
+      "slug": "o-chefe-caicaras",
+      "googlePlaceId": "ChIJhxY9P2iRpgARQdJxD3wOvdE"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000024",
+      "slug": "bar-do-lopes-vila-da-serra",
+      "googlePlaceId": "ChIJ4eR3Ktm9pgARCmBSgRBTbK0"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000002",
+      "slug": "brasilero-restaurante-gastrobar",
+      "googlePlaceId": "ChIJZzoyu6G9pgARiVfVWGy2A7I"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000005",
+      "slug": "dorival-bar-parrilla",
+      "googlePlaceId": "ChIJnRsLQQKYpgARppqjfv7oPAA"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000009",
+      "slug": "kei-cozinha-japonesa-vila-da-serra",
+      "googlePlaceId": "ChIJs1ovbqGZpgARvbk3Il_5FmI"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000027",
+      "slug": "la-macelleria-vila-da-serra",
+      "googlePlaceId": "ChIJl9w9_QKYpgARKn5tFhiGSL8"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000012",
+      "slug": "mayu",
+      "googlePlaceId": "ChIJI0OdpHSZpgARgjFsuKXrYcQ"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000026",
+      "slug": "olivia-mediterraneo",
+      "googlePlaceId": "ChIJx5_1hdmZpgARqlnjZeUSLyc"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000003",
+      "slug": "osteritta-papa",
+      "googlePlaceId": "ChIJs7g7gnO9pgARndMrhggmNoE"
+    }
+  ],
+  "inserted": [],
+  "skipped": [],
+  "catalogAfter": {
+    "published": 437,
+    "byCity": {
+      "Belo Horizonte": 399,
+      "Nova Lima": 35,
+      "Madrid": 2,
+      "Amsterdam": 1
+    },
+    "byNeighborhood": {
+      "Belo Horizonte:Santa Lúcia": 3,
+      "Belo Horizonte:Lourdes": 40,
+      "Nova Lima:Vila da Serra": 28,
+      "Belo Horizonte:Cruzeiro": 6,
+      "Belo Horizonte:Funcionários": 24,
+      "Belo Horizonte:Palmares": 1,
+      "Belo Horizonte:Coracao de Jesus": 3,
+      "Belo Horizonte:Alto Caiçaras": 5,
+      "Belo Horizonte:Prado": 9,
+      "Belo Horizonte:Santa Tereza": 11,
+      "Belo Horizonte:Belvedere": 20,
+      "Nova Lima:Vale do Sereno": 2,
+      "Belo Horizonte:Santo Antônio": 9,
+      "Belo Horizonte:Santa Amelia": 4,
+      "Belo Horizonte:Castelo": 23,
+      "Belo Horizonte:Olhos d'Água": 4,
+      "Belo Horizonte:Savassi": 30,
+      "Belo Horizonte:Ouro Preto": 6,
+      "Belo Horizonte:Buritis": 21,
+      "Belo Horizonte:Serra": 9,
+      "Belo Horizonte:São Pedro": 6,
+      "Belo Horizonte:Caiçara-Adelaide": 2,
+      "Belo Horizonte:Sion": 8,
+      "Belo Horizonte:Anchieta": 9,
+      "Belo Horizonte:Alípio de Melo": 4,
+      "Belo Horizonte:Carlos Prates": 15,
+      "Belo Horizonte:Padre Eustáquio": 15,
+      "Belo Horizonte:Monsenhor Messias": 1,
+      "Belo Horizonte:Dom Cabral": 1,
+      "Belo Horizonte:Caiçaras": 12,
+      "Belo Horizonte:Pedro II": 3,
+      "Belo Horizonte:Renascença": 1,
+      "Belo Horizonte:Horto Florestal": 1,
+      "Belo Horizonte:Olhos D'Água": 1,
+      "Belo Horizonte:Centro": 13,
+      "Belo Horizonte:São Luiz": 2,
+      "Belo Horizonte:Barreiro": 1,
+      "Belo Horizonte:Floresta": 7,
+      "Belo Horizonte:Sagrada Família": 2,
+      "Belo Horizonte:Coração Eucarístico": 1,
+      "Belo Horizonte:Jardim Atlântico": 1,
+      "Belo Horizonte:Carmo": 2,
+      "Belo Horizonte:Santo Agostinho": 7,
+      "Belo Horizonte:Horto": 3,
+      "Belo Horizonte:Cidade Jardim": 5,
+      "Belo Horizonte:Concórdia": 1,
+      "Belo Horizonte:Santa Efigênia": 5,
+      "Belo Horizonte:Olhos d’Água": 5,
+      "Belo Horizonte:Pampulha": 1,
+      "Nova Lima:Vale do Sol": 4,
+      "Belo Horizonte:Vale do Sereno": 1,
+      "Belo Horizonte:Paquetá": 1,
+      "Belo Horizonte:Mangabeiras": 6,
+      "Nova Lima:Jardim Canadá": 1,
+      "Belo Horizonte:Minas Brasil": 3,
+      "Belo Horizonte:Venda Nova": 1,
+      "Belo Horizonte:Luxemburgo": 2,
+      "Belo Horizonte:Jardim Cidade": 1,
+      "Madrid:Tetuán": 1,
+      "Belo Horizonte:Aeroporto": 1,
+      "Madrid:Centro": 1,
+      "Belo Horizonte:Bonfim": 1,
+      "Belo Horizonte:União": 9,
+      "Belo Horizonte:São José": 1,
+      "Belo Horizonte:Vale do Jatoba": 1,
+      "Belo Horizonte:Coração de Jesus": 1,
+      "Belo Horizonte:Jardim America": 1,
+      "Belo Horizonte:Cidade Nova": 1,
+      "Belo Horizonte:Gutierrez": 1,
+      "Belo Horizonte:São Bento": 1,
+      "Belo Horizonte:Estoril": 1,
+      "Belo Horizonte:Ipiranga": 1,
+      "Belo Horizonte:Planalto": 1,
+      "Amsterdam:Amsterdam-Zuid": 1
+    }
+  }
+}
