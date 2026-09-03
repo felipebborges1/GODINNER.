@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node --test tests/sprint9-contracts.test.mjs tests/ai-cuisine-matching.test.mjs tests/user-initials.test.mjs tests/community-spend.test.mjs tests/country-currency.test.mjs tests/historical-fx-correction.test.mjs tests/restaurant-decision-summary.test.mjs tests/review-social.test.mjs tests/home-search.test.mjs tests/review-rating.test.mjs tests/review-edit-delete.test.mjs tests/review-media.test.mjs tests/profile-avatar-upload.test.mjs tests/notifications.test.mjs tests/comment-mentions.test.mjs tests/review-comment-replies.test.mjs tests/google-place-cover.test.mjs tests/international-location.test.mjs tests/new-restaurant-google-flow.test.mjs tests/discover-external-search.test.mjs tests/google-auth.test.mjs tests/recommendation-engine.test.mjs"
+    "test": "node --test tests/sprint9-contracts.test.mjs tests/ai-cuisine-matching.test.mjs tests/user-initials.test.mjs tests/community-spend.test.mjs tests/country-currency.test.mjs tests/historical-fx-correction.test.mjs tests/restaurant-decision-summary.test.mjs tests/review-social.test.mjs tests/home-search.test.mjs tests/review-rating.test.mjs tests/review-edit-delete.test.mjs tests/review-media.test.mjs tests/profile-avatar-upload.test.mjs tests/notifications.test.mjs tests/comment-mentions.test.mjs tests/review-comment-replies.test.mjs tests/google-place-cover.test.mjs tests/international-location.test.mjs tests/new-restaurant-google-flow.test.mjs tests/discover-external-search.test.mjs tests/google-auth.test.mjs tests/recommendation-engine.test.mjs tests/discover-recommendations.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",

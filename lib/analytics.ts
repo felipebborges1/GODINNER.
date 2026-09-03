@@ -46,7 +46,11 @@ export type AnalyticsEvent =
   | "new_restaurant_manual_fallback"
   | "new_restaurant_created_from_google"
   | "existing_restaurant_matched_from_google"
-  | "review_started_from_new_restaurant";
+  | "review_started_from_new_restaurant"
+  | "recommendation_section_viewed"
+  | "recommendation_impression"
+  | "recommendation_clicked"
+  | "recommendation_unlock_progress_viewed";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 
