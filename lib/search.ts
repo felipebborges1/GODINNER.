@@ -42,7 +42,7 @@ export function filterRestaurants(
       (!params.neighborhood || normalize(restaurant.neighborhood).replace(" ", "-") === params.neighborhood) &&
       (!params.cuisine || normalize(restaurant.cuisine.join(" ")).includes(params.cuisine.replace("japanese", "japones").replace("italian", "italiana").replace("meat", "carnes"))) &&
       (!params.type || restaurant.category === params.type) &&
-      (!params.price || (params.price === "100" ? ["$", "$$"].includes(restaurant.priceRange) : restaurant.priceRange === params.price)) &&
+      (!params.price || (params.price === "100" ? Boolean(restaurant.priceRange && ["$", "$$"].includes(restaurant.priceRange)) : restaurant.priceRange === params.price)) &&
       (!params.occasion || restaurant.occasions.includes(params.occasion)) &&
       (normalizedRating === undefined || restaurant.godinnerRating >= normalizedRating) &&
       (!params.chef || normalize(restaurant.chef) === params.chef) &&

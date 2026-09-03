@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const inserted = await client.from("restaurants").insert({
       slug, name: details.name, address, city, neighborhood, country_code: details.countryCode ?? null, accepts_duo_gourmet: null, duo_gourmet_checked_at: null,
       latitude: details.coordinates!.latitude, longitude: details.coordinates!.longitude,
-      category: mapped.category, cuisines: mapped.cuisine, price_range: "$$",
+      category: mapped.category, cuisines: mapped.cuisine, price_range: null,
       instagram: null, website: null, phone: null, chef: "", cover_photo_url: null, cover_photo_path: null,
       google_place_id: details.placeId, status: "pending_review", submitted_by: userData.user.id,
       submitted_at: new Date().toISOString(), moderated_by: null, moderated_at: null,

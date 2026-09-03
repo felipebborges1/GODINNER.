@@ -274,7 +274,7 @@ export function MapView({ restaurants }: { restaurants: Restaurant[] }) {
           <span className="min-w-0 flex-1">
             <b className="block truncate pr-1 text-sm text-stone-950 sm:text-base">{selected.name}</b>
             <span className="mt-0.5 block truncate text-xs text-stone-500 sm:text-sm">{selected.neighborhood} · {selected.cuisine[0]}</span>
-            <span className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-stone-600 sm:text-xs"><span className="rounded-full bg-stone-950 px-2 py-1 text-white">{selected.reviewCount > 0 ? selected.godinnerRating.toFixed(1) : "novo"}</span>{selected.priceRange} · {formatDistance(selected.distanceKm)}</span>
+            <span className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-stone-600 sm:text-xs"><span className="rounded-full bg-stone-950 px-2 py-1 text-white">{selected.reviewCount > 0 ? selected.godinnerRating.toFixed(1) : "novo"}</span>{selected.priceRange && <>{selected.priceRange} · </>}{formatDistance(selected.distanceKm)}</span>
             <span className="mt-2 inline-flex items-center gap-1 text-xs font-black text-orange-600 transition group-hover:text-orange-700">Abrir restaurante <ArrowUpRight size={14}/></span>
           </span>
         </Link>

@@ -81,7 +81,7 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
               <Field label="Cidade"><select value={draft.city} onChange={(event) => update("city", event.target.value as Restaurant["city"])}><option>Belo Horizonte</option><option>Nova Lima</option></select></Field>
               <Field label="Categoria"><select value={draft.category} onChange={(event) => update("category", event.target.value as Restaurant["category"])}><option value="restaurant">Restaurante</option><option value="bar">Bar</option></select></Field>
               <Field label="Culinárias"><input value={draft.cuisine.join(", ")} onChange={(event) => update("cuisine", event.target.value.split(",").map((value) => value.trim()).filter(Boolean))} /></Field>
-              <Field label="Preço"><select value={draft.priceRange} onChange={(event) => update("priceRange", event.target.value as Restaurant["priceRange"])}><option>$</option><option>$$</option><option>$$$</option><option>$$$$</option></select></Field>
+              <Field label="Preço"><select value={draft.priceRange ?? ""} onChange={(event) => update("priceRange", event.target.value ? event.target.value as NonNullable<Restaurant["priceRange"]> : null)}><option value="">Não informado</option><option>$</option><option>$$</option><option>$$$</option><option>$$$$</option></select></Field>
               <Field label="Chef"><input value={draft.chef} onChange={(event) => update("chef", event.target.value)} /></Field>
               <Field label="Instagram"><input value={draft.instagram ?? ""} onChange={(event) => update("instagram", event.target.value)} /></Field>
               <Field label="Site"><input value={draft.site ?? ""} onChange={(event) => update("site", event.target.value)} /></Field>
@@ -94,7 +94,7 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
               <Info label="Local" value={`${restaurant.neighborhood} · ${restaurant.city}`} />
               <Info label="Tipo" value={restaurant.category} />
               <Info label="Culinárias" value={restaurant.cuisine.join(", ")} />
-              <Info label="Preço" value={restaurant.priceRange} />
+              <Info label="Preço" value={restaurant.priceRange ?? "Não informado"} />
               <Info label="Chef" value={restaurant.chef || "—"} />
               <Info label="Coordenadas" value={restaurant.coordinates ? `${restaurant.coordinates.latitude}, ${restaurant.coordinates.longitude}` : "Indisponíveis"} />
               <Info label="Instagram" value={restaurant.instagram || "—"} />

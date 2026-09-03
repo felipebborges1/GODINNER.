@@ -6,9 +6,9 @@ import TypeScript from "typescript";
 async function loadUnlockHelpers() {
   const source = await readFile(new URL("../lib/recommendations/unlock.ts", import.meta.url), "utf8");
   const compiled = TypeScript.transpileModule(source, { compilerOptions: { module: TypeScript.ModuleKind.CommonJS, target: TypeScript.ScriptTarget.ES2020 } }).outputText;
-  const module = { exports: {} };
-  new Function("exports", "module", compiled)(module.exports, module);
-  return module.exports;
+  const compiledModule = { exports: {} };
+  new Function("exports", "module", compiled)(compiledModule.exports, compiledModule);
+  return compiledModule.exports;
 }
 
 const validReview = { rating: 4.2 };

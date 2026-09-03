@@ -10,7 +10,7 @@ import { useGooglePlaceSearch } from "@/hooks/use-google-place-search";
 import { trackEvent } from "@/lib/analytics";
 import { distanceKm } from "@/lib/distance";
 import type { GooglePlaceCandidate } from "@/lib/google-place-types";
-import type { PriceRange, Restaurant, RestaurantCoordinates } from "@/types";
+import type { Restaurant, RestaurantCoordinates } from "@/types";
 
 type Mode = "find" | "manual";
 
@@ -100,7 +100,7 @@ export function NewRestaurantClient() {
     setErrors(next);
     if (Object.keys(next).length || busy.current) return;
     busy.current = true; setIsSubmitting(true);
-    const result = await submitRestaurant({ name: manualName, address: manualAddress, city: manualCity, neighborhood: manualNeighborhood, category: "restaurant", cuisine: ["Não informada"], priceRange: "$$" as PriceRange, coordinates: manualCoordinates });
+    const result = await submitRestaurant({ name: manualName, address: manualAddress, city: manualCity, neighborhood: manualNeighborhood, category: "restaurant", cuisine: ["Não informada"], priceRange: null, coordinates: manualCoordinates });
     busy.current = false; setIsSubmitting(false);
     if (result.duplicate) { setCreated(result.duplicate); return; }
     if (result.error) { setErrors({ submit: result.error }); return; }

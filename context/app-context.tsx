@@ -16,7 +16,7 @@ import { averageReviewScore, getDimensionalReviewScore, getReviewScore } from "@
 import { isValidRecommendationReview, unlocksRecommendations } from "@/lib/recommendations/unlock";
 import type { CommentMention, Follow, InAppNotification, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewLikeUser, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
 
-export type RestaurantSubmission = { name: string; address: string; city: string; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
+export type RestaurantSubmission = { name: string; address: string; city: string; neighborhood: string; category: "restaurant" | "bar"; cuisine: string[]; priceRange: PriceRange | null; photo?: { url: string; alt: string; file?: File } | null; coordinates?: RestaurantCoordinates; instagram?: string; site?: string; phone?: string; chef?: string };
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
 export type AdminResult = { ok: boolean; error?: string; restaurant?: Restaurant };
 export type PublishedReview = { review: Review; recommendationsUnlocked: boolean };
