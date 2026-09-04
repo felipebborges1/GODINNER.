@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -14,7 +15,7 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
       <p className="mt-3 text-sm leading-6 text-stone-600">Se o problema continuar, volte para o Discover e tente novamente mais tarde.</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button type="button" onClick={reset} className="min-h-11 rounded-xl bg-orange-500 px-4 text-sm font-black text-white">Tentar novamente</button>
-        <a href="/" className="inline-flex min-h-11 items-center rounded-xl bg-stone-100 px-4 text-sm font-black text-stone-800">Ir para Discover</a>
+        <Link href="/" className="inline-flex min-h-11 items-center rounded-xl bg-stone-100 px-4 text-sm font-black text-stone-800">Ir para Discover</Link>
       </div>
     </section>
   </main>;
