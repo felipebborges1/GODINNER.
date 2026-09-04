@@ -184,7 +184,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         mapReviewPhoto(photo, `/api/review-photo/${photo.id}`),
       );
       if (!active || requestId !== loadSequence) return;
-      const mappedReviews = (reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotos.filter((photo): photo is NonNullable<typeof photo> => photo?.reviewId === review.id)));
+      const reviewPhotosByReviewId = new Map<string, NonNullable<typeof reviewPhotos[number]>[]>();
+      reviewPhotos.forEach((photo) => {
+        if (!photo?.reviewId) return;
+        const existing = reviewPhotosByReviewId.get(photo.reviewId) ?? [];
+        existing.push(photo);
+        reviewPhotosByReviewId.set(photo.reviewId, existing);
+      });
+      const mappedReviews = (reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotosByReviewId.get(review.id) ?? []));
       const socialRows = mappedReviews.length
         ? await client.from("review_social_summaries").select("review_id, like_count, comment_count, liked_by_me").in("review_id", mappedReviews.map((review) => review.id))
         : { data: [], error: null };
@@ -210,8 +217,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       }));
       setReviews(mappedReviews);
+      const socialByReviewId = new Map((socialRows.data ?? []).map((item) => [item.review_id, item]));
       setReviewSocial(Object.fromEntries(mappedReviews.map((review) => {
-        const social = socialRows.data?.find((item) => item.review_id === review.id);
+        const social = socialByReviewId.get(review.id);
         return [review.id, social ? { likeCount: Number(social.like_count), commentCount: Number(social.comment_count), likedByMe: social.liked_by_me } : emptyReviewSocialSummary()];
       })));
       setReviewLikes({});
@@ -220,7 +228,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setReviewLikesError({});
       setReviewComments({});
       setReviewCommentsHasMore({});
-      setLists((listRows.data ?? []).map((list) => mapList(list, (itemRows.data ?? []).filter((item) => item.list_id === list.id).map((item) => item.restaurant_id))));
+      const restaurantIdsByListId = new Map<string, string[]>();
+      (itemRows.data ?? []).forEach((item) => {
+        const existing = restaurantIdsByListId.get(item.list_id) ?? [];
+        existing.push(item.restaurant_id);
+        restaurantIdsByListId.set(item.list_id, existing);
+      });
+      setLists((listRows.data ?? []).map((list) => mapList(list, restaurantIdsByListId.get(list.id) ?? [])));
       setFollows((followRows.data ?? []).map(mapFollow));
       setDataError(null);
       setIsLoading(false);

@@ -68,5 +68,6 @@ test("mobile gestures decide once from a shared threshold and keep vertical prio
 test("review repository reads every review photo ordered by upload position", async () => {
   const context = await readFile(contextUrl, "utf8");
   assert.match(context, /review_photos"\)\.select\("\*"\)\.order\("position", \{ ascending: true \}\)/);
-  assert.match(context, /reviewPhotos\.filter\(\(photo\).*photo\?\.reviewId === review\.id/);
+  assert.match(context, /const reviewPhotosByReviewId = new Map/);
+  assert.match(context, /reviewPhotosByReviewId\.get\(review\.id\) \?\? \[\]/);
 });
