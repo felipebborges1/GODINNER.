@@ -28,6 +28,11 @@ test("review media has the required controls for a multi-photo gallery and light
   assert.match(component, /touchAction: "pan-y"/);
   assert.match(component, /motion-reduce:transition-none/);
   assert.match(component, /object-contain/);
+  assert.match(component, /loadedPhotoIds/);
+  assert.match(component, /await image\.decode\(\)/);
+  assert.match(component, /new window\.Image\(\)/);
+  assert.match(component, /animate-pulse bg-stone-200/);
+  assert.match(component, /Math\.abs\(index - activeIndex\) <= 1/);
 });
 
 test("review photo navigation stops at both ends and ignores vertical or short gestures", async () => {
