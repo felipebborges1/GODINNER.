@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/hooks/use-app-context";
+import { dedupeReviewsById, orderReviewsForFeed } from "@/lib/feed-pagination";
 import { Search } from "lucide-react";
 
 const FEED_PAGE_SIZE = 10;
@@ -17,7 +18,7 @@ export default function FeedPage() {
   const activities = useMemo(() => {
     if (!currentUserId) return [];
     const authorIds = new Set([currentUserId, ...follows.filter((follow) => follow.followerId === currentUserId).map((follow) => follow.followingId)]);
-    return reviews.filter((review) => authorIds.has(review.userId)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return orderReviewsForFeed(dedupeReviewsById(reviews.filter((review) => authorIds.has(review.userId))));
   }, [currentUserId, follows, reviews]);
   const usersById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
   const restaurantsById = useMemo(() => new Map(restaurants.map((restaurant) => [restaurant.id, restaurant])), [restaurants]);

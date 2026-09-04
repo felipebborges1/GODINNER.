@@ -2,6 +2,7 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CURRENT_USER_ID, mockData, users } from "@/data/mocks";
 import { normalize } from "@/lib/search";
+import { dedupeReviewsById, orderReviewsForFeed } from "@/lib/feed-pagination";
 import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/lib/supabase/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { mapFollow, mapList, mapNotification, mapProfile, mapRestaurant, mapReview, mapReviewPhoto } from "@/lib/supabase/mappers";
@@ -151,7 +152,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const [profiles, restaurantRows, reviewRows, reviewPhotoRows, listRows, itemRows, followRows] = await Promise.all([
         client.from("profiles").select("*").order("created_at"),
         client.from("restaurants").select("*").order("created_at", { ascending: false }),
-        client.from("reviews").select("*").order("created_at", { ascending: false }),
+        client.from("reviews").select("*").order("created_at", { ascending: false }).order("id", { ascending: false }),
         client.from("review_photos").select("*").order("position", { ascending: true }),
         client.from("restaurant_lists").select("*").order("created_at"),
         client.from("restaurant_list_items").select("*").order("created_at"),
@@ -191,7 +192,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         existing.push(photo);
         reviewPhotosByReviewId.set(photo.reviewId, existing);
       });
-      const mappedReviews = (reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotosByReviewId.get(review.id) ?? []));
+      const mappedReviews = orderReviewsForFeed(dedupeReviewsById((reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotosByReviewId.get(review.id) ?? []))));
       const socialRows = mappedReviews.length
         ? await client.from("review_social_summaries").select("review_id, like_count, comment_count, liked_by_me").in("review_id", mappedReviews.map((review) => review.id))
         : { data: [], error: null };
@@ -741,7 +742,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const validReviewCount = reviews.filter((item) => item.userId === currentUserId && isValidRecommendationReview(item)).length;
       recommendationsUnlocked = unlocksRecommendations(validReviewCount, review);
     }
-    setReviews((current) => [review, ...current]);
+    setReviews((current) => dedupeReviewsById([review, ...current]));
     setReviewSocial((current) => ({ ...current, [reviewId]: emptyReviewSocialSummary() }));
     setLists((current) => current.map((list) => {
       if (list.ownerId !== currentUserId) return list;
