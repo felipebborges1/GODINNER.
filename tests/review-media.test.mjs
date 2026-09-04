@@ -43,10 +43,13 @@ test("review media has the required controls for a multi-photo gallery and light
 
 test("review photo route reuses only a short-lived signed URL for published media", async () => {
   const route = await readFile(new URL("../app/api/review-photo/[photoId]/route.ts", import.meta.url), "utf8");
+  const avatarRoute = await readFile(new URL("../app/api/profile-avatar/[userId]/route.ts", import.meta.url), "utf8");
   assert.match(route, /signedUrlTtlMs = 4 \* 60 \* 1000/);
   assert.match(route, /signedUrlCache\.get\(photoId\)/);
   assert.match(route, /reviews!inner\(restaurants!inner\(status\)\)/);
   assert.match(route, /Cache-Control": "private, max-age=240/);
+  assert.match(avatarRoute, /signedUrlCache\.get\(userId\)/);
+  assert.match(avatarRoute, /Cache-Control": "private, max-age=240/);
 });
 
 test("review photo navigation stops at both ends and ignores vertical or short gestures", async () => {

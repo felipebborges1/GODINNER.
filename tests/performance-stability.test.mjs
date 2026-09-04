@@ -6,6 +6,7 @@ const feed = await readFile(new URL("../app/feed/page.tsx", import.meta.url), "u
 const deferredMap = await readFile(new URL("../components/search/deferred-map-view.tsx", import.meta.url), "utf8");
 const restaurantProfile = await readFile(new URL("../components/restaurant/restaurant-profile.tsx", import.meta.url), "utf8");
 const routeError = await readFile(new URL("../app/error.tsx", import.meta.url), "utf8");
+const appContext = await readFile(new URL("../context/app-context.tsx", import.meta.url), "utf8");
 
 test("Feed mounts a bounded first page and exposes progressive loading without a manual button", () => {
   assert.match(feed, /const FEED_PAGE_SIZE = 10/);
@@ -26,4 +27,11 @@ test("route errors retain a recovery path instead of a white screen", () => {
   assert.match(routeError, /export default function RouteError/);
   assert.match(routeError, /Tentar novamente/);
   assert.match(routeError, /Ir para Discover/);
+});
+
+test("Feed-critical profiles and reviews are released before noncritical enrichments", () => {
+  assert.match(appContext, /setProfiles\(mappedProfiles\);/);
+  assert.match(appContext, /setReviews\(mappedReviews\);/);
+  assert.match(appContext, /void \(async \(\) => \{/);
+  assert.ok(appContext.indexOf("setReviews(mappedReviews);") < appContext.indexOf("const [socialRows, enrichedRestaurants]"));
 });

@@ -172,13 +172,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return mapProfile(profile, path ? `/api/profile-avatar/${profile.id}?v=${encodeURIComponent(path)}` : null);
       });
       if (!active || requestId !== loadSequence) return;
-      setProfiles(mappedProfiles);
-      const mappedRestaurants = await Promise.all((restaurantRows.data ?? []).map(async (restaurant) => {
-        if (!restaurant.cover_photo_path) return mapRestaurant(restaurant);
-        const signed = await createSignedImageUrl("restaurant-submissions", restaurant.cover_photo_path);
-        return mapRestaurant({ ...restaurant, cover_photo_url: signed.data ?? restaurant.cover_photo_url });
-      }));
-      if (!active || requestId !== loadSequence) return;
       // Review photos are public only through their published review. Keep the
       // Storage bucket private and let the server issue the short-lived URL.
       const reviewPhotos = (reviewPhotoRows.data ?? []).map((photo) =>
@@ -193,22 +186,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         reviewPhotosByReviewId.set(photo.reviewId, existing);
       });
       const mappedReviews = orderReviewsForFeed(dedupeReviewsById((reviewRows.data ?? []).map((review) => mapReview(review, reviewPhotosByReviewId.get(review.id) ?? []))));
-      const socialRows = mappedReviews.length
-        ? await client.from("review_social_summaries").select("review_id, like_count, comment_count, liked_by_me").in("review_id", mappedReviews.map((review) => review.id))
-        : { data: [], error: null };
-      if (!active || requestId !== loadSequence) return;
-      if (socialRows.error) {
-        setDataError("Não conseguimos carregar as interações agora.");
-        setIsLoading(false);
-        return;
-      }
       const ratingsByRestaurant = new Map<string, Review[]>();
       mappedReviews.forEach((review) => {
         const restaurantReviews = ratingsByRestaurant.get(review.restaurantId) ?? [];
         restaurantReviews.push(review);
         ratingsByRestaurant.set(review.restaurantId, restaurantReviews);
       });
-      setRestaurants(mappedRestaurants.map((restaurant) => {
+      const withReviewStats = (restaurant: Restaurant) => {
         const restaurantReviews = ratingsByRestaurant.get(restaurant.id) ?? [];
         const rating = averageReviewScore(restaurantReviews);
         return {
@@ -216,29 +200,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           godinnerRating: rating ?? 0,
           reviewCount: restaurantReviews.filter((review) => getReviewScore(review) !== null).length,
         };
-      }));
-      setReviews(mappedReviews);
-      const socialByReviewId = new Map((socialRows.data ?? []).map((item) => [item.review_id, item]));
-      setReviewSocial(Object.fromEntries(mappedReviews.map((review) => {
-        const social = socialByReviewId.get(review.id);
-        return [review.id, social ? { likeCount: Number(social.like_count), commentCount: Number(social.comment_count), likedByMe: social.liked_by_me } : emptyReviewSocialSummary()];
-      })));
-      setReviewLikes({});
-      setReviewLikesHasMore({});
-      setReviewLikesLoading({});
-      setReviewLikesError({});
-      setReviewComments({});
-      setReviewCommentsHasMore({});
+      };
       const restaurantIdsByListId = new Map<string, string[]>();
       (itemRows.data ?? []).forEach((item) => {
         const existing = restaurantIdsByListId.get(item.list_id) ?? [];
         existing.push(item.restaurant_id);
         restaurantIdsByListId.set(item.list_id, existing);
       });
+
+      // Publish the Feed-critical data immediately. Restaurant cover signing
+      // and social summaries are enhancements, not prerequisites for avatars
+      // and review photos to begin their private-media requests.
+      setProfiles(mappedProfiles);
+      setRestaurants((restaurantRows.data ?? []).map(mapRestaurant).map(withReviewStats));
+      setReviews(mappedReviews);
+      setReviewSocial(Object.fromEntries(mappedReviews.map((review) => [review.id, emptyReviewSocialSummary()])));
+      setReviewLikes({});
+      setReviewLikesHasMore({});
+      setReviewLikesLoading({});
+      setReviewLikesError({});
+      setReviewComments({});
+      setReviewCommentsHasMore({});
       setLists((listRows.data ?? []).map((list) => mapList(list, restaurantIdsByListId.get(list.id) ?? [])));
       setFollows((followRows.data ?? []).map(mapFollow));
       setDataError(null);
       setIsLoading(false);
+
+      void (async () => {
+        const [socialRows, enrichedRestaurants] = await Promise.all([
+          mappedReviews.length
+            ? client.from("review_social_summaries").select("review_id, like_count, comment_count, liked_by_me").in("review_id", mappedReviews.map((review) => review.id))
+            : Promise.resolve({ data: [], error: null }),
+          Promise.all((restaurantRows.data ?? []).map(async (restaurant) => {
+            if (!restaurant.cover_photo_path) return mapRestaurant(restaurant);
+            const signed = await createSignedImageUrl("restaurant-submissions", restaurant.cover_photo_path);
+            return mapRestaurant({ ...restaurant, cover_photo_url: signed.data ?? restaurant.cover_photo_url });
+          })),
+        ]);
+        if (!active || requestId !== loadSequence) return;
+        setRestaurants(enrichedRestaurants.map(withReviewStats));
+        if (!socialRows.error) {
+          const socialByReviewId = new Map((socialRows.data ?? []).map((item) => [item.review_id, item]));
+          setReviewSocial(Object.fromEntries(mappedReviews.map((review) => {
+            const social = socialByReviewId.get(review.id);
+            return [review.id, social ? { likeCount: Number(social.like_count), commentCount: Number(social.comment_count), likedByMe: social.liked_by_me } : emptyReviewSocialSummary()];
+          })));
+        }
+      })();
       } catch {
         if (active && requestId === loadSequence) {
           setDataError("Falha ao carregar seus dados agora.");
