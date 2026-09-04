@@ -24,7 +24,7 @@ test("review media has the required controls for a multi-photo gallery and light
   assert.match(component, /Próxima foto/);
   assert.match(component, /Fechar galeria/);
   assert.match(component, /event\.key === "Escape"/);
-  assert.match(component, /onTouchStart/);
+  assert.match(component, /onPointerDown/);
   assert.match(component, /touchAction: "pan-y"/);
   assert.match(component, /motion-reduce:transition-none/);
   assert.match(component, /object-contain/);
@@ -33,6 +33,20 @@ test("review media has the required controls for a multi-photo gallery and light
   assert.match(component, /new window\.Image\(\)/);
   assert.match(component, /animate-pulse bg-stone-200/);
   assert.match(component, /Math\.abs\(index - activeIndex\) <= 1/);
+  assert.match(component, /preload\(photo\.url, \{ as: "image", fetchPriority: "high" \}\)/);
+  assert.match(component, /fetchPriority=\{isFirstPriorityMedia \? "high" : "auto"\}/);
+  assert.match(component, /onPointerDown=\{startPointer\}/);
+  assert.match(component, /onPointerUp=\{handlePointerEnd\}/);
+  assert.match(component, /setPointerCapture/);
+  assert.match(component, /touchAction: "pan-y"/);
+});
+
+test("review photo route reuses only a short-lived signed URL for published media", async () => {
+  const route = await readFile(new URL("../app/api/review-photo/[photoId]/route.ts", import.meta.url), "utf8");
+  assert.match(route, /signedUrlTtlMs = 4 \* 60 \* 1000/);
+  assert.match(route, /signedUrlCache\.get\(photoId\)/);
+  assert.match(route, /reviews!inner\(restaurants!inner\(status\)\)/);
+  assert.match(route, /Cache-Control": "private, max-age=240/);
 });
 
 test("review photo navigation stops at both ends and ignores vertical or short gestures", async () => {
