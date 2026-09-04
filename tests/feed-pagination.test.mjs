@@ -28,3 +28,19 @@ test("refresh and back-navigation merges do not reintroduce review ids", () => {
   const refreshed = [review("a", "2026-09-03T10:00:00Z"), review("b", "2026-09-03T09:00:00Z"), review("c", "2026-09-03T08:00:00Z")];
   assert.deepEqual(pagination.dedupeReviewsById([...current, ...refreshed]).map((item) => item.id), ["a", "b", "c"]);
 });
+
+test("progressive feed pages stop at the end without repeating a review", () => {
+  const activities = [
+    review("a", "2026-09-03T10:00:00Z"), review("b", "2026-09-03T09:00:00Z"), review("c", "2026-09-03T08:00:00Z"),
+    review("d", "2026-09-03T07:00:00Z"), review("e", "2026-09-03T06:00:00Z"),
+  ];
+  const pageSize = 2;
+  const firstPage = pagination.nextFeedVisibleCount(0, activities.length, pageSize);
+  const secondPage = pagination.nextFeedVisibleCount(firstPage, activities.length, pageSize);
+  const thirdPage = pagination.nextFeedVisibleCount(secondPage, activities.length, pageSize);
+
+  assert.deepEqual(activities.slice(0, firstPage).map((item) => item.id), ["a", "b"]);
+  assert.deepEqual(activities.slice(0, secondPage).map((item) => item.id), ["a", "b", "c", "d"]);
+  assert.deepEqual(activities.slice(0, thirdPage).map((item) => item.id), ["a", "b", "c", "d", "e"]);
+  assert.equal(pagination.nextFeedVisibleCount(thirdPage, activities.length, pageSize), activities.length);
+});

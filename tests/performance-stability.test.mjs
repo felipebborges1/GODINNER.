@@ -7,10 +7,11 @@ const deferredMap = await readFile(new URL("../components/search/deferred-map-vi
 const restaurantProfile = await readFile(new URL("../components/restaurant/restaurant-profile.tsx", import.meta.url), "utf8");
 const routeError = await readFile(new URL("../app/error.tsx", import.meta.url), "utf8");
 
-test("Feed mounts a bounded first page and exposes progressive loading", () => {
+test("Feed mounts a bounded first page and exposes progressive loading without a manual button", () => {
   assert.match(feed, /const FEED_PAGE_SIZE = 10/);
   assert.match(feed, /activities\.slice\(0, visibleCount\)/);
-  assert.match(feed, /Carregar mais/);
+  assert.match(feed, /<InfiniteFeedSentinel hasMore=\{hasMore\} onLoadMore=\{loadNextPage\}\/>/);
+  assert.doesNotMatch(feed, /Carregar mais/);
 });
 
 test("restaurant map stays code-split until its section approaches the viewport", () => {

@@ -15,3 +15,7 @@ export function orderReviewsForFeed(reviews: readonly Review[]): Review[] {
     return createdAtOrder !== 0 ? createdAtOrder : right.id.localeCompare(left.id);
   });
 }
+
+export function nextFeedVisibleCount(visibleCount: number, totalCount: number, pageSize: number) {
+  return Math.min(totalCount, visibleCount + pageSize);
+}
