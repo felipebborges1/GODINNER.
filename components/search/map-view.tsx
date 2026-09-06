@@ -5,7 +5,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { ArrowUpRight, LocateFixed, LoaderCircle, MapPin, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GooglePlaceCover } from "@/components/restaurant/google-place-cover";
+import { GooglePlaceCover, RestaurantPhotoUnavailable } from "@/components/restaurant/google-place-cover";
 import { hasCoordinates } from "@/lib/distance";
 import type { Restaurant } from "@/types";
 
@@ -269,7 +269,7 @@ export function MapView({ restaurants }: { restaurants: Restaurant[] }) {
         <button type="button" onClick={() => setCardOpen(false)} aria-label="Fechar detalhes do restaurante" className="absolute right-1.5 top-1.5 z-20 grid min-h-9 min-w-9 place-items-center rounded-full bg-white/95 text-stone-700 shadow-sm transition hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"><X size={17}/></button>
         <Link href={`/restaurant/${selected.slug}`} aria-label={`Abrir ${selected.name}`} className="group flex items-center gap-2.5 pr-9">
           <span className="relative h-[76px] w-[88px] shrink-0 overflow-hidden rounded-xl bg-stone-100 sm:h-20 sm:w-24">
-            {selected.hasGooglePlaceCover ? <GooglePlaceCover slug={selected.slug} fallbackUrl={selected.coverPhoto.url} alt={selected.name} variant="card" priority/> : <Image src={selected.coverPhoto.url} alt={selected.name} fill sizes="96px" className="object-cover"/>}
+            {selected.hasGooglePlaceCover ? <GooglePlaceCover slug={selected.slug} alt={selected.name} variant="card" priority/> : selected.coverPhoto.url ? <Image src={selected.coverPhoto.url} alt={selected.name} fill sizes="96px" className="object-cover"/> : <RestaurantPhotoUnavailable alt={selected.name} variant="card"/>}
           </span>
           <span className="min-w-0 flex-1">
             <b className="block truncate pr-1 text-sm text-stone-950 sm:text-base">{selected.name}</b>

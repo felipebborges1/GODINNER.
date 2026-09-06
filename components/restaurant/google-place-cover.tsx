@@ -37,9 +37,8 @@ function loadMetadata(slug: string, variant: "card" | "profile") {
   return request;
 }
 
-export function GooglePlaceCover({ slug, fallbackUrl, alt, variant, priority = false }: {
+export function GooglePlaceCover({ slug, alt, variant, priority = false }: {
   slug: string;
-  fallbackUrl: string;
   alt: string;
   variant: "card" | "profile";
   priority?: boolean;
@@ -97,7 +96,7 @@ export function GooglePlaceCover({ slug, fallbackUrl, alt, variant, priority = f
       onLoad={() => setCardState({ key: requestKey, phase: "success" })}
       onError={() => setCardState({ key: requestKey, phase: "error" })}
     />}
-    {cardFailed && <Image src={fallbackUrl} alt={alt} fill sizes="(min-width: 1024px) 270px, 82vw" className="object-cover transition-opacity duration-150 motion-reduce:transition-none group-hover:scale-105"/>}
+    {cardFailed && <RestaurantPhotoUnavailable alt={alt} variant="card"/>}
     {cardLoaded && <span translate="no" className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs font-normal text-white backdrop-blur-sm">Google Maps</span>}
   </span>;
 
@@ -106,6 +105,8 @@ export function GooglePlaceCover({ slug, fallbackUrl, alt, variant, priority = f
   const loading = profileState.phase === "loading";
   const failed = profileState.phase === "error";
   const realPhoto = profileState.phase === "success" && Boolean(metadata);
+
+  if (failed) return <RestaurantPhotoUnavailable alt={alt} variant="profile"/>;
 
   return <section aria-busy={loading} className="relative aspect-[4/3] overflow-hidden bg-stone-100 lg:h-[430px] lg:aspect-auto lg:rounded-[2rem]">
     {loading && <span className="absolute inset-0 animate-pulse bg-gradient-to-br from-stone-100 via-stone-200 to-stone-100 motion-reduce:animate-none" aria-hidden="true"/>}
@@ -120,10 +121,15 @@ export function GooglePlaceCover({ slug, fallbackUrl, alt, variant, priority = f
       onLoad={() => setState({ key: requestKey, metadata, phase: "success" })}
       onError={() => setState({ key: requestKey, metadata: null, phase: "error" })}
     />}
-    {failed && <Image src={fallbackUrl} alt={alt} fill priority sizes="100vw" className="object-cover transition-opacity duration-150 motion-reduce:transition-none"/>}
     {realPhoto && metadata && <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-x-1 rounded-xl bg-black/70 px-3 py-2 text-[11px] text-white backdrop-blur-sm sm:left-auto">
       {metadata.attribution && <>Foto: <a href={metadata.attribution.uri} target="_blank" rel="noreferrer" className="font-bold underline">{metadata.attribution.displayName}</a><span aria-hidden>·</span></>}
       {metadata.sourceUri ? <a href={metadata.sourceUri} target="_blank" rel="noreferrer" className="font-bold underline"><span translate="no">Google Maps</span></a> : <span translate="no">Google Maps</span>}
     </div>}
   </section>;
+}
+
+export function RestaurantPhotoUnavailable({ alt, variant }: { alt: string; variant: "card" | "profile" }) {
+  const message = <span className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-semibold text-stone-600 shadow-sm ring-1 ring-stone-200">Foto indisponível</span>;
+  if (variant === "card") return <span role="img" aria-label={`Foto indisponível: ${alt}`} className="absolute inset-0 grid place-items-center bg-stone-100">{message}</span>;
+  return <section role="img" aria-label={`Foto indisponível: ${alt}`} className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-stone-100 lg:h-[430px] lg:aspect-auto lg:rounded-[2rem]">{message}</section>;
 }

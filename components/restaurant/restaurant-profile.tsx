@@ -19,7 +19,7 @@ import { ReviewCard } from "@/components/review/review-card";
 import { DeferredMapView } from "@/components/search/deferred-map-view";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { PhotoGallery } from "./photo-gallery";
-import { GooglePlaceCover } from "./google-place-cover";
+import { GooglePlaceCover, RestaurantPhotoUnavailable } from "./google-place-cover";
 import { SaveToListSheet } from "./save-to-list-sheet";
 import { trackEvent } from "@/lib/analytics";
 
@@ -42,12 +42,12 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
   const dimensionAverages = getDimensionAverages(restaurantReviews);
   const hasDimensionAverages = Object.values(dimensionAverages).some((value) => value !== null);
   const communitySpend = calculateCommunitySpend(restaurantReviews);
-  const galleryPhotos = [restaurant.coverPhoto, ...restaurant.photos, ...restaurantReviews.flatMap((review) => review.photos)].filter((photo, index, source) => source.findIndex((candidate) => candidate.id === photo.id) === index).slice(0, 5);
+  const galleryPhotos = [restaurant.coverPhoto, ...restaurant.photos, ...restaurantReviews.flatMap((review) => review.photos)].filter((photo, index, source) => Boolean(photo.url) && source.findIndex((candidate) => candidate.id === photo.id) === index).slice(0, 5);
   const handleWant = async () => { if (!currentUserId) { setLoginOpen(true); return; } const added = await toggleWantToVisit(restaurant.id); trackEvent(added ? "want_to_visit_added" : "want_to_visit_removed", { restaurantId: restaurant.id }); showToast(added ? "Adicionado a Quero conhecer" : "Removido de Quero conhecer"); };
   const copyLink = async () => { const url = `${window.location.origin}/restaurant/${restaurant.slug}`; try { await navigator.clipboard?.writeText(url); showToast("Link copiado"); } catch { showToast("Link pronto para compartilhar"); } setShareOpen(false); };
 
   return <div className="pb-28 lg:pb-12">
-    {restaurant.hasGooglePlaceCover ? <GooglePlaceCover slug={restaurant.slug} fallbackUrl={restaurant.coverPhoto.url} alt={restaurant.name} variant="profile"/> : <PhotoGallery photos={galleryPhotos} name={restaurant.name}/>}
+    {restaurant.hasGooglePlaceCover ? <GooglePlaceCover slug={restaurant.slug} alt={restaurant.name} variant="profile"/> : galleryPhotos.length ? <PhotoGallery photos={galleryPhotos} name={restaurant.name}/> : <RestaurantPhotoUnavailable alt={restaurant.name} variant="profile"/>}
     <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-6 lg:pt-9">
       <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-12">
         <div>

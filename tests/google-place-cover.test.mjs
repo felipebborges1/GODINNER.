@@ -15,17 +15,17 @@ test("Google cover keeps an explicit loading, success and error state", () => {
   assert.match(cover, /onError=\{\(\) => setState\(\{ key: requestKey, metadata: null, phase: "error" \}\)\}/);
 });
 
-test("Google cover shows a placeholder while loading and a fallback only after an error", () => {
+test("Google cover keeps loading separate from a neutral unavailable state", () => {
   assert.match(cover, /\{loading && <span className="absolute inset-0 animate-pulse/);
-  assert.match(cover, /\{failed && <Image src=\{fallbackUrl\}/);
-  assert.doesNotMatch(cover, /src=\{realPhoto \? metadata\.imageUrl : fallbackUrl\}/);
-  assert.match(cover, /\{cardFailed && <Image src=\{fallbackUrl\}/);
+  assert.match(cover, /if \(failed\) return <RestaurantPhotoUnavailable alt=\{alt\} variant="profile"\/>/);
+  assert.match(cover, /\{cardFailed && <RestaurantPhotoUnavailable alt=\{alt\} variant="card"\/>\}/);
+  assert.doesNotMatch(cover, /fallbackUrl/);
   assert.match(cover, /\{!cardLoaded && !cardFailed && <span className="absolute inset-0 animate-pulse/);
 });
 
-test("restaurants without a Google Place ID keep their immediate fallback", () => {
-  assert.match(restaurantCard, /restaurant\.hasGooglePlaceCover \? <GooglePlaceCover[\s\S]*? : <Image src=\{restaurant\.coverPhoto\.url\}/);
-  assert.match(restaurantProfile, /restaurant\.hasGooglePlaceCover \? <GooglePlaceCover[\s\S]*? : <PhotoGallery/);
+test("restaurants without Google media use an explicit neutral unavailable state", () => {
+  assert.match(restaurantCard, /restaurant\.hasGooglePlaceCover \? <GooglePlaceCover[\s\S]*? : restaurant\.coverPhoto\.url \? <Image src=\{restaurant\.coverPhoto\.url\}[\s\S]*? : <RestaurantPhotoUnavailable/);
+  assert.match(restaurantProfile, /restaurant\.hasGooglePlaceCover \? <GooglePlaceCover[\s\S]*? : galleryPhotos\.length \? <PhotoGallery[\s\S]*? : <RestaurantPhotoUnavailable/);
 });
 
 test("Google attribution is rendered only after the real image succeeds", () => {
