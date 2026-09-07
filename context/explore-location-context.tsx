@@ -56,7 +56,9 @@ export function ExploreLocationProvider({ children }: { children: React.ReactNod
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => { if (requestId !== requestVersion.current) return resolve(false); setDevicePosition({ latitude: coords.latitude, longitude: coords.longitude }); setExplicitAll(false); setMode("device"); setRequestStatus("idle"); window.sessionStorage.removeItem(allChoiceSessionKey); resolve(true); },
       (error) => { if (requestId !== requestVersion.current) return resolve(false); setRequestStatus(error.code === error.PERMISSION_DENIED ? "denied" : error.code === error.TIMEOUT ? "timeout" : "unavailable"); resolve(false); },
-      { timeout: 10_000, maximumAge: 0, enableHighAccuracy: false },
+      // A recent fix avoids needlessly timing out after permission was just granted,
+      // while the bounded age still prevents treating an old position as current.
+      { timeout: 20_000, maximumAge: 60_000, enableHighAccuracy: false },
     );
   }), []);
   useEffect(() => {
