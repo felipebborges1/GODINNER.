@@ -1,0 +1,60 @@
+{
+  "at": "2026-09-07T17:53:13.697Z",
+  "production": "https://godinner-beta.vercel.app",
+  "restaurantSearch": {
+    "result": "PASS",
+    "query": "Açaí do Mato",
+    "results": 1,
+    "slug": "acai-do-mato-cuiaba-9dfa5906"
+  },
+  "citySearch": {
+    "result": "FAIL",
+    "query": "Cuiabá",
+    "results": 2,
+    "expectedCityCandidates": 22,
+    "actualNames": [
+      "Pizzarazzo Cuiabá",
+      "Cozinha dos Fundos (Shopping Estação Cuiabá)"
+    ],
+    "filterOptions": [
+      "Belo Horizonte",
+      "Nova Lima",
+      "Vila da Serra"
+    ],
+    "cause": "lib/search.ts query text excludes restaurant.city; location filter UI has no Cuiabá option. Existing application limitation; no product code changed."
+  },
+  "profile": {
+    "result": "PASS",
+    "name": "Açaí do Mato",
+    "duoBadge": true,
+    "emptyReviewState": true,
+    "emptySpendState": true,
+    "fakeZero": false,
+    "photo": {
+      "loaded": true,
+      "width": 900,
+      "height": 1200,
+      "via": "/api/google-places/acai-do-mato-cuiaba-9dfa5906"
+    }
+  },
+  "noPhoto": {
+    "result": "CODE_REVIEW_PASS_NOT_EXERCISED_WITH_ABSENT_PHOTO",
+    "reason": "All 22 have photo metadata. Existing GooglePlaceCover error handling renders RestaurantPhotoUnavailable, neutral background with no permanent image; no synthetic failure or data mutation introduced."
+  },
+  "issues": {
+    "P0": 0,
+    "P1": 0,
+    "P2": [
+      {
+        "id": "C-D-SEARCH-01",
+        "description": "City text query retrieves 2/22 and city UI filter is unavailable.",
+        "effect": "Blocks full requested city smoke acceptance, not data integrity; preserve imported records."
+      }
+    ]
+  },
+  "importStatus": "PASS_COMMITTED",
+  "phaseDStatus": "BLOCKED",
+  "rollbackExecuted": false,
+  "phaseE": "NOT_STARTED",
+  "openAiCallsByAudit": 0
+}

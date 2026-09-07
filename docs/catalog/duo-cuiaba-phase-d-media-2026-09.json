@@ -1,0 +1,172 @@
+{
+  "at": "2026-09-07T17:49:58.961Z",
+  "mode": "Production public metadata endpoint per frozen slug; sample media redirect only, no image bytes downloaded/persisted",
+  "records": [
+    {
+      "sourceId": 1,
+      "slug": "acai-do-mato-cuiaba-9dfa5906",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:02.140Z",
+      "mediaRedirectStatus": 307,
+      "mediaLocationPresent": true,
+      "mediaHost": "lh3.googleusercontent.com",
+      "cacheControl": "private, no-store, max-age=0"
+    },
+    {
+      "sourceId": 2,
+      "slug": "bravus-cuiaba-324ee833",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:03.611Z"
+    },
+    {
+      "sourceId": 4,
+      "slug": "bom-beef-burgers-goiabeiras-cuiaba-4c31b41d",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:04.159Z",
+      "mediaRedirectStatus": 307,
+      "mediaLocationPresent": true,
+      "mediaHost": "lh3.googleusercontent.com",
+      "cacheControl": "private, no-store, max-age=0"
+    },
+    {
+      "sourceId": 5,
+      "slug": "bom-beef-burgers-shopping-3-americas-cuiaba-a498bb22",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:05.240Z"
+    },
+    {
+      "sourceId": 7,
+      "slug": "cerveja-de-garrafa-cuiaba-1e592c62",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:06.074Z"
+    },
+    {
+      "sourceId": 9,
+      "slug": "cozinha-dos-fundos-jardim-das-americas-cuiaba-f70333a5",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:06.544Z"
+    },
+    {
+      "sourceId": 10,
+      "slug": "cozinha-dos-fundos-pantanal-shopping-cuiaba-9e15d9bc",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:07.005Z"
+    },
+    {
+      "sourceId": 11,
+      "slug": "cozinha-dos-fundos-shopping-estacao-cuiaba-cuiaba-e550f1f3",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:08.105Z"
+    },
+    {
+      "sourceId": 12,
+      "slug": "ditado-popular-cuiaba-79129cdd",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:09.062Z"
+    },
+    {
+      "sourceId": 14,
+      "slug": "emporio-serra-grande-cuiaba-8fea3083",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:09.963Z"
+    },
+    {
+      "sourceId": 15,
+      "slug": "hookerz-american-bar-cuiaba-62339e3f",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:10.440Z"
+    },
+    {
+      "sourceId": 16,
+      "slug": "joao-e-o-boi-cuiaba-0a750d62",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:10.969Z"
+    },
+    {
+      "sourceId": 17,
+      "slug": "kopenhagen-shopping-3-americas-cuiaba-507cd4cb",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:11.422Z"
+    },
+    {
+      "sourceId": 19,
+      "slug": "maison-paris-cuiaba-d8c84394",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:12.121Z"
+    },
+    {
+      "sourceId": 20,
+      "slug": "mafia-pizzaria-cuiaba-2795da10",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:12.841Z"
+    },
+    {
+      "sourceId": 22,
+      "slug": "pizzarazzo-cuiaba-cuiaba-3cb67d58",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:13.477Z"
+    },
+    {
+      "sourceId": 23,
+      "slug": "quintal-gastrobar-cuiaba-f5cff15f",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:13.909Z"
+    },
+    {
+      "sourceId": 24,
+      "slug": "ritorna-pizzaria-cuiaba-218103c8",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:14.344Z"
+    },
+    {
+      "sourceId": 25,
+      "slug": "rock-amor-e-pizza-cuiaba-c1ba3ae1",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:14.773Z"
+    },
+    {
+      "sourceId": 26,
+      "slug": "seu-majo-24-de-outubro-cuiaba-04970fb3",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:15.482Z"
+    },
+    {
+      "sourceId": 27,
+      "slug": "seu-majo-jd-das-americas-cuiaba-3abfa8f3",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:24.625Z"
+    },
+    {
+      "sourceId": 29,
+      "slug": "vila-sushi-cuiaba-3db1cd0f",
+      "httpStatus": 200,
+      "photoMetadataAvailable": true,
+      "at": "2026-09-07T17:50:25.755Z",
+      "mediaRedirectStatus": 307,
+      "mediaLocationPresent": true,
+      "mediaHost": "lh3.googleusercontent.com",
+      "cacheControl": "private, no-store, max-age=0"
+    }
+  ]
+}

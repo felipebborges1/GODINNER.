@@ -1,20 +1,17 @@
 # SDLC current state — catalog expansion workstream
 
-Scope: DUO NATIONAL CATALOG EXPANSION only; no product-roadmap or other-sprint changes.
+Scope: DUO NATIONAL CATALOG EXPANSION only.
 
-- Pilot: Cuiabá/MT; batch duo-cuiaba-2026-09.
-- Phase A PASS: original recovered manifest. Phase B PASS: 22 HIGH NEW, 4 MEDIUM, 1 LOW.
-- Credential issue resolved: WRONG_VARIABLE; GOOGLE_PLACES_API_KEY server-side.
-- Phase C: pre-import design and live PostgreSQL preflight complete.
-- Technical readiness: READY; [data release check](../catalog/duo-cuiaba-release-check-2026-09.md).
-- Phase D: BLOCKED, NOT STARTED — separate explicit production-write authorization pending.
-- Phase E/F/G: NOT STARTED; Preview shares the production database.
-- São Paulo BACKLOG.
-- Current catalog: 438 total / 436 published / 2 pending; SQL confirms none of the 22 reserved IDs exists.
-- C-SQL-01: RESOLVED by authenticated read-only pg_catalog/RLS/trigger/permission checks. No migration needed.
-- C-COUNT-01: historical audit gap, non-blocking for this insert-only batch. Empório causal attribution remains unconfirmed.
-- C-RELEASE-01: OPEN — production-write authorization.
-- Frozen payload-array SHA-256: 3f760cb6ebe61ee6548f40ec9bf5d63a7ddad052706a90acc5d6ebfa6eb57d05.
-- Next action: user reviews the technical check and decides separately whether to authorize the exact production write. No automatic Phase D start.
+- Pilot Cuiabá/MT; batch duo-cuiaba-2026-09.
+- Phase A/B PASS; Phase C technical check complete.
+- Phase D data import COMMITTED/PASS: 22 revalidated HIGH, published, Duo true, actual checked_at. Revision 2 intent f412dc7.
+- Phase D closure BLOCKED: C-D-SEARCH-01, city text search finds 2/22; city filter absent. No data rollback warranted or executed.
+- [Phase D report](../catalog/duo-cuiaba-phase-d-report-2026-09.md), [exact receipt](../catalog/duo-cuiaba-phase-d-receipt-2026-09.json).
+- Production and Preview share database gzypncrwvzatzzhtehjs; published 436→458, total 438→460; 2 pending unchanged.
+- No existing restaurant updates/deletes, no fabricated metrics or persisted Google media.
+- Phase E/F/G NOT STARTED; next action: review city-discovery issue in separate authorized scope.
+- São Paulo BACKLOG; Várzea Grande OUT OF SCOPE.
+- HISTORICAL DATA GAP 437→436 remains nonblocking for data integrity and uninvestigated in Phase D.
+- Credentials resolved previously; no broad Vercel environment read.
 
-All 22 payloads and planned IDs are unchanged. Import, idempotency, transaction and activity-preserving exact-ID rollback controls remain mandatory. Revalidate under the future transaction before any authorized insert.
+Rollback requires exact receipt IDs, unchanged ownership/payload, current dependency checks and protection of all real activity.
