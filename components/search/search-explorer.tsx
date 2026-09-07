@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { useAppContext } from "@/hooks/use-app-context";
+import { useSearchCatalog } from "@/hooks/use-search-catalog";
 import { countFriendsWhoVisited, getFriendIds } from "@/lib/restaurant-social";
 import { filterRestaurants, geographyOptions } from "@/lib/search";
 import { normalizeRatingFilter } from "@/lib/review-rating";
@@ -40,7 +41,9 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   const router = useRouter();
   const path = usePathname();
   const searchParams = useSearchParams();
-  const { lists, currentUserId, reviews, restaurants, follows, isLoading, dataError, retryData } = useAppContext();
+  const { lists, currentUserId, reviews, follows, isLoading, dataError, retryData } = useAppContext();
+  const catalog = useSearchCatalog(true);
+  const restaurants = catalog.restaurants;
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const { showToast } = useToast();
@@ -138,8 +141,8 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   const activeFilters = Object.entries(params).filter(([key]) => !["q", "view"].includes(key));
   const activeFilterLabel = (key: string, value: string) => key === "duo" ? (value === "true" ? "Duo Gourmet" : "Duo Gourmet: Não") : key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`;
 
-  if (isLoading) return <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10"><LoadingSkeleton className="h-9 w-52"/><LoadingSkeleton className="mt-5 h-12 max-w-xl"/><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <LoadingSkeleton key={index} className="h-80"/>)}</div></div>;
-  if (dataError) return <div className="mx-auto max-w-2xl px-4 py-10"><ErrorState message={dataError} onRetry={retryData}/></div>;
+  if ((isLoading || catalog.isLoading) && !dataError) return <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10"><LoadingSkeleton className="h-9 w-52"/><LoadingSkeleton className="mt-5 h-12 max-w-xl"/><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <LoadingSkeleton key={index} className="h-80"/>)}</div></div>;
+  if (dataError || catalog.error) return <div className="mx-auto max-w-2xl px-4 py-10"><ErrorState message={dataError ?? catalog.error ?? ""} onRetry={() => { retryData(); catalog.retry(); }}/></div>;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10">

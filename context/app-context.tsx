@@ -2,7 +2,6 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CURRENT_USER_ID, mockData, users } from "@/data/mocks";
 import { normalize } from "@/lib/search";
-import { loadVisibleCatalog } from "@/lib/data/catalog-pagination";
 import { dedupeReviewsById, orderReviewsForFeed } from "@/lib/feed-pagination";
 import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/lib/supabase/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -152,7 +151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSessionUserId(resolvedUserId);
       const [profiles, restaurantRows, reviewRows, reviewPhotoRows, listRows, itemRows, followRows] = await Promise.all([
         client.from("profiles").select("*").order("created_at"),
-        loadVisibleCatalog(client),
+        client.from("restaurants").select("*").order("created_at", { ascending: false }),
         client.from("reviews").select("*").order("created_at", { ascending: false }).order("id", { ascending: false }),
         client.from("review_photos").select("*").order("position", { ascending: true }),
         client.from("restaurant_lists").select("*").order("created_at"),

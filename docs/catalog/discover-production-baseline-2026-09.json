@@ -1,0 +1,31 @@
+{
+  "at": "2026-09-07T18:51:50.336Z",
+  "method": "Production database anonymous read before implementation; original created_at DESC query and existing neighborhood filter/slice contract",
+  "records": [
+    {
+      "id": "06599bcc-1085-4cd0-8bb5-e6245dfb94fa",
+      "name": "68 La Pizzeria Vila da Serra"
+    },
+    {
+      "id": "ff36cc96-d43f-40c4-8c88-beffe6640b3c",
+      "name": "Barolio Alameda"
+    },
+    {
+      "id": "10198090-6f76-4a7e-99fe-4dbbec210b60",
+      "name": "BASILI Pizzaria | Layback Vila da Serra"
+    },
+    {
+      "id": "a47067ca-dcb0-4f0b-a79b-0657ccf9baf5",
+      "name": "Issei Experience - Cozinha Japonesa Contemporânea"
+    },
+    {
+      "id": "70e3fe28-2211-47fa-a86a-5009822196f1",
+      "name": "KOBE BBQ"
+    },
+    {
+      "id": "9b1b448f-f09d-4b50-909c-0501289d24e6",
+      "name": "Omilía Restaurante"
+    }
+  ],
+  "browserCapture": "Current attempt blocked by automatic approval after initial timeout; prior Production UI and current read agree."
+}
