@@ -54,3 +54,94 @@ test('duplicate index IDs and missing detail rows fail closed', async () => {
     await assert.rejects(loadSearchCatalog(client, new Set()));
   }
 });
+
+test('individual profile read uses exact slug and published status, preserving RLS', async () => {
+  const { loadPublishedRestaurant } = load('lib/data/restaurant-profile');
+  const batch = JSON.parse(fs.readFileSync(new URL('../docs/catalog/duo-cuiaba-batch-2026-09-rev2.json', import.meta.url), 'utf8'));
+  const candidate = batch.candidates[0].proposedPayload;
+  for (const size of [458, 1000, 5001]) {
+    const initial = Array.from({ length: Math.min(size - 1, 1000) }, (_, i) => ({ slug: `initial-${i}` }));
+    assert.equal(initial.find(row => row.slug === candidate.slug), undefined);
+    let calls = 0;
+    const conditions = [];
+    const client = { from(table) { calls++; assert.equal(table, 'restaurants'); return {
+      select(value) { assert.equal(value, '*'); return this; },
+      eq(field, value) { conditions.push([field, value]); return this; },
+      async maybeSingle() { return { data: candidate, error: null }; },
+    }; } };
+    const found = await loadPublishedRestaurant(client, candidate.slug);
+    assert.equal(found, candidate);
+    assert.equal(calls, 1);
+    assert.deepEqual(conditions, [['slug', candidate.slug], ['status', 'published']]);
+  }
+});
+
+test('profile read distinguishes inaccessible or missing rows from temporary errors', async () => {
+  const { loadPublishedRestaurant } = load('lib/data/restaurant-profile');
+  for (const error of [null, { message: 'network or duplicate identity' }]) {
+    const client = { from() { return { select() { return this; }, eq() { return this; }, async maybeSingle() { return { data: null, error }; } }; } };
+    if (error) await assert.rejects(loadPublishedRestaurant(client, 'missing'));
+    else assert.equal(await loadPublishedRestaurant(client, 'missing'), null);
+  }
+});
+
+test('profile route cache and fallback lifecycle: no duplicate read, loading, retry, not-found', async () => {
+  const source = fs.readFileSync(new URL('../components/restaurant/restaurant-route-client.tsx', import.meta.url), 'utf8');
+  const existing = { id: 'cached', slug: 'cached', status: 'published' };
+  let context = { restaurants: [existing], currentUserId: null, isLoading: false, dataError: null, dataMode: 'supabase' };
+  let slots = [], cursor = 0, effect, cleanup, calls = 0, resolveRead, rejectRead;
+  const react = {
+    useState(initial) { const index = cursor++; if (!(index in slots)) slots[index] = initial; return [slots[index], value => { slots[index] = typeof value === 'function' ? value(slots[index]) : value; }]; },
+    useRef(initial) { const index = cursor++; if (!(index in slots)) slots[index] = { current: initial }; return slots[index]; },
+    useEffect(callback) { effect = callback; },
+  };
+  const jsx = (type, props, key) => ({ type, props, key });
+  const module = { exports: {} };
+  const requireMock = name => {
+    if (name === 'react') return react;
+    if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
+    if (name === 'next/navigation') return { notFound() { throw new Error('NOT_FOUND'); } };
+    if (name.endsWith('use-app-context')) return { useAppContext: () => context };
+    if (name.endsWith('supabase/browser')) return { createSupabaseBrowserClient: () => ({}) };
+    if (name.endsWith('supabase/mappers')) return { mapRestaurant: row => row };
+    if (name.endsWith('data/restaurant-profile')) return { loadPublishedRestaurant() { calls++; return new Promise((resolve, reject) => { resolveRead = resolve; rejectRead = reject; }); } };
+    if (name.endsWith('error-state')) return { ErrorState: 'ErrorState' };
+    if (name.endsWith('loading-skeleton')) return { LoadingSkeleton: 'LoadingSkeleton' };
+    if (name === './restaurant-profile') return { RestaurantProfile: 'RestaurantProfile' };
+    throw Error(name);
+  };
+  new Function('exports', 'require', 'module', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText)(module.exports, requireMock, module);
+  const Route = module.exports.RestaurantRouteClient;
+  assert.equal(Route({ slug: 'cached' }).props.restaurant, existing);
+  assert.equal(calls, 0);
+  const missing = Route({ slug: 'outside' });
+  const render = () => { cursor = 0; return missing.type(missing.props); };
+  assert.equal(render().type.name, 'ProfileLoading');
+  cleanup = effect();
+  cleanup(); // Strict Mode cleanup and effect replay must share the request.
+  cleanup = effect();
+  assert.equal(calls, 1);
+  assert.equal(render().type.name, 'ProfileLoading');
+  rejectRead(new Error('temporary'));
+  await new Promise(resolve => setImmediate(resolve));
+  const failure = render();
+  assert.equal(failure.props.children.type, 'ErrorState');
+  failure.props.children.props.onRetry();
+  assert.equal(render().type.name, 'ProfileLoading');
+  cleanup(); cleanup = effect();
+  assert.equal(calls, 2);
+  resolveRead({ slug: 'outside', name: 'Cuiabá fixture', status: 'published' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(render().props.restaurant.slug, 'outside');
+  assert.equal(calls, 2);
+  cleanup();
+  slots = []; render(); cleanup = effect(); resolveRead(null);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.throws(render, /NOT_FOUND/);
+  cleanup();
+  slots = []; render(); cleanup = effect(); cleanup(); resolveRead(existing);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(render().type.name, 'ProfileLoading', 'unmounted request must not publish stale data');
+  context = { ...context, currentUserId: 'another-viewer' };
+  assert.notEqual(Route({ slug: 'outside' }).key, missing.key);
+});
