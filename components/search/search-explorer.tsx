@@ -82,7 +82,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
 
   const clearLocationFilters = () => { const next = new URLSearchParams(pendingParams.current); ["nearby", "distance", "city", "neighborhood", "scope"].forEach((key) => next.delete(key)); pendingParams.current = next.toString(); router.replace(next.size ? `${path}?${next}` : path); };
   const exploreOtherRegions = () => { const next = new URLSearchParams(pendingParams.current); ["nearby", "distance", "city", "neighborhood"].forEach((key) => next.delete(key)); next.set("scope", "all"); pendingParams.current = next.toString(); router.replace(`${path}?${next}`); };
-  const requestNearby = async () => { const success = await requestDeviceLocation(); if (success) { clearLocationFilters(); setParam("nearby", "true"); showToast("Localização permitida — distâncias calculadas"); } else { showToast("Localização indisponível — escolha uma região ou explore o catálogo"); } };
+  const requestNearby = async () => { const success = await requestDeviceLocation("click"); if (success) { clearLocationFilters(); setParam("nearby", "true"); showToast("Localização permitida — distâncias calculadas"); } else { showToast("Localização indisponível — escolha uma região ou explore o catálogo"); } };
 
   const eligibleRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status !== "rejected" && (restaurant.status !== "pending_review" || restaurant.submittedBy === currentUserId)), [restaurants, currentUserId]);
   const visibleRestaurants = useMemo(() => {

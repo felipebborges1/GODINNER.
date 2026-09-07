@@ -7,9 +7,9 @@ test("L1 keeps manual exploration separate from temporary device coordinates", a
   assert.match(source, /godinner\.explore-region\.v1/);
   assert.match(source, /window\.localStorage\.setItem/);
   assert.match(source, /setDevicePosition\(null\)/);
-  assert.match(source, /maximumAge: 60_000/);
-  assert.match(source, /timeout: 20_000/);
-  assert.match(source, /requestId !== requestVersion\.current/);
+  assert.match(source, /createLocationRequestCoordinator/);
+  assert.match(source, /coordinator\.current\?\.cancel/);
+  assert.match(source, /locationDiagnosticsEnabled/);
   assert.doesNotMatch(source, /latitude.*localStorage|localStorage.*latitude/);
 });
 
