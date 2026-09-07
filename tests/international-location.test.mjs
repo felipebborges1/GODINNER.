@@ -65,6 +65,6 @@ test("Discover uses a real location when available and does not present BH as ne
   const location = await readFile(new URL("../context/explore-location-context.tsx", import.meta.url), "utf8");
   assert.match(location, /navigator\.geolocation\.getCurrentPosition/);
   assert.match(page, /distanceKm\(devicePosition, restaurant\.coordinates!\)/);
-  assert.match(page, /Ainda não temos lugares próximos de você/);
+  assert.match(page, /Explore lugares em outras cidades/);
   assert.doesNotMatch(page, /Vila da Serra \/ Nova Lima/);
 });

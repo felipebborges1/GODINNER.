@@ -14,7 +14,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { useAppContext } from "@/hooks/use-app-context";
 import { countFriendsWhoVisited, getFriendIds } from "@/lib/restaurant-social";
-import { filterRestaurants } from "@/lib/search";
+import { filterRestaurants, normalize } from "@/lib/search";
 import { normalizeRatingFilter } from "@/lib/review-rating";
 import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +22,6 @@ import { trackEvent } from "@/lib/analytics";
 import { ExploreLocationPicker } from "@/components/location/explore-location-picker";
 import { LocationSearchNudge } from "@/components/location/location-search-nudge";
 import { useExploreLocation } from "@/hooks/use-explore-location";
-import { normalize } from "@/lib/search";
 
 const MapView = dynamic(() => import("@/components/search/map-view").then((module) => module.MapView), {
   ssr: false,
@@ -46,7 +45,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   const searchParams = useSearchParams();
   const { lists, currentUserId, reviews, restaurants, follows, isLoading, dataError, retryData } = useAppContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const { mode, manualRegion, devicePosition, requestDeviceLocation, exploreAll, showLocationNudge } = useExploreLocation();
+  const { mode, manualRegion, devicePosition, requestDeviceLocation, showLocationNudge } = useExploreLocation();
   const { showToast } = useToast();
   const params = Object.fromEntries(searchParams.entries());
   const pendingParams = useRef(searchParams.toString());
@@ -81,7 +80,8 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     router.replace(next.size ? `${path}?${next}` : path);
   };
 
-  const clearLocationFilters = () => { const next = new URLSearchParams(pendingParams.current); ["nearby", "distance", "city", "neighborhood"].forEach((key) => next.delete(key)); pendingParams.current = next.toString(); router.replace(next.size ? `${path}?${next}` : path); };
+  const clearLocationFilters = () => { const next = new URLSearchParams(pendingParams.current); ["nearby", "distance", "city", "neighborhood", "scope"].forEach((key) => next.delete(key)); pendingParams.current = next.toString(); router.replace(next.size ? `${path}?${next}` : path); };
+  const exploreOtherRegions = () => { const next = new URLSearchParams(pendingParams.current); ["nearby", "distance", "city", "neighborhood"].forEach((key) => next.delete(key)); next.set("scope", "all"); pendingParams.current = next.toString(); router.replace(`${path}?${next}`); };
   const requestNearby = async () => { const success = await requestDeviceLocation(); if (success) { clearLocationFilters(); setParam("nearby", "true"); showToast("Localização permitida — distâncias calculadas"); } else { showToast("Localização indisponível — escolha uma região ou explore o catálogo"); } };
 
   const eligibleRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status !== "rejected" && (restaurant.status !== "pending_review" || restaurant.submittedBy === currentUserId)), [restaurants, currentUserId]);
@@ -94,7 +94,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     }));
   }, [devicePosition, eligibleRestaurants]);
   const regionRestaurants = useMemo(() => {
-    if (params.city || mode !== "manual" || !manualRegion) return visibleRestaurants;
+    if (params.city || params.scope === "all" || mode !== "manual" || !manualRegion) return visibleRestaurants;
     return visibleRestaurants.filter((restaurant) => normalize(restaurant.city) === normalize(manualRegion.city) && (!manualRegion.countryCode || !restaurant.countryCode || manualRegion.countryCode.toUpperCase() === restaurant.countryCode.toUpperCase()));
   }, [manualRegion, mode, params.city, visibleRestaurants]);
 
@@ -123,7 +123,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     wantToVisit: "Quero conhecer", visited: "Já fui", "belo-horizonte": "Belo Horizonte",
     "nova-lima": "Nova Lima", "vila-da-serra": "Vila da Serra",
   };
-  const activeFilters = Object.entries(params).filter(([key]) => !["q", "view"].includes(key));
+  const activeFilters = Object.entries(params).filter(([key]) => !["q", "view", "scope"].includes(key));
   const activeFilterLabel = (key: string, value: string) => key === "duo" ? (value === "true" ? "Duo Gourmet" : "Duo Gourmet: Não") : key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`;
 
   if (isLoading) return <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10"><LoadingSkeleton className="h-9 w-52"/><LoadingSkeleton className="mt-5 h-12 max-w-xl"/><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <LoadingSkeleton key={index} className="h-80"/>)}</div></div>;
@@ -168,7 +168,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
           {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={Number.isFinite(restaurant.distanceKm) ? `${restaurant.distanceKm} km` : undefined} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}
         </div>
       ) : (
-        <div className="mt-5"><EmptyState title={mode === "manual" && !params.city ? "Ainda não temos lugares nesta região" : "Nenhum lugar encontrado"} message={mode === "manual" && !params.city ? "Tente outra região ou explore o catálogo completo." : params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={mode === "manual" && !params.city ? "Explorar todo o catálogo" : params.q ? "Encontrar este lugar" : undefined} actionHref={mode === "manual" && !params.city ? undefined : params.q ? `/restaurant/new?name=${encodeURIComponent(params.q)}` : undefined} onAction={mode === "manual" && !params.city ? () => { exploreAll(); clearLocationFilters(); } : undefined} /></div>
+        <div className="mt-5"><EmptyState title={mode === "manual" && !params.city && params.scope !== "all" ? "Ainda não temos lugares nesta região" : "Nenhum lugar encontrado"} message={mode === "manual" && !params.city && params.scope !== "all" ? "Você pode procurar em outras regiões sem alterar a região selecionada." : params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={mode === "manual" && !params.city && params.scope !== "all" ? "Explorar outras regiões" : params.q ? "Encontrar este lugar" : undefined} actionHref={mode === "manual" && !params.city && params.scope !== "all" ? undefined : params.q ? `/restaurant/new?name=${encodeURIComponent(params.q)}` : undefined} onAction={mode === "manual" && !params.city && params.scope !== "all" ? exploreOtherRegions : undefined} /></div>
       )}
     </div>
   );

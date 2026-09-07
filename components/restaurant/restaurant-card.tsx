@@ -18,7 +18,14 @@ import type { Restaurant } from "@/types";
 import { GooglePlaceCover, RestaurantPhotoUnavailable } from "./google-place-cover";
 import { SaveToListSheet } from "./save-to-list-sheet";
 
-export function RestaurantCard({ restaurant, distance, friendsVisited = 0, className = "", imagePriority = false, onRestaurantClick }: { restaurant: Restaurant; distance?: string; friendsVisited?: number; className?: string; imagePriority?: boolean; onRestaurantClick?: () => void }) {
+const countryNames: Record<string, string> = { AR: "Argentina", BR: "Brasil", ES: "Espanha", FR: "França", GB: "Reino Unido", IT: "Itália", PT: "Portugal", US: "Estados Unidos" };
+function catalogLocation(restaurant: Restaurant) {
+  const state = restaurant.address.match(/(?:-|,)\s*([A-Z]{2})(?=\s*[,\-]|\s*$)/)?.[1];
+  const country = restaurant.countryCode && restaurant.countryCode !== "BR" ? countryNames[restaurant.countryCode] ?? restaurant.countryCode : null;
+  return [restaurant.city, state, country].filter(Boolean).join(" · ");
+}
+
+export function RestaurantCard({ restaurant, distance, friendsVisited = 0, className = "", imagePriority = false, onRestaurantClick, showCatalogLocation = false }: { restaurant: Restaurant; distance?: string; friendsVisited?: number; className?: string; imagePriority?: boolean; onRestaurantClick?: () => void; showCatalogLocation?: boolean }) {
   const { isWanted, toggleWantToVisit } = useWantToVisit(restaurant.id);
   const { currentUserId } = useAppContext();
   const { showToast } = useToast();
@@ -45,7 +52,7 @@ export function RestaurantCard({ restaurant, distance, friendsVisited = 0, class
         {friendsVisited > 0 && <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-stone-500"><UsersRound size={14}/>{friendsVisited} amigos foram</p>}
         <div className="mt-3 flex items-center justify-between gap-2"><CuisineChip cuisine={restaurant.cuisine[0]}/><PriceBadge price={restaurant.priceRange}/></div>
         {restaurant.acceptsDuoGourmet && <div className="mt-2"><DuoGourmetIndicator/></div>}
-        <p className="mt-3 truncate text-sm text-stone-500">{restaurant.neighborhood}{distance && ` · ${distance}`}</p>
+        <p className="mt-3 truncate text-sm text-stone-500">{showCatalogLocation ? catalogLocation(restaurant) : restaurant.neighborhood}{distance && ` · ${distance}`}</p>
         <div className="mt-4 flex items-center justify-between">
           <button type="button" onClick={handleWant} className={`grid min-h-10 min-w-10 place-items-center rounded-full ${isWanted ? "bg-orange-500 text-white" : "bg-stone-100 text-stone-700"}`} aria-label={isWanted ? `Remover ${restaurant.name} de Quero conhecer` : `Adicionar ${restaurant.name} a Quero conhecer`}><Heart size={18} fill={isWanted ? "currentColor" : "none"}/></button>
           <button type="button" onClick={() => setListsOpen(true)} className="grid min-h-10 min-w-10 place-items-center rounded-full bg-stone-100 text-stone-700" aria-label={`Mais opções para ${restaurant.name}`}><Ellipsis size={21}/></button>

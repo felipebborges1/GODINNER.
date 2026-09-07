@@ -68,7 +68,7 @@ export default function DiscoverPage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const externalSearchAttempt = useRef(0);
   const selectedPlaceConfirmationRef = useRef<HTMLDivElement>(null);
-  const { mode, manualRegion, devicePosition, showLocationNudge } = useExploreLocation();
+  const { mode, manualRegion, devicePosition, requestStatus, showLocationNudge } = useExploreLocation();
   const { currentUserId, follows, lists, restaurants, reviews, reviewSocial, users, isLoading, dataError, retryData } = useAppContext();
   const { places: externalPlaces, isLoading: isExternalLoading, error: externalError, searchPlaces: searchExternalPlaces, clear: clearExternalSearch } = useGooglePlaceSearch();
   const resetExternalSearch = () => {
@@ -78,20 +78,26 @@ export default function DiscoverPage() {
     clearExternalSearch();
   };
   useEffect(() => { trackEvent("discover_viewed"); }, []);
-  const nearby = useMemo(() => mode === "device" && devicePosition
-    ? restaurants
-      .filter((restaurant) => restaurant.status === "published" && hasCoordinates(restaurant.coordinates))
+  const publishedRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status === "published"), [restaurants]);
+  // General discovery deliberately keeps the catalog order already used by the Home; L2 adds no ranking rule.
+  const generalDiscovery = useMemo(() => publishedRestaurants.slice(0, 6), [publishedRestaurants]);
+  const localDiscovery = useMemo(() => mode === "device" && devicePosition
+    ? publishedRestaurants
+      .filter((restaurant) => hasCoordinates(restaurant.coordinates))
       .map((restaurant) => ({ ...restaurant, distanceKm: distanceKm(devicePosition, restaurant.coordinates!) }))
       .filter((restaurant) => restaurant.distanceKm <= 5)
       .sort((a, b) => a.distanceKm - b.distanceKm)
       .slice(0, 6)
     : mode === "manual" && manualRegion
-      ? restaurants.filter((restaurant) => restaurant.status === "published" && isInManualRegion(restaurant.city, restaurant.countryCode, manualRegion)).slice(0, 6)
-      : restaurants.filter((restaurant) => restaurant.status === "published").slice(0, 6), [devicePosition, manualRegion, mode, restaurants]);
-  const communityFavorites = useMemo(() => [...restaurants].sort((a, b) => b.godinnerRating - a.godinnerRating).slice(0, 4), [restaurants]);
-  const datePlaces = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("date")).slice(0, 4), [restaurants]);
-  const newPlaces = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("new")).slice(0, 4), [restaurants]);
-  const bars = useMemo(() => restaurants.filter((restaurant) => restaurant.tags.includes("bar")).slice(0, 4), [restaurants]);
+      ? publishedRestaurants.filter((restaurant) => isInManualRegion(restaurant.city, restaurant.countryCode, manualRegion)).slice(0, 6)
+      : [], [devicePosition, manualRegion, mode, publishedRestaurants]);
+  const hasLocalContext = mode === "device" || mode === "manual";
+  const useGeneralFallback = hasLocalContext && !localDiscovery.length;
+  const primaryDiscovery = hasLocalContext && !useGeneralFallback ? localDiscovery : generalDiscovery;
+  const communityFavorites = useMemo(() => [...publishedRestaurants].sort((a, b) => b.godinnerRating - a.godinnerRating).slice(0, 4), [publishedRestaurants]);
+  const datePlaces = useMemo(() => publishedRestaurants.filter((restaurant) => restaurant.tags.includes("date")).slice(0, 4), [publishedRestaurants]);
+  const newPlaces = useMemo(() => publishedRestaurants.filter((restaurant) => restaurant.tags.includes("new")).slice(0, 4), [publishedRestaurants]);
+  const bars = useMemo(() => publishedRestaurants.filter((restaurant) => restaurant.tags.includes("bar")).slice(0, 4), [publishedRestaurants]);
   const friendIds = useMemo(() => getFriendIds(follows, currentUserId ?? ""), [currentUserId, follows]);
   const friendActivities = reviews.filter((review) => friendIds.has(review.userId)).slice(0, 8);
   const friendCounts = useMemo(() => Object.fromEntries(restaurants.map((restaurant) => [restaurant.id, countFriendsWhoVisited(reviews, restaurant.id, friendIds)])), [friendIds, restaurants, reviews]);
@@ -163,11 +169,11 @@ export default function DiscoverPage() {
     {currentUserId && recommendations && <RecommendationSection result={recommendations}/>}
     <DeferredContent label="Carregando experiências de amigos"><section className="mt-10"><div className="mb-4 flex items-center justify-between gap-4"><h2 className="min-w-0 flex-1 text-xl font-black leading-tight tracking-tight sm:text-2xl">Seus amigos estão conhecendo</h2><Link href="/feed" className="inline-flex min-h-11 shrink-0 items-center text-sm font-bold text-stone-700">Ver mais</Link></div><div className="-mx-4 flex touch-auto snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">{friendActivities.map((review) => { const user = users.find((item) => item.id === review.userId); const restaurant = restaurants.find((item) => item.id === review.restaurantId); return user && restaurant ? <FriendActivityCard key={review.id} user={user} restaurant={restaurant} review={review}/> : null; })}</div></section></DeferredContent>
 
-    <DeferredContent label="Carregando lugares para explorar">{(mode === "device" || mode === "manual") && !nearby.length ? <section className="mt-10"><EmptyState title={mode === "device" ? "Ainda não temos lugares próximos de você." : "Ainda não temos lugares nesta região."} message={mode === "device" ? "Você pode explorar o catálogo GODINNER enquanto chegamos à sua região." : "Tente outra região ou explore o catálogo completo."} actionLabel="Explorar todo o catálogo" actionHref="/search"/></section> : <DiscoverSection title={mode === "device" ? "Perto de você" : mode === "manual" ? `Em ${manualRegion?.city}` : "Para explorar"} href="/search" restaurants={nearby} distances={mode === "device" ? nearby.map((restaurant) => `${restaurant.distanceKm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`) : undefined} friendCounts={friendCounts} prioritizeFirst/>}</DeferredContent>
-    <DeferredContent label="Carregando queridinhos da comunidade"><DiscoverSection title="Queridinhos da comunidade" href="/search?sort=rating" restaurants={communityFavorites} friendCounts={friendCounts}/></DeferredContent>
-    <DeferredContent label="Carregando sugestões para date"><DiscoverSection title="Para um date" href="/search?occasion=date" restaurants={datePlaces} friendCounts={friendCounts}/></DeferredContent>
-    <DeferredContent label="Carregando novos restaurantes"><DiscoverSection title="Novos na região" href="/search?sort=new" restaurants={newPlaces} friendCounts={friendCounts}/></DeferredContent>
-    <DeferredContent label="Carregando bares para conhecer"><DiscoverSection title="Bares para conhecer" href="/search?type=bar" restaurants={bars} friendCounts={friendCounts}/></DeferredContent>
+    <DeferredContent label="Carregando lugares para explorar">{requestStatus === "requesting" ? <section className="mt-10" aria-label="Encontrando lugares perto de você"><h2 className="text-xl font-black tracking-tight sm:text-2xl">Encontrando lugares perto de você</h2><LoadingSkeleton className="mt-4 h-72 w-[82vw] max-w-80 sm:w-72"/></section> : !publishedRestaurants.length ? <section className="mt-10"><EmptyState title="Ainda não há lugares publicados" message="Quando novas experiências forem adicionadas, elas aparecerão aqui."/></section> : <DiscoverSection title={useGeneralFallback || mode === "all" ? "Explore no GODINNER" : mode === "device" ? "Perto de você" : `Em ${manualRegion?.city}`} description={useGeneralFallback ? "Explore lugares em outras cidades" : undefined} href={useGeneralFallback || mode === "all" ? "/search?scope=all" : "/search"} restaurants={primaryDiscovery} distances={mode === "device" && !useGeneralFallback ? localDiscovery.map((restaurant) => `${restaurant.distanceKm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`) : undefined} friendCounts={friendCounts} prioritizeFirst showCatalogLocation={useGeneralFallback || mode === "all"}/>}</DeferredContent>
+    <DeferredContent label="Carregando queridinhos da comunidade"><DiscoverSection title="Queridinhos da comunidade" href="/search?sort=rating&scope=all" restaurants={communityFavorites} friendCounts={friendCounts} showCatalogLocation/></DeferredContent>
+    <DeferredContent label="Carregando sugestões para date"><DiscoverSection title="Para um date" href="/search?occasion=date&scope=all" restaurants={datePlaces} friendCounts={friendCounts} showCatalogLocation/></DeferredContent>
+    <DeferredContent label="Carregando novos restaurantes"><DiscoverSection title="Novos no GODINNER" href="/search?sort=new&scope=all" restaurants={newPlaces} friendCounts={friendCounts} showCatalogLocation/></DeferredContent>
+    <DeferredContent label="Carregando bares para conhecer"><DiscoverSection title="Bares para conhecer" href="/search?type=bar&scope=all" restaurants={bars} friendCounts={friendCounts} showCatalogLocation/></DeferredContent>
     </>}
 
   <LoginWall open={loginOpen} onClose={() => setLoginOpen(false)} next={selectedExternalPlace ? reviewNewUrl(selectedExternalPlace) : "/"}/></div>;

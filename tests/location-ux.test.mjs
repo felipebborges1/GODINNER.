@@ -28,7 +28,7 @@ test("Discover and Search share the location picker without a BH/Nova Lima defau
   assert.match(search, /ExploreLocationPicker/);
   assert.doesNotMatch(discover, /useState\("Vila da Serra \/ Nova Lima"\)/);
   assert.doesNotMatch(discover, /\["0,5 km", "0,9 km"/);
-  assert.match(search, /if \(params\.city \|\| mode !== "manual"/);
+  assert.match(search, /if \(params\.city \|\| params\.scope === "all" \|\| mode !== "manual"/);
   assert.match(search, /onManualSelected=\{clearLocationFilters\}/);
 });
 
@@ -57,4 +57,23 @@ test("L1.1 keeps search optional while sharing a discreet one-session location i
   assert.match(discover, /LocationSearchNudge/);
   assert.match(search, /LocationSearchNudge/);
   assert.doesNotMatch(context, /watchPosition/);
+});
+
+test("L2 falls back only in Home and keeps Search geography voluntary", async () => {
+  const discover = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const search = await readFile(new URL("../components/search/search-explorer.tsx", import.meta.url), "utf8");
+  const section = await readFile(new URL("../components/discover/discover-section.tsx", import.meta.url), "utf8");
+  const card = await readFile(new URL("../components/restaurant/restaurant-card.tsx", import.meta.url), "utf8");
+  assert.match(discover, /restaurant\.distanceKm <= 5/);
+  assert.match(discover, /useGeneralFallback = hasLocalContext && !localDiscovery\.length/);
+  assert.match(discover, /Explore no GODINNER/);
+  assert.match(discover, /Explore lugares em outras cidades/);
+  assert.match(discover, /scope=all/);
+  assert.match(discover, /status === "published"/);
+  assert.match(search, /const exploreOtherRegions/);
+  assert.match(search, /next\.set\("scope", "all"\)/);
+  assert.match(search, /params\.scope === "all"/);
+  assert.doesNotMatch(search, /exploreAll\(\); clearLocationFilters/);
+  assert.match(section, /showCatalogLocation/);
+  assert.match(card, /catalogLocation/);
 });
