@@ -15,3 +15,5 @@ Scope: DUO NATIONAL CATALOG EXPANSION only.
 - Credentials resolved previously; no broad Vercel environment read.
 
 Rollback requires exact receipt IDs, unchanged ownership/payload, current dependency checks and protection of all real activity.
+
+City correction at 7da5841 locally PASS: 22/22 text and city filter; BH/Nova Lima, neighborhoods, Duo, clear/back/reload and mobile 375/390/430 verified. Preview source upload blocked by automatic approval review even after project verification; Phase D stays BLOCKED, Phase E readiness NO. See [city check](../catalog/city-discovery-check-2026-09.md). No data changes.
