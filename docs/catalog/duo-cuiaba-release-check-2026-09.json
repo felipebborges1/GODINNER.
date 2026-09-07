@@ -1,0 +1,377 @@
+{
+  "at": "2026-09-07T02:09:55.769Z",
+  "phaseCCommit": "473c4542268a116eb2a574abfe3601e5e6d284b7",
+  "database": "gzypncrwvzatzzhtehjs",
+  "catalogTotal": 438,
+  "statuses": {
+    "published": 436,
+    "pending_review": 2
+  },
+  "batchCount": 22,
+  "payloadAggregateSha256": "3f760cb6ebe61ee6548f40ec9bf5d63a7ddad052706a90acc5d6ebfa6eb57d05",
+  "payloadHashesUnchanged": true,
+  "matches": [
+    {
+      "sourceId": 1,
+      "plannedId": "9dfa5906-33c9-5d94-9332-64606fefc9af",
+      "placeId": "ChIJoddasdOxnZMRG7WJXgD9cp8",
+      "collisions": []
+    },
+    {
+      "sourceId": 2,
+      "plannedId": "324ee833-dd86-5222-bae6-3441d8db34f5",
+      "placeId": "ChIJZfCYAgyxnZMR7WvyW987cSE",
+      "collisions": []
+    },
+    {
+      "sourceId": 4,
+      "plannedId": "4c31b41d-94c6-5bf5-aeeb-138d310c92df",
+      "placeId": "ChIJB91dDmixnZMRU9l5uYBNU7E",
+      "collisions": []
+    },
+    {
+      "sourceId": 5,
+      "plannedId": "a498bb22-2571-50ab-9268-601ed30d621e",
+      "placeId": "ChIJxwdKHgCxnZMRW4dgweRitKc",
+      "collisions": []
+    },
+    {
+      "sourceId": 7,
+      "plannedId": "1e592c62-f22c-5892-8a5f-299c46024c16",
+      "placeId": "ChIJ3RuYcfKxnZMRqR3FQldQ22Y",
+      "collisions": []
+    },
+    {
+      "sourceId": 9,
+      "plannedId": "f70333a5-48bb-5823-b655-1420b73ee403",
+      "placeId": "ChIJvy-07CewnZMRc2qQbv-XuYE",
+      "collisions": []
+    },
+    {
+      "sourceId": 10,
+      "plannedId": "9e15d9bc-a75a-59f3-b789-b314de5acafd",
+      "placeId": "ChIJfdC2wVyxnZMRZUcXCtM1Fi0",
+      "collisions": []
+    },
+    {
+      "sourceId": 11,
+      "plannedId": "e550f1f3-5c49-5941-a132-8baa35a774b0",
+      "placeId": "ChIJ7ySxxPKznZMRzjlyR-Kt8tY",
+      "collisions": []
+    },
+    {
+      "sourceId": 12,
+      "plannedId": "79129cdd-29fb-547e-b500-b192e0e38396",
+      "placeId": "ChIJsYBuoY-xnZMRn-CbJ4ulFIU",
+      "collisions": []
+    },
+    {
+      "sourceId": 14,
+      "plannedId": "8fea3083-03b7-5933-b23c-c7684a542995",
+      "placeId": "ChIJH-iys_uwnZMRZIJWakzYto0",
+      "collisions": []
+    },
+    {
+      "sourceId": 15,
+      "plannedId": "62339e3f-19d0-53fb-aa0d-eb6f7bb800c9",
+      "placeId": "ChIJr4U5MoOxnZMRcrHmtTkAXAs",
+      "collisions": []
+    },
+    {
+      "sourceId": 16,
+      "plannedId": "0a750d62-c256-50b2-80aa-6b8084aadf94",
+      "placeId": "ChIJlefQkySxnZMRWyCRAKOV2ek",
+      "collisions": []
+    },
+    {
+      "sourceId": 17,
+      "plannedId": "507cd4cb-8cc1-5d81-b8fc-38afc0814995",
+      "placeId": "ChIJ-eR99dOxnZMRKgimpXX6KE0",
+      "collisions": []
+    },
+    {
+      "sourceId": 19,
+      "plannedId": "d8c84394-2a2c-5bdf-adf2-402c00259f87",
+      "placeId": "ChIJA7n7YSuxnZMR_1SRKIXev8s",
+      "collisions": []
+    },
+    {
+      "sourceId": 20,
+      "plannedId": "2795da10-8404-51c7-b4c0-8b9bdcb305e4",
+      "placeId": "ChIJt8LAhsCxnZMRayIdR1qjjB4",
+      "collisions": []
+    },
+    {
+      "sourceId": 22,
+      "plannedId": "3cb67d58-861b-51b2-a95b-59d5d2d08a0f",
+      "placeId": "ChIJZc0hQNixnZMRcGUxRelua-A",
+      "collisions": []
+    },
+    {
+      "sourceId": 23,
+      "plannedId": "f5cff15f-b957-5902-b309-418d4d828d40",
+      "placeId": "ChIJEwSFTFixnZMRDBmiow_hQ6c",
+      "collisions": []
+    },
+    {
+      "sourceId": 24,
+      "plannedId": "218103c8-80cf-5c97-a7f4-905ec110754f",
+      "placeId": "ChIJ9es77dqxnZMRzSaM2ec_cs4",
+      "collisions": []
+    },
+    {
+      "sourceId": 25,
+      "plannedId": "c1ba3ae1-d1fd-5812-ba3e-f88f54e8d824",
+      "placeId": "ChIJ8bNzyLOxnZMRrEtQLXioU0U",
+      "collisions": []
+    },
+    {
+      "sourceId": 26,
+      "plannedId": "04970fb3-67b7-5218-8f54-982937496099",
+      "placeId": "ChIJq6qqao-xnZMRMPhzMH_yk4g",
+      "collisions": []
+    },
+    {
+      "sourceId": 27,
+      "plannedId": "3abfa8f3-e146-5493-b10a-25d785bdd5d5",
+      "placeId": "ChIJf-qF5YmxnZMR7ZwO6vpLne4",
+      "collisions": []
+    },
+    {
+      "sourceId": 29,
+      "plannedId": "3db1cd0f-4f0e-5b8c-9c7c-a39910a0014d",
+      "placeId": "ChIJBX_sM4OxnZMRvb5USgouae8",
+      "collisions": []
+    }
+  ],
+  "catalogChangeSincePhaseC": {
+    "added": [],
+    "removed": [],
+    "modified": []
+  },
+  "history": {
+    "historicalPublished": 437,
+    "currentPublished": 436,
+    "deltaByCity": {
+      "Belo Horizonte": -1,
+      "Nova Lima": 0,
+      "Madrid": 0,
+      "Amsterdam": 0
+    },
+    "receiptIds": 291,
+    "missingReceiptIds": [],
+    "demotedReceiptIds": [],
+    "cause": "NOT_RECONSTRUCTABLE_WITH_AVAILABLE_PRIMARY_RECORDS",
+    "emporioCausality": "NOT_CONFIRMED",
+    "riskAssessment": "Historical audit gap, not an independent import blocker: no candidate collision, all receipt IDs survive, no current snapshot drift, insert-only fixed IDs. Does not prove absence of other past changes. Do not restore/delete records to reconcile counts.",
+    "missingEvidence": "Complete historical 437-row snapshot, original execution receipt with concrete duplicate ID, or equivalent authenticated change log. Normalized pg_stat_statements cannot supply parameter values.",
+    "databaseAuditEvidence": {
+      "log_statement": "ddl",
+      "pgauditLog": "none",
+      "namedAuditRelations": [
+        "auth.audit_log_entries"
+      ],
+      "catalogAuditTableFound": false,
+      "pgStatStatements": "Available in extensions. Contains normalized historical DELETE shapes with id + Place ID predicates and id + slug + null Place ID predicates. Parameters are placeholders; no restaurant ID/name can be attributed. Wrapper rows=1 is not proof of number of deleted underlying rows. Current log configuration is not proof of historical settings."
+    }
+  },
+  "production": {
+    "domain": "https://godinner-beta.vercel.app",
+    "deploymentId": "5twFaeNBEgyL4Tr2SfcVs44eZehU",
+    "deploymentUrl": "https://godinner-beta-q5ji0yw2h-fbb4.vercel.app",
+    "state": "Ready",
+    "sourceBranch": "master",
+    "commit": "5b07f8872a91878df34ad254f777a60fda4078ef",
+    "remoteMaster": "5b07f8872a91878df34ad254f777a60fda4078ef",
+    "sharedDatabase": true,
+    "environmentEvidenceReused": "duo-cuiaba-phase-c-audit-2026-09.json",
+    "visibility": "Published inserts visible after database commit and next app fetch, no deploy required."
+  },
+  "sqlPreflight": {
+    "status": "PASS",
+    "completedAt": "2026-09-07T02:23:25.998Z",
+    "execution": "Authenticated Supabase SQL Editor, project GODINNER Beta / gzypncrwvzatzzhtehjs, role postgres; BEGIN TRANSACTION READ ONLY, statement_timeout 15s, ROLLBACK.",
+    "sourceUrl": "https://supabase.com/dashboard/project/gzypncrwvzatzzhtehjs/sql/a310711b-1d15-41ff-9957-d2b8ee28f039",
+    "successfulReadOnlySections": 7,
+    "correctedSelectErrors": 1,
+    "errorDetail": "One metadata SELECT initially failed with SQLSTATE 42725 due to char/text concatenation; explicit cast added, read-only section rerun successfully.",
+    "observedTransactionReadOnly": "on",
+    "indexes": {
+      "validUnique": [
+        "restaurants_pkey(id)",
+        "restaurants_slug_key(slug)",
+        "restaurants_google_place_id_unique(google_place_id) WHERE google_place_id IS NOT NULL"
+      ],
+      "otherValid": [
+        "restaurants_status_idx",
+        "restaurants_city_neighborhood_idx",
+        "restaurants_pending_submitted_idx"
+      ],
+      "invalidObserved": 0
+    },
+    "constraints": {
+      "names": [
+        "restaurants_city_check",
+        "restaurants_country_code_format_check",
+        "restaurants_latitude_check",
+        "restaurants_longitude_check",
+        "restaurants_merge_self_check",
+        "restaurants_merged_into_id_fkey",
+        "restaurants_moderated_by_fkey",
+        "restaurants_name_check",
+        "restaurants_pkey",
+        "restaurants_rejection_reason_check",
+        "restaurants_slug_check",
+        "restaurants_slug_key",
+        "restaurants_submitted_by_fkey"
+      ],
+      "payloadsSatisfyObservedConstraints": true
+    },
+    "dependencies": {
+      "direct": [
+        {
+          "table": "reviews",
+          "column": "restaurant_id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "table": "restaurant_list_items",
+          "column": "restaurant_id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "table": "notifications",
+          "column": "restaurant_id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "table": "restaurants",
+          "column": "merged_into_id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "recursiveTables": [
+        "follow_push_events",
+        "follows",
+        "notifications",
+        "profiles",
+        "push_subscriptions",
+        "restaurant_list_items",
+        "restaurant_lists",
+        "restaurants",
+        "review_comment_mentions",
+        "review_comments",
+        "review_likes",
+        "review_photos",
+        "reviews"
+      ],
+      "logicalRestaurantIdColumnScan": [
+        "public.notifications.restaurant_id",
+        "public.restaurant_list_items.restaurant_id",
+        "public.restaurants.merged_into_id",
+        "public.reviews.restaurant_id"
+      ],
+      "limitation": "Recursive graph deliberately overapproximates impact beyond SET NULL edges; does not mean profiles would be deleted. Arbitrary JSON/string references cannot be mechanically ruled out; no extra restaurant-id columns observed, and rollback must recheck then-current schema/application."
+    },
+    "triggers": [
+      {
+        "name": "restaurants_set_updated_at",
+        "event": "BEFORE UPDATE FOR EACH ROW",
+        "function": "public.set_updated_at()",
+        "body": "begin new.updated_at = timezone('utc', now()); return new; end;",
+        "insertTrigger": false
+      }
+    ],
+    "tableKind": "ordinary table",
+    "rewriteRules": 0,
+    "rls": {
+      "enabled": [
+        "restaurants",
+        "reviews",
+        "restaurant_list_items",
+        "notifications"
+      ],
+      "forced": false,
+      "owner": "postgres",
+      "publishedVisibleToPublic": true,
+      "authenticatedInsertRequires": "submitted_by = auth.uid() AND status = pending_review",
+      "authenticatedUpdateRequires": "is_admin()",
+      "normalClientRestaurantDeletePolicyPresent": false
+    },
+    "roles": [
+      {
+        "name": "postgres",
+        "owner": true,
+        "bypassRls": true,
+        "superuser": false,
+        "select": true,
+        "insert": true,
+        "update": true,
+        "delete": true
+      },
+      {
+        "name": "service_role",
+        "owner": false,
+        "bypassRls": true,
+        "select": true,
+        "insert": true,
+        "delete": true
+      },
+      {
+        "name": "anon",
+        "bypassRls": false,
+        "tableGrantsPresent": true,
+        "effectiveAccess": "restricted by RLS, not an unrestricted writer"
+      },
+      {
+        "name": "authenticated",
+        "bypassRls": false,
+        "tableGrantsPresent": true,
+        "effectiveAccess": "restricted by RLS; pending self-submit, admin update; no restaurant delete policy"
+      }
+    ],
+    "authorizationFunctions": "current_role and is_admin are STABLE SECURITY DEFINER, fixed public search_path, SELECT-only bodies based on auth.uid() and profiles.role.",
+    "schema": {
+      "priceRangeNullable": true,
+      "duoCheckedAtNullable": true,
+      "mediaNullable": true,
+      "statusValues": [
+        "published",
+        "pending_review",
+        "rejected"
+      ],
+      "categoryValues": [
+        "restaurant",
+        "bar"
+      ],
+      "allProposedFieldsPresent": true
+    },
+    "finalSqlCounts": {
+      "intendedIds": 22,
+      "alreadyPresent": 0,
+      "catalogTotal": 438,
+      "readOnly": "on"
+    },
+    "globalDuplicatePlaceIds": 0,
+    "cuiabaCatalogRows": 0,
+    "writeOrRollbackRehearsalPerformed": false
+  },
+  "databaseWrite": false,
+  "googleCalls": 0,
+  "openaiCalls": 0,
+  "vercelSecretQueries": 0,
+  "technicalReadiness": "READY",
+  "productionWriteAuthorization": "NOT_GRANTED",
+  "phaseD": "BLOCKED_AWAITING_SEPARATE_PRODUCTION_WRITE_AUTHORIZATION",
+  "productionReleaseCheck": "TECHNICAL_CHECK_PASS_AUTHORIZATION_PENDING",
+  "remainingBlockers": [
+    "Explicit separate user authorization for the exact 22-row shared-Production write"
+  ],
+  "conditionsAtExecution": [
+    "Recheck unchanged payload hash and target",
+    "Revalidate all-status dedupe/schema in the intended single transaction",
+    "Abort on lock contention or unexpected drift",
+    "Do not execute Phase D without new authorization"
+  ],
+  "completedAt": "2026-09-07T02:23:25.998Z"
+}

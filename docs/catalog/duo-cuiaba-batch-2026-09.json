@@ -1158,21 +1158,23 @@
   ],
   "blockers": [
     {
-      "id": "C-COUNT-01",
-      "reason": "436 vs historical 437 reconciled as -1 published in Belo Horizonte, but the specific deleted/demoted ID and alleged Emporio duplicate removal have no verified before/after audit trail. All 291 IDs from the historical import receipt still exist as published."
-    },
-    {
-      "id": "C-SQL-01",
-      "reason": "Live Postgres index validity, complete foreign-key/non-FK dependency inventory and triggers/RLS have not been verified directly. The authenticated SQL dashboard requires login. Read-only preflight is prepared; transactional Phase D execution route must be available and reviewed."
-    },
-    {
       "id": "C-RELEASE-01",
-      "reason": "Shared Production database: explicit production data-write authorization and Production Release Check required before Phase D. Preview is not an isolated data environment."
+      "reason": "Separate explicit production-write authorization required for these exact 22 payloads in the shared database. Not granted."
     }
   ],
   "outOfScopeSourceIds": [
     6,
     21,
     28
-  ]
+  ],
+  "technicalReadiness": "READY",
+  "knownLimitations": [
+    {
+      "id": "C-COUNT-01",
+      "blocking": false,
+      "status": "HISTORICAL_GAP",
+      "reason": "Net -1 published in BH; cause unconfirmed, no Emporio attribution; no concrete overlap or integrity defect identified for this batch."
+    }
+  ],
+  "releaseCheckArtifact": "duo-cuiaba-release-check-2026-09.md"
 }

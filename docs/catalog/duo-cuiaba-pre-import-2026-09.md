@@ -1,5 +1,7 @@
 # GODINNER SDLC — Cuiabá Phase C
 
+> Follow-up: live SQL checks are now PASS and the historical count gap is non-blocking. Technical READY; Phase D remains blocked by separate write authorization. See [current data release check](duo-cuiaba-release-check-2026-09.md). The initial assessment below is retained as history.
+
 ## Decision
 
 **PHASE C: completed as a design audit. PHASE D: BLOCKED.** The 22 accepted HIGH candidates remain eligible after read-only dedupe. No catalog writes were performed. Remaining gates are the unproven count-change cause, live transactional/schema verification and explicit shared-Production data-release authorization.

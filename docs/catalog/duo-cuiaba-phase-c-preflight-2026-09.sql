@@ -1,4 +1,4 @@
--- Phase C: PREPARED ONLY; never executed in this phase. READ ONLY.
+-- Consolidated repeatable preflight. Checks executed in read-only sections; see release-check evidence.
 -- Run only against project gzypncrwvzatzzhtehjs in an authorized SQL session.
 BEGIN TRANSACTION READ ONLY;
 SET LOCAL statement_timeout = '15s';
@@ -45,4 +45,29 @@ WITH batch(id,place_id,slug) AS (VALUES
   ('3db1cd0f-4f0e-5b8c-9c7c-a39910a0014d'::uuid, 'ChIJBX_sM4OxnZMRvb5USgouae8', 'vila-sushi-cuiaba-3db1cd0f')
 ) SELECT b.*,r.id AS existing_id,r.name,r.status,r.google_place_id FROM batch b JOIN public.restaurants r ON r.id=b.id OR r.google_place_id=b.place_id OR r.slug=b.slug;
 -- Zero rows expected for the prior collision SELECT. Secondary matching must also rerun over every catalog row.
+
+-- Expanded readiness verification. Still read-only; no lock/write dry run.
+SELECT c.relname,c.relrowsecurity,c.relforcerowsecurity,r.rolname AS owner
+FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_roles r ON r.oid=c.relowner
+WHERE n.nspname='public' AND c.relname IN ('restaurants','reviews','restaurant_list_items','notifications');
+SELECT rolname,rolsuper,rolinherit,rolbypassrls FROM pg_roles
+WHERE rolname IN (current_user,'postgres','service_role','authenticated','anon');
+SELECT r.rolname,t.table_name,
+ has_table_privilege(r.oid,format('public.%I',t.table_name),'SELECT') AS can_select,
+ has_table_privilege(r.oid,format('public.%I',t.table_name),'INSERT') AS can_insert,
+ has_table_privilege(r.oid,format('public.%I',t.table_name),'UPDATE') AS can_update,
+ has_table_privilege(r.oid,format('public.%I',t.table_name),'DELETE') AS can_delete
+FROM pg_roles r CROSS JOIN (VALUES ('restaurants'),('reviews'),('restaurant_list_items'),('notifications')) t(table_name)
+WHERE r.rolname IN (current_user,'postgres','service_role','authenticated','anon') ORDER BY r.rolname,t.table_name;
+-- Inspect trigger function semantics, not just names, before accepting INSERT-only guarantees.
+SELECT t.tgname,p.oid::regprocedure AS function_name,p.prosecdef,pg_get_functiondef(p.oid) AS definition
+FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid
+WHERE t.tgrelid='public.restaurants'::regclass AND NOT t.tgisinternal;
+SELECT p.oid::regprocedure AS function_name,p.prosecdef,pg_get_functiondef(p.oid) AS definition
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+WHERE n.nspname='public' AND p.proname IN ('is_admin','current_role');
+SELECT schemaname,tablename,policyname,roles,cmd,qual,with_check FROM pg_policies
+WHERE tablename IN ('restaurants','reviews','restaurant_list_items','notifications','review_photos','review_likes','review_comments','review_comment_mentions','profiles');
+SELECT current_setting('transaction_isolation') AS isolation, current_setting('transaction_read_only') AS read_only;
+
 ROLLBACK;
