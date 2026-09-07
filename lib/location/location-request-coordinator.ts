@@ -8,7 +8,7 @@ export type LocationRequestResult =
 export type LocationDiagnostic = {
   attemptId: string;
   origin: LocationRequestOrigin;
-  event: "started" | "joined" | "succeeded" | "failed" | "cancelled" | "late-response";
+  event: "started" | "joined" | "succeeded" | "visual-updated" | "failed" | "cancelled" | "late-response";
   elapsedMs?: number;
   permission?: PermissionState | "unknown" | "unsupported";
   errorCode?: number;

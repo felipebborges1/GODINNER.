@@ -84,14 +84,15 @@ export function ExploreLocationProvider({ children }: { children: React.ReactNod
   }, [recordDiagnostic]);
   useEffect(() => {
     if (!visualUpdate.current || mode !== "device" || !devicePosition) return;
-    recordDiagnostic({ attemptId: visualUpdate.current.attemptId, origin: visualUpdate.current.origin, event: "succeeded", elapsedMs: Math.round(performance.now() - visualUpdate.current.startedAt), accepted: true });
+    recordDiagnostic({ attemptId: visualUpdate.current.attemptId, origin: visualUpdate.current.origin, event: "visual-updated", elapsedMs: Math.round(performance.now() - visualUpdate.current.startedAt), accepted: true });
     visualUpdate.current = null;
   }, [devicePosition, mode, recordDiagnostic]);
   useEffect(() => {
     if (!restored || permissionChecked.current || mode !== "all" || explicitAll || manualRegion || !navigator.permissions?.query) return;
     permissionChecked.current = true;
+    const permissionStartedAt = performance.now();
     void navigator.permissions.query({ name: "geolocation" }).then((permission) => {
-      recordDiagnostic({ attemptId: "permission", origin: "automatic", event: "joined", permission: permission.state });
+      recordDiagnostic({ attemptId: "permission", origin: "automatic", event: "joined", permission: permission.state, elapsedMs: Math.round(performance.now() - permissionStartedAt) });
       if (permission.state === "granted") void requestDeviceLocation("automatic");
       if (permission.state === "denied") setRequestStatus("denied");
     }).catch(() => undefined);
