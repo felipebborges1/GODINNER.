@@ -12,6 +12,22 @@ export const normalize = (value: string) =>
     .trim()
     .replace(/\s+/g, " ");
 
+export const geographyKey = (value: string) => normalize(value).replaceAll(" ", "-");
+
+export function geographyOptions(restaurants: Restaurant[], city?: string) {
+  const cities = new Map<string, string>();
+  const neighborhoods = new Map<string, string>();
+  for (const restaurant of restaurants) {
+    if (restaurant.status !== "published") continue;
+    const label = restaurant.city.trim();
+    const key = geographyKey(label);
+    if (key) cities.set(key, label);
+    if (city === key && restaurant.neighborhood.trim()) neighborhoods.set(geographyKey(restaurant.neighborhood), restaurant.neighborhood.trim());
+  }
+  const sorted = (values: Map<string, string>) => [...values].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  return { cities: sorted(cities), neighborhoods: sorted(neighborhoods) };
+}
+
 export function filterRestaurants(
   restaurants: Restaurant[],
   params: SearchParams,
@@ -32,14 +48,15 @@ export function filterRestaurants(
       restaurant.name,
       ...restaurant.cuisine,
       restaurant.neighborhood,
+      restaurant.city,
       restaurant.chef,
       restaurant.category,
     ].join(" "));
 
     return (
-      (!q || text.includes(q)) &&
-      (!params.city || normalize(restaurant.city).replace(" ", "-") === params.city) &&
-      (!params.neighborhood || normalize(restaurant.neighborhood).replace(" ", "-") === params.neighborhood) &&
+      (!q || (text.includes(q) || q.split(" ").every((term) => text.split(" ").some((word) => word.startsWith(term))))) &&
+      (!params.city || geographyKey(restaurant.city) === params.city) &&
+      (!params.neighborhood || geographyKey(restaurant.neighborhood) === params.neighborhood) &&
       (!params.cuisine || normalize(restaurant.cuisine.join(" ")).includes(params.cuisine.replace("japanese", "japones").replace("italian", "italiana").replace("meat", "carnes"))) &&
       (!params.type || restaurant.category === params.type) &&
       (!params.price || (params.price === "100" ? Boolean(restaurant.priceRange && ["$", "$$"].includes(restaurant.priceRange)) : restaurant.priceRange === params.price)) &&

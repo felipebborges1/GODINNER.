@@ -14,7 +14,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { useAppContext } from "@/hooks/use-app-context";
 import { countFriendsWhoVisited, getFriendIds } from "@/lib/restaurant-social";
-import { filterRestaurants } from "@/lib/search";
+import { filterRestaurants, geographyOptions } from "@/lib/search";
 import { normalizeRatingFilter } from "@/lib/review-rating";
 import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
@@ -67,14 +67,17 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   const setParam = (key: string, value?: string) => {
     const next = new URLSearchParams(pendingParams.current);
     value ? next.set(key, value) : next.delete(key);
+    if (key === "city") next.delete("neighborhood");
     pendingParams.current = next.toString();
-    router.replace(`${path}?${next}`);
+    if (key === "q") router.replace(`${path}?${next}`, { scroll: false });
+    else router.push(`${path}?${next}`, { scroll: false });
   };
 
   const clearFilters = () => {
     const next = new URLSearchParams();
     if (params.view) next.set("view", params.view);
-    router.replace(next.size ? `${path}?${next}` : path);
+    pendingParams.current = next.toString();
+    router.push(next.size ? `${path}?${next}` : path, { scroll: false });
   };
 
   const requestNearby = () => {
@@ -97,6 +100,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   };
 
   const eligibleRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status !== "rejected" && (restaurant.status !== "pending_review" || restaurant.submittedBy === currentUserId)), [restaurants, currentUserId]);
+  const geography = useMemo(() => geographyOptions(restaurants, params.city), [restaurants, params.city]);
   const visibleRestaurants = useMemo(() => {
     const origin = position;
     if (!origin) return eligibleRestaurants;
@@ -128,8 +132,8 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     japanese: "Japonesa", italian: "Italiana", meat: "Carnes", brasileira: "Brasileira",
     mineira: "Mineira", contemporanea: "Contemporânea", restaurant: "Restaurante",
     bar: "Bar", date: "Date", friends: "Amigos", family: "Família",
-    wantToVisit: "Quero conhecer", visited: "Já fui", "belo-horizonte": "Belo Horizonte",
-    "nova-lima": "Nova Lima", "vila-da-serra": "Vila da Serra",
+    wantToVisit: "Quero conhecer", visited: "Já fui",
+    ...Object.fromEntries([...geography.cities, ...geography.neighborhoods].map(option => [option.value, option.label])),
   };
   const activeFilters = Object.entries(params).filter(([key]) => !["q", "view"].includes(key));
   const activeFilterLabel = (key: string, value: string) => key === "duo" ? (value === "true" ? "Duo Gourmet" : "Duo Gourmet: Não") : key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`;
@@ -140,9 +144,9 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10">
       <h1 className="text-3xl font-black">Explorar lugares</h1>
-      <p className="mt-1 text-sm text-stone-500">Vila da Serra, Belo Horizonte e Nova Lima</p>
+      <p className="mt-1 text-sm text-stone-500">Explore os lugares do catálogo por cidade e bairro.</p>
       <div className="mt-5">
-        <SearchBar value={params.q ?? ""} onChange={(value) => setParam("q", value || undefined)} placeholder="Restaurante, comida, bairro ou chef" />
+        <SearchBar value={params.q ?? ""} onChange={(value) => setParam("q", value || undefined)} placeholder="Restaurante, comida, cidade, bairro ou chef" />
       </div>
       {aiSearchEnabled && <div className="mt-5"><AiSearchPanel restaurants={eligibleRestaurants} /></div>}
       <div className="mt-4 flex touch-auto gap-2 overflow-x-auto pb-2">
@@ -164,6 +168,8 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
         onToggle={(key, value) => setParam(key, params[key] === value ? undefined : value)}
         onClear={clearFilters}
         count={results.length}
+        cities={geography.cities}
+        neighborhoods={geography.neighborhoods}
       />
       {activeFilters.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-xs font-black text-stone-500">Filtros ativos:</span>{activeFilters.map(([key, value]) => <button key={key} onClick={() => setParam(key)} className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">{activeFilterLabel(key, value)}<X size={13} /></button>)}{activeFilters.length > 1 && <button onClick={clearFilters} className="text-xs font-bold text-orange-600">Limpar tudo</button>}</div>}
       <p className="mt-6 text-sm font-semibold text-stone-500">{results.length} {results.length === 1 ? "resultado" : "resultados"}</p>
