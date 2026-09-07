@@ -1,0 +1,154 @@
+{
+  "at": "2026-09-07T18:39:18.412Z",
+  "preview": {
+    "url": "https://godinner-beta-cpq667jng-fbb4.vercel.app",
+    "deployment": "dpl_cZg6aaNrkFzwRRPKPQyW6Me8BMkd",
+    "environment": "Preview",
+    "state": "READY",
+    "project": "fbb4/godinner-beta",
+    "branch": "codex/catalog-expansion",
+    "commit": "ed07e41a042ad2a41deb3ea4605acca385c93080",
+    "method": "Vercel CLI upload, clean checkout, no git push required",
+    "gitIdentity": "verified through GET /v13/deployments"
+  },
+  "search": {
+    "Cuiaba": 22,
+    "cuiaba": 22,
+    "sushiCuiaba": {
+      "count": 1,
+      "name": "Vila Sushi"
+    },
+    "BeloHorizonte": 398,
+    "NovaLima": 35
+  },
+  "filters": {
+    "cities": [
+      "Amsterdam",
+      "Belo Horizonte",
+      "Cuiabá",
+      "Madrid",
+      "Nova Lima"
+    ],
+    "Cuiaba": 22,
+    "BeloHorizonte": 398,
+    "NovaLima": 35,
+    "QuilomboInCuiaba": 3,
+    "duoCuiaba": 22,
+    "clear": 458,
+    "cityChangeClearsNeighborhood": true,
+    "backRestoresCityAndNeighborhood": true,
+    "reloadPreserves": true
+  },
+  "mobile": {
+    "375": {
+      "height": 812,
+      "documentWidth": 360,
+      "footerBottom": 788
+    },
+    "390": {
+      "height": 844,
+      "documentWidth": 375
+    },
+    "430": {
+      "height": 932,
+      "documentWidth": 415
+    },
+    "overflow": false
+  },
+  "profileSample": {
+    "name": "Açaí do Mato",
+    "googlePhoto": {
+      "loaded": true,
+      "width": 900,
+      "height": 1200
+    },
+    "duo": true,
+    "emptyReviews": true,
+    "emptySpend": true,
+    "fakeZero": false
+  },
+  "regression": {
+    "discover": "FAIL: added id-desc tie-break changes fallback carousel selection",
+    "feed": "PASS authenticated real experiences",
+    "googleAuth": "PASS: Google button returned to Preview signed in as existing account",
+    "recommendations": "PASS current-account unlock state and automated engine regressions; unlocked personalized result not exercised",
+    "performance": "PASS functional smoke at current catalog size; not a load benchmark"
+  },
+  "quality": {
+    "tests": 107,
+    "failures": 0,
+    "lintErrors": 0,
+    "lintWarnings": 3,
+    "typescript": "PASS",
+    "build": "PASS remote deployment",
+    "diffCheck": "PASS"
+  },
+  "preservation": {
+    "at": "2026-09-07T18:37:37.557Z",
+    "count": 22,
+    "published": 22,
+    "changedIds": [],
+    "additionalWritesByTask": 0,
+    "access": "public anon read-only"
+  },
+  "discoverOrder": {
+    "previous": [
+      {
+        "id": "06599bcc-1085-4cd0-8bb5-e6245dfb94fa",
+        "name": "68 La Pizzeria Vila da Serra"
+      },
+      {
+        "id": "ff36cc96-d43f-40c4-8c88-beffe6640b3c",
+        "name": "Barolio Alameda"
+      },
+      {
+        "id": "10198090-6f76-4a7e-99fe-4dbbec210b60",
+        "name": "BASILI Pizzaria | Layback Vila da Serra"
+      },
+      {
+        "id": "a47067ca-dcb0-4f0b-a79b-0657ccf9baf5",
+        "name": "Issei Experience - Cozinha Japonesa Contemporânea"
+      },
+      {
+        "id": "70e3fe28-2211-47fa-a86a-5009822196f1",
+        "name": "KOBE BBQ"
+      },
+      {
+        "id": "9b1b448f-f09d-4b50-909c-0501289d24e6",
+        "name": "Omilía Restaurante"
+      }
+    ],
+    "preview": [
+      {
+        "id": "ff36cc96-d43f-40c4-8c88-beffe6640b3c",
+        "name": "Barolio Alameda"
+      },
+      {
+        "id": "e12751f9-3c50-4009-8162-2147605ad281",
+        "name": "Pausa Restaurante"
+      },
+      {
+        "id": "d5e4e813-2789-469a-9b5c-f1150f99f29f",
+        "name": "Zeppe Pizza"
+      },
+      {
+        "id": "c762093f-c0dd-402f-a698-11fb9503c3af",
+        "name": "Rullus Bistrô"
+      },
+      {
+        "id": "a47067ca-dcb0-4f0b-a79b-0657ccf9baf5",
+        "name": "Issei Experience - Cozinha Japonesa Contemporânea"
+      },
+      {
+        "id": "9b1b448f-f09d-4b50-909c-0501289d24e6",
+        "name": "Omilía Restaurante"
+      }
+    ],
+    "equal": false
+  },
+  "productionDeploy": false,
+  "masterChanged": false,
+  "phaseD": "BLOCKED",
+  "readyForPhaseE": false,
+  "phaseEStarted": false
+}
