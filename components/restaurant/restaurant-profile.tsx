@@ -55,7 +55,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
           <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">{restaurant.name}</h1>
           {restaurant.status === "pending_review" && <p className="mt-3 inline-flex rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">Aguardando validação</p>}
           <div className="mt-4 flex flex-wrap gap-2">{restaurant.cuisine.map((cuisine) => <CuisineChip key={cuisine} cuisine={cuisine}/>) }<PriceBadge price={restaurant.priceRange}/>{restaurant.acceptsDuoGourmet && <DuoGourmetIndicator/>}</div>
-          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-stone-600"><span className="inline-flex items-center gap-1"><MapPin size={16}/>{restaurant.neighborhood} · {restaurant.distanceKm.toFixed(1)} km</span>{restaurant.chef && <span className="inline-flex items-center gap-1"><Utensils size={16}/>Chef: {restaurant.chef}</span>}</div>
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-stone-600"><span className="inline-flex items-center gap-1"><MapPin size={16}/>{restaurant.neighborhood}{Number.isFinite(restaurant.distanceKm) ? ` · ${restaurant.distanceKm.toFixed(1)} km` : ""}</span>{restaurant.chef && <span className="inline-flex items-center gap-1"><Utensils size={16}/>Chef: {restaurant.chef}</span>}</div>
         </div>
         <section aria-label="Resumo de decisão" className="mt-6 grid grid-cols-2 gap-3 lg:mt-0 lg:grid-cols-3">
           <div className="rounded-3xl bg-stone-950 p-5 text-white">

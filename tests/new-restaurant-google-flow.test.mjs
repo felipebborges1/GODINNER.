@@ -52,7 +52,7 @@ test("public restaurant creation entry points lead with evaluation and preserve 
   assert.match(desktopHeader, /href="\/review\/new"[^>]*><Plus size=\{16\}\/>Avaliar/);
   assert.doesNotMatch(desktopHeader, /<Plus size=\{16\}\/>Registrar/);
   assert.match(bottomNavigation, /href="\/review\/new" aria-label="Avaliar experiência"/);
-  assert.match(searchExplorer, /actionLabel=\{params\.q \? "Encontrar este lugar" : undefined\}/);
+  assert.match(searchExplorer, /params\.q \? "Encontrar este lugar" : undefined/);
   assert.match(selector, />Encontrar este lugar<\/Link>/);
   assert.match(selector, /href=\{`\/restaurant\/new\?name=\$\{encodeURIComponent\(query\)\}`\}/);
   assert.match(fallback, /Preencher manualmente/);

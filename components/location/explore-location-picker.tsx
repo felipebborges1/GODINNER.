@@ -1,0 +1,25 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ChevronDown, LocateFixed, MapPin, Search, X } from "lucide-react";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { useExploreLocation } from "@/hooks/use-explore-location";
+import { useGooglePlaceSearch } from "@/hooks/use-google-place-search";
+
+type Props = { className?: string; onManualSelected?: () => void; onDeviceSelected?: () => void; onExploreAll?: () => void };
+const requestMessage = { denied: "Permissão negada. Você pode escolher uma região ou explorar todo o catálogo.", unavailable: "Localização indisponível. Você pode escolher uma região ou explorar todo o catálogo.", timeout: "A localização demorou demais. Você pode tentar novamente ou escolher uma região." } as const;
+
+export function ExploreLocationPicker({ className = "", onManualSelected, onDeviceSelected, onExploreAll }: Props) {
+  const [open, setOpen] = useState(false); const [query, setQuery] = useState("");
+  const { label, mode, requestStatus, selectManualRegion, requestDeviceLocation, exploreAll } = useExploreLocation();
+  const { places, isLoading, error, searchPlaces, clear } = useGooglePlaceSearch();
+  useEffect(() => { const term = query.trim(); if (term.length < 2) { clear(); return; } const timeout = window.setTimeout(() => { void searchPlaces(`${term}, cidade ou região`); }, 300); return () => window.clearTimeout(timeout); }, [clear, query, searchPlaces]);
+  const close = () => { setOpen(false); setQuery(""); clear(); };
+  const requestCurrentDevice = async () => { const success = await requestDeviceLocation(); if (success) { onDeviceSelected?.(); close(); } };
+  const chooseRegion = (place: typeof places[number]) => { selectManualRegion({ placeId: place.placeId, city: place.city || place.name, region: place.region, country: place.country, countryCode: place.countryCode }); onManualSelected?.(); close(); };
+  const all = () => { exploreAll(); onExploreAll?.(); close(); };
+  return <>
+    <button type="button" onClick={() => setOpen(true)} className={`inline-flex min-h-11 items-center gap-1 text-left text-sm font-semibold text-stone-600 ${className}`} aria-label="Escolher região para explorar"><MapPin size={16} className="shrink-0 text-orange-500"/>{label}<ChevronDown size={15}/></button>
+    <BottomSheet open={open} onClose={close} title="Onde você quer explorar?"><div className="grid gap-3 pb-2"><p className="text-sm leading-6 text-stone-600">Use sua localização para calcular distâncias reais ou escolha uma cidade/região. Você também pode navegar pelo catálogo completo.</p><button type="button" onClick={() => void requestCurrentDevice()} disabled={requestStatus === "requesting"} className="flex min-h-12 items-center gap-3 rounded-2xl bg-stone-950 px-4 text-left text-sm font-black text-white disabled:opacity-60"><LocateFixed size={18}/>{requestStatus === "requesting" ? "Encontrando sua localização…" : "Usar minha localização"}</button><label className="relative block"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar cidade ou região" className="input w-full py-3 pl-11 pr-10"/><button type="button" onClick={() => setQuery("")} className={`absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-stone-500 ${query ? "" : "invisible"}`} aria-label="Limpar busca"><X size={16}/></button></label>{isLoading && <p role="status" className="text-sm text-stone-500">Buscando regiões…</p>}{error && <p role="alert" className="text-sm text-red-700">Não foi possível buscar regiões agora. Tente novamente.</p>}{places.length > 0 && <div className="max-h-64 overflow-y-auto rounded-2xl border border-stone-200"><p className="px-4 pt-3 text-xs font-black uppercase tracking-wide text-stone-500">Selecione a região</p>{places.map((place) => <button type="button" key={place.placeId} onClick={() => chooseRegion(place)} className="block min-h-14 w-full border-t border-stone-100 px-4 py-3 text-left hover:bg-stone-50"><b className="block text-sm text-stone-900">{place.city || place.name}</b><span className="mt-1 block text-xs text-stone-500">{[place.region, place.country].filter(Boolean).join(" · ") || place.address}</span></button>)}</div>}{requestStatus !== "idle" && requestStatus !== "requesting" && <p role="status" className="rounded-xl bg-stone-100 p-3 text-sm text-stone-700">{requestMessage[requestStatus]}</p>}<button type="button" onClick={all} className={`min-h-11 rounded-2xl border border-stone-300 px-4 text-left text-sm font-bold text-stone-800 ${mode === "all" ? "bg-stone-100" : "bg-white"}`}>Explorar todo o catálogo</button></div></BottomSheet>
+  </>;
+}

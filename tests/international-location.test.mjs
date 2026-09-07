@@ -62,8 +62,9 @@ test("location failures keep manual address entry available with safe feedback",
 
 test("Discover uses a real location when available and does not present BH as nearby outside the catalog", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /navigator\.geolocation\.getCurrentPosition/);
-  assert.match(page, /distanceKm\(position, restaurant\.coordinates!\)/);
+  const location = await readFile(new URL("../context/explore-location-context.tsx", import.meta.url), "utf8");
+  assert.match(location, /navigator\.geolocation\.getCurrentPosition/);
+  assert.match(page, /distanceKm\(devicePosition, restaurant\.coordinates!\)/);
   assert.match(page, /Ainda não temos lugares próximos de você/);
-  assert.match(page, /actionHref="\/search"/);
+  assert.doesNotMatch(page, /Vila da Serra \/ Nova Lima/);
 });

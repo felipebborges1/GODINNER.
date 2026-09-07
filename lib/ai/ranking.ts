@@ -1,4 +1,4 @@
-import { distanceKm, FALLBACK_COORDINATES, hasCoordinates } from "@/lib/distance";
+import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { calculateCommunitySpend, formatCommunitySpend, type CommunitySpend } from "@/lib/community-spend";
 import { normalize } from "@/lib/search";
 import { averageReviewScore } from "@/lib/review-rating";
@@ -36,8 +36,8 @@ export function rankAiRecommendations({ restaurants, reviews, intent, position }
   const notices: string[] = [];
   const relaxedFilters: string[] = [];
   const catalog = restaurants.filter((restaurant) => restaurant.status === "published");
-  const origin = intent.nearMe ? (position ?? FALLBACK_COORDINATES) : null;
-  if (intent.nearMe && !position) notices.push("Não recebemos sua localização; ordenamos pela referência de Vila da Serra.");
+  const origin = intent.nearMe && position ? position : null;
+  if (intent.nearMe && !position) notices.push("Não recebemos sua localização; mostramos opções do catálogo sem ordenar por distância.");
   if (intent.maxPricePerPerson !== null) notices.push(priceNotice);
   if (intent.occasions.length) notices.push("O catálogo ainda não possui atributos confiáveis de ocasião; esse pedido não foi usado como filtro.");
 

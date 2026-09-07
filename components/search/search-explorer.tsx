@@ -19,6 +19,9 @@ import { normalizeRatingFilter } from "@/lib/review-rating";
 import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
+import { ExploreLocationPicker } from "@/components/location/explore-location-picker";
+import { useExploreLocation } from "@/hooks/use-explore-location";
+import { normalize } from "@/lib/search";
 
 const MapView = dynamic(() => import("@/components/search/map-view").then((module) => module.MapView), {
   ssr: false,
@@ -42,7 +45,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   const searchParams = useSearchParams();
   const { lists, currentUserId, reviews, restaurants, follows, isLoading, dataError, retryData } = useAppContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
+  const { mode, manualRegion, devicePosition, requestDeviceLocation, exploreAll } = useExploreLocation();
   const { showToast } = useToast();
   const params = Object.fromEntries(searchParams.entries());
   const pendingParams = useRef(searchParams.toString());
@@ -77,46 +80,34 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     router.replace(next.size ? `${path}?${next}` : path);
   };
 
-  const requestNearby = () => {
-    if (!navigator.geolocation) {
-      showToast("Localização indisponível — permita o acesso para usar este filtro");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { setPosition({ latitude: coords.latitude, longitude: coords.longitude }); setParam("nearby", "true"); showToast("Localização permitida — distâncias calculadas"); },
-      (error) => {
-        const message = error.code === error.PERMISSION_DENIED
-          ? "Permissão negada — permita o acesso para usar este filtro"
-          : error.code === error.TIMEOUT
-            ? "Tempo esgotado — tente novamente para usar este filtro"
-            : "Localização indisponível — permita o acesso para usar este filtro";
-        showToast(message);
-      },
-      { timeout: 8000, maximumAge: 300000 },
-    );
-  };
+  const clearLocationFilters = () => { const next = new URLSearchParams(pendingParams.current); ["nearby", "distance", "city", "neighborhood"].forEach((key) => next.delete(key)); pendingParams.current = next.toString(); router.replace(next.size ? `${path}?${next}` : path); };
+  const requestNearby = async () => { const success = await requestDeviceLocation(); if (success) { clearLocationFilters(); setParam("nearby", "true"); showToast("Localização permitida — distâncias calculadas"); } else { showToast("Localização indisponível — escolha uma região ou explore o catálogo"); } };
 
   const eligibleRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status !== "rejected" && (restaurant.status !== "pending_review" || restaurant.submittedBy === currentUserId)), [restaurants, currentUserId]);
   const visibleRestaurants = useMemo(() => {
-    const origin = position;
+    const origin = devicePosition;
     if (!origin) return eligibleRestaurants;
     return eligibleRestaurants.map((restaurant) => ({
       ...restaurant,
       distanceKm: hasCoordinates(restaurant.coordinates) ? distanceKm(origin, restaurant.coordinates) : Number.POSITIVE_INFINITY,
     }));
-  }, [eligibleRestaurants, params.distance, params.nearby, position]);
+  }, [devicePosition, eligibleRestaurants]);
+  const regionRestaurants = useMemo(() => {
+    if (params.city || mode !== "manual" || !manualRegion) return visibleRestaurants;
+    return visibleRestaurants.filter((restaurant) => normalize(restaurant.city) === normalize(manualRegion.city) && (!manualRegion.countryCode || !restaurant.countryCode || manualRegion.countryCode.toUpperCase() === restaurant.countryCode.toUpperCase()));
+  }, [manualRegion, mode, params.city, visibleRestaurants]);
 
   const results = useMemo(
     () => filterRestaurants(
-      visibleRestaurants,
-      position || (!params.nearby && !params.distance)
+      regionRestaurants,
+      devicePosition || (!params.nearby && !params.distance)
         ? params
         : Object.fromEntries(Object.entries(params).filter(([key]) => key !== "nearby" && key !== "distance")),
       lists,
       currentUserId,
       reviews,
     ),
-    [visibleRestaurants, params, position, lists, currentUserId, reviews],
+    [regionRestaurants, params, devicePosition, lists, currentUserId, reviews],
   );
   const friendIds = useMemo(
     () => getFriendIds(follows, currentUserId ?? ""),
@@ -140,14 +131,15 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10">
       <h1 className="text-3xl font-black">Explorar lugares</h1>
-      <p className="mt-1 text-sm text-stone-500">Vila da Serra, Belo Horizonte e Nova Lima</p>
+      <ExploreLocationPicker className="mt-1" onManualSelected={clearLocationFilters} onDeviceSelected={() => { clearLocationFilters(); setParam("nearby", "true"); }} onExploreAll={clearLocationFilters} />
+      <p className="mt-1 text-sm text-stone-500">{mode === "all" ? "Explore o catálogo sem uma região definida." : mode === "manual" ? "Resultados da região selecionada." : "Distâncias calculadas a partir da sua localização atual."}</p>
       <div className="mt-5">
         <SearchBar value={params.q ?? ""} onChange={(value) => setParam("q", value || undefined)} placeholder="Restaurante, comida, bairro ou chef" />
       </div>
       {aiSearchEnabled && <div className="mt-5"><AiSearchPanel restaurants={eligibleRestaurants} /></div>}
       <div className="mt-4 flex touch-auto gap-2 overflow-x-auto pb-2">
         {quick.map(([key, value, label]) => (
-          <FilterChip key={label} label={label} active={params[key] === value} onClick={() => key === "nearby" ? (params.nearby ? setParam("nearby") : requestNearby()) : setParam(key, params[key] === value ? undefined : value)} />
+          <FilterChip key={label} label={label} active={params[key] === value} onClick={() => key === "nearby" ? (params.nearby ? setParam("nearby") : void requestNearby()) : setParam(key, params[key] === value ? undefined : value)} />
         ))}
       </div>
       <div className="mt-4 flex items-center justify-between">
@@ -171,10 +163,10 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
         <div className="mt-4"><MapView key={results.map((restaurant) => restaurant.id).join(",")} restaurants={results} /></div>
       ) : results.length ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={`${restaurant.distanceKm} km`} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}
+          {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={Number.isFinite(restaurant.distanceKm) ? `${restaurant.distanceKm} km` : undefined} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}
         </div>
       ) : (
-        <div className="mt-5"><EmptyState title="Nenhum lugar encontrado" message={params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={params.q ? "Encontrar este lugar" : undefined} actionHref={params.q ? `/restaurant/new?name=${encodeURIComponent(params.q)}` : undefined} /></div>
+        <div className="mt-5"><EmptyState title={mode === "manual" && !params.city ? "Ainda não temos lugares nesta região" : "Nenhum lugar encontrado"} message={mode === "manual" && !params.city ? "Tente outra região ou explore o catálogo completo." : params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={mode === "manual" && !params.city ? "Explorar todo o catálogo" : params.q ? "Encontrar este lugar" : undefined} actionHref={mode === "manual" && !params.city ? undefined : params.q ? `/restaurant/new?name=${encodeURIComponent(params.q)}` : undefined} onAction={mode === "manual" && !params.city ? () => { exploreAll(); clearLocationFilters(); } : undefined} /></div>
       )}
     </div>
   );

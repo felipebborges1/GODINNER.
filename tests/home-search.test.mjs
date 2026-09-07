@@ -4,8 +4,8 @@ import test from "node:test";
 
 test("home search reuses the shared restaurant matcher and remains on Discover", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /import \{ filterRestaurants \} from "@\/lib\/search"/);
-  assert.match(page, /filterRestaurants\(eligibleRestaurants, \{ q: searchQuery \}/);
+  assert.match(page, /import \{ filterRestaurants, normalize \} from "@\/lib\/search"/);
+  assert.match(page, /filterRestaurants\(scoped, \{ q: searchQuery \}/);
   assert.match(page, /<SearchBar value=\{searchQuery\}/);
   assert.doesNotMatch(page, /SearchBar navigateOnFocus/);
 });
