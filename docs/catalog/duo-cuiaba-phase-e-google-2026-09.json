@@ -1,0 +1,83 @@
+{
+  "at": "2026-09-07T22:06:07.676Z",
+  "batch": "duo-cuiaba-2026-09",
+  "method": "Five exact Place Details; server GOOGLE_PLACES_API_KEY only; no discovery/rematching, photos downloaded or OpenAI calls.",
+  "calls": 5,
+  "samples": [
+    {
+      "sourceId": 1,
+      "name": "Açaí do Mato",
+      "placeId": "ChIJoddasdOxnZMRG7WJXgD9cp8",
+      "googleName": "Açaí do Mato",
+      "address": "R. João Bento, 1349 - Duque de Caxias, Cuiabá - MT, 78043-394, Brazil",
+      "addressUnchanged": false,
+      "identityUnchanged": true,
+      "cityCuiaba": true,
+      "businessStatus": "OPERATIONAL",
+      "hasPhoto": true,
+      "addressIdentityPass": true,
+      "addressDifference": "Google response adds country suffix Brazil; street, number, neighborhood, city and postal code unchanged.",
+      "googleNameUnchanged": true
+    },
+    {
+      "sourceId": 4,
+      "name": "Bom Beef Burgers (Goiabeiras)",
+      "placeId": "ChIJB91dDmixnZMRU9l5uYBNU7E",
+      "googleName": "Bom Beef Burgers Goiabeiras",
+      "address": "Av. Jose Monteiro de Figueiredo, 848 - Duque de Caxias, Cuiabá - MT, 78043-300, Brazil",
+      "addressUnchanged": false,
+      "identityUnchanged": true,
+      "cityCuiaba": true,
+      "businessStatus": "OPERATIONAL",
+      "hasPhoto": true,
+      "addressIdentityPass": true,
+      "addressDifference": "Google response adds country suffix Brazil; street, number, neighborhood, city and postal code unchanged.",
+      "googleNameUnchanged": true
+    },
+    {
+      "sourceId": 5,
+      "name": "Bom Beef Burgers (Shopping 3 Américas)",
+      "placeId": "ChIJxwdKHgCxnZMRW4dgweRitKc",
+      "googleName": "Bom Beef Burgers Jardim das Américas",
+      "address": "Av. Brasília, 178 - Jardim das Américas, Cuiabá - MT, 78060-601, Brazil",
+      "addressUnchanged": false,
+      "identityUnchanged": true,
+      "cityCuiaba": true,
+      "businessStatus": "OPERATIONAL",
+      "hasPhoto": true,
+      "addressIdentityPass": true,
+      "addressDifference": "Google response adds country suffix Brazil; street, number, neighborhood, city and postal code unchanged.",
+      "googleNameUnchanged": true
+    },
+    {
+      "sourceId": 9,
+      "name": "Cozinha dos Fundos (Jardim das Américas)",
+      "placeId": "ChIJvy-07CewnZMRc2qQbv-XuYE",
+      "googleName": "Cozinha Dos Fundos",
+      "address": "Av. Haiti, 500 - Jardim das Américas, Cuiabá - MT, 78060-618, Brazil",
+      "addressUnchanged": false,
+      "identityUnchanged": true,
+      "cityCuiaba": true,
+      "businessStatus": "OPERATIONAL",
+      "hasPhoto": true,
+      "addressIdentityPass": true,
+      "addressDifference": "Google response adds country suffix Brazil; street, number, neighborhood, city and postal code unchanged.",
+      "googleNameUnchanged": true
+    },
+    {
+      "sourceId": 10,
+      "name": "Cozinha dos Fundos (Pantanal Shopping)",
+      "placeId": "ChIJfdC2wVyxnZMRZUcXCtM1Fi0",
+      "googleName": "Cozinha dos Fundos - Pantanal Shopping",
+      "address": "Av. Historiador Rubens de Mendonça, 3300 - Jardim Aclimacao, Cuiabá - MT, 78020-250, Brazil",
+      "addressUnchanged": false,
+      "identityUnchanged": true,
+      "cityCuiaba": true,
+      "businessStatus": "OPERATIONAL",
+      "hasPhoto": true,
+      "addressIdentityPass": true,
+      "addressDifference": "Google response adds country suffix Brazil; street, number, neighborhood, city and postal code unchanged.",
+      "googleNameUnchanged": true
+    }
+  ]
+}

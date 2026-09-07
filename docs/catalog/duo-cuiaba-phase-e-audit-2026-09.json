@@ -1,0 +1,172 @@
+{
+  "at": "2026-09-07T22:12:03.679Z",
+  "batch": "duo-cuiaba-2026-09",
+  "sqlSource": "Authenticated SQL Editor, gzypncrwvzatzzhtehjs, query 797692d1-9630-4a5f-98ef-385fe390be0c; BEGIN TRANSACTION READ ONLY; SELECTs; ROLLBACK",
+  "session": "postgres read_only=on",
+  "activity": {
+    "restaurants": 0,
+    "ids": [],
+    "reviews": 0,
+    "lists": 0,
+    "notifications": 0,
+    "merges": 0
+  },
+  "batchCounts": {
+    "exists": 22,
+    "published": 22,
+    "duo": 22,
+    "checked_at": 22,
+    "placeIds": 22,
+    "uniquePlaces": 22,
+    "uniqueSlugs": 22
+  },
+  "allStatusDuplicates": {
+    "placeIdGroups": 0,
+    "slugGroups": 0
+  },
+  "directDependencies": [
+    "restaurants.merged_into_id",
+    "reviews.restaurant_id",
+    "restaurant_list_items.restaurant_id",
+    "notifications.restaurant_id"
+  ],
+  "socialProtection": "Review descendants include likes/comments/photos/mentions. No batch reviews exist. Direct FK and restaurant_id/merged_into_id column discovery found no additional restaurant relations. Arbitrary JSON references are not proven absent; recheck before rollback.",
+  "migrations": {
+    "applied": [
+      "20260813000000",
+      "20260813000001",
+      "20260814000000",
+      "20260817000000",
+      "20260817183000",
+      "20260820000000",
+      "20260821000000",
+      "20260821000001",
+      "20260821000002",
+      "20260821000003",
+      "20260821000004",
+      "20260824000000",
+      "20260824000001",
+      "20260825000000",
+      "20260825000001",
+      "20260825000002",
+      "20260825000003",
+      "20260825000004",
+      "20260825000005",
+      "20260827000000",
+      "20260827000001",
+      "20260828000000",
+      "20260831000000",
+      "20260831000001",
+      "20260901000000",
+      "20260903000000",
+      "20260903150000",
+      "20260903160000",
+      "20260903170000"
+    ],
+    "local": [
+      "20260813000000",
+      "20260813000001",
+      "20260814000000",
+      "20260817000000",
+      "20260817183000",
+      "20260820000000",
+      "20260821000000",
+      "20260821000001",
+      "20260821000002",
+      "20260821000003",
+      "20260821000004",
+      "20260824000000",
+      "20260824000001",
+      "20260825000000",
+      "20260825000001",
+      "20260825000002",
+      "20260825000003",
+      "20260825000004",
+      "20260825000005",
+      "20260827000000",
+      "20260827000001",
+      "20260828000000",
+      "20260831000000",
+      "20260831000001",
+      "20260901000000",
+      "20260903000000",
+      "20260903150000",
+      "20260903160000",
+      "20260903170000"
+    ],
+    "pendingLocal": [],
+    "appliedNotLocal": []
+  },
+  "trace": [
+    {
+      "file": "duo-cuiaba-discovery-2026-09.md",
+      "exists": true,
+      "sha256": "c5862f22b87df19c4df649676b8b9a2340f84c7ec6960978560c49adbb669ce5"
+    },
+    {
+      "file": "duo-cuiaba-google-matching-2026-09.md",
+      "exists": true,
+      "sha256": "de4d6d8912353d8510262d23ad8aa7c47fa322e1cc08bd106818ef7a3a7f960f"
+    },
+    {
+      "file": "duo-cuiaba-google-matching-2026-09.json",
+      "exists": true,
+      "sha256": "b96d0a4571e0740a93e7cc80d843da7b26767868c487f7272a91cee6426bfa11"
+    },
+    {
+      "file": "duo-cuiaba-pre-import-2026-09.md",
+      "exists": true,
+      "sha256": "96c037c97420d2d41532b00d28e4780d69ace7205fbd10bfa70e4de88679901d"
+    },
+    {
+      "file": "duo-cuiaba-batch-2026-09-rev2.json",
+      "exists": true,
+      "sha256": "ee42c25bf00312ae28994f4d09451ca0e8d964033806edb59d79adedc4bcf0b5"
+    },
+    {
+      "file": "duo-cuiaba-phase-d-receipt-2026-09.json",
+      "exists": true,
+      "sha256": "80a5f6fb66df6247822e8437b09816132d05ea9ca2503e94ba3e1503da59b9fd"
+    },
+    {
+      "file": "duo-cuiaba-phase-d-report-2026-09.md",
+      "exists": true,
+      "sha256": "aeb352fc89cb451aebdf8f8066f4e8a2aa6286a153a97717d79aa8a899f830e2"
+    },
+    {
+      "file": "city-discovery-check-2026-09.md",
+      "exists": true,
+      "sha256": "39a56292ce6a34c67f28f6115fecf38c306b5c1447c49054cf7537455d9ad16c"
+    },
+    {
+      "file": "individual-restaurant-profile-check-2026-09.md",
+      "exists": true,
+      "sha256": "fef3f8b73c3365829c850ae1d2f3bffb56d22aa893311ef6cdf7562c82e02e56"
+    }
+  ],
+  "phaseAManifestHashMatches": true,
+  "release": {
+    "production": "5b07f8872a91878df34ad254f777a60fda4078ef",
+    "productionDeployment": "dpl_5twFaeNBEgyL4Tr2SfcVs44eZehU",
+    "remoteMaster": "5b07f8872a91878df34ad254f777a60fda4078ef",
+    "targetCode": "a278fd5c9fc81ea3ab196bc9d56712ef1a9c0a7c",
+    "auditedHead": "2ced81297c5170fdee00593a93876eb1c7588731",
+    "expectedRuntimeCommits": [
+      "7da5841",
+      "dc7e8d4",
+      "a278fd5"
+    ],
+    "unexpectedCommits": [],
+    "unrelatedLatestProjectPreview": "codex/location-ux-l1 @ 5625a43; not in catalog branch and not authorized release target"
+  },
+  "quality": {
+    "typescript": "PASS",
+    "build": "PASS",
+    "tests": 114,
+    "lint": "FAIL: tests/city-discovery.test.mjs:99 @next/next/no-assign-module-variable",
+    "warnings": 3,
+    "diffCheck": "PASS"
+  },
+  "phaseE": "BLOCKED",
+  "readyForPhaseF": false
+}
