@@ -20,6 +20,7 @@ import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { ExploreLocationPicker } from "@/components/location/explore-location-picker";
+import { LocationSearchNudge } from "@/components/location/location-search-nudge";
 import { useExploreLocation } from "@/hooks/use-explore-location";
 import { normalize } from "@/lib/search";
 
@@ -45,7 +46,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   const searchParams = useSearchParams();
   const { lists, currentUserId, reviews, restaurants, follows, isLoading, dataError, retryData } = useAppContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const { mode, manualRegion, devicePosition, requestDeviceLocation, exploreAll } = useExploreLocation();
+  const { mode, manualRegion, devicePosition, requestDeviceLocation, exploreAll, showLocationNudge } = useExploreLocation();
   const { showToast } = useToast();
   const params = Object.fromEntries(searchParams.entries());
   const pendingParams = useRef(searchParams.toString());
@@ -131,11 +132,12 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10">
       <h1 className="text-3xl font-black">Explorar lugares</h1>
-      <ExploreLocationPicker className="mt-1" onManualSelected={clearLocationFilters} onDeviceSelected={() => { clearLocationFilters(); setParam("nearby", "true"); }} onExploreAll={clearLocationFilters} />
-      <p className="mt-1 text-sm text-stone-500">{mode === "all" ? "Explore o catálogo sem uma região definida." : mode === "manual" ? "Resultados da região selecionada." : "Distâncias calculadas a partir da sua localização atual."}</p>
       <div className="mt-5">
-        <SearchBar value={params.q ?? ""} onChange={(value) => setParam("q", value || undefined)} placeholder="Restaurante, comida, bairro ou chef" />
+        <SearchBar value={params.q ?? ""} onChange={(value) => setParam("q", value || undefined)} onFocus={showLocationNudge} placeholder="Restaurante, comida, bairro ou chef" />
+        <div className="mt-1"><ExploreLocationPicker onManualSelected={clearLocationFilters} onDeviceSelected={() => { clearLocationFilters(); setParam("nearby", "true"); }} onExploreAll={clearLocationFilters} /></div>
+        <LocationSearchNudge onDeviceSelected={() => { clearLocationFilters(); setParam("nearby", "true"); }} />
       </div>
+      <p className="mt-1 text-sm text-stone-500">{mode === "all" ? "Explore o catálogo sem uma região definida." : mode === "manual" ? "Resultados da região selecionada." : "Distâncias calculadas a partir da sua localização atual."}</p>
       {aiSearchEnabled && <div className="mt-5"><AiSearchPanel restaurants={eligibleRestaurants} /></div>}
       <div className="mt-4 flex touch-auto gap-2 overflow-x-auto pb-2">
         {quick.map(([key, value, label]) => (

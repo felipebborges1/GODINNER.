@@ -39,3 +39,22 @@ test("manual region selection remains structured and uses the existing server-si
   assert.match(picker, /searchPlaces\(`/);
   assert.doesNotMatch(picker, /NEXT_PUBLIC_GOOGLE_PLACES_API_KEY/);
 });
+
+test("L1.1 keeps search optional while sharing a discreet one-session location invitation", async () => {
+  const context = await readFile(new URL("../context/explore-location-context.tsx", import.meta.url), "utf8");
+  const nudge = await readFile(new URL("../components/location/location-search-nudge.tsx", import.meta.url), "utf8");
+  const discover = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const search = await readFile(new URL("../components/search/search-explorer.tsx", import.meta.url), "utf8");
+  assert.match(context, /navigator\.permissions\?\.query/);
+  assert.match(context, /permission\.state === "granted"/);
+  assert.match(context, /godinner\.location-nudge\.dismissed\.v1/);
+  assert.match(context, /godinner\.explore-region\.all\.v1/);
+  assert.match(context, /label = mode === "device" \? "Perto de mim"/);
+  assert.match(context, /"Todas as regiões"/);
+  assert.match(nudge, /Quer encontrar lugares perto de você\?/);
+  assert.match(nudge, /Agora não/);
+  assert.match(discover, /Onde vamos hoje\?/);
+  assert.match(discover, /LocationSearchNudge/);
+  assert.match(search, /LocationSearchNudge/);
+  assert.doesNotMatch(context, /watchPosition/);
+});
