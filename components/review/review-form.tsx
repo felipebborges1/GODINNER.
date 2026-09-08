@@ -14,6 +14,16 @@ import { RatingInput } from "./rating-input";
 import { ReviewSuccess } from "./review-success";
 
 const today = () => new Date().toISOString().slice(0, 10);
+const loginDraftKey = (restaurantId: string) => `godinner.review.login-draft.v1.${restaurantId}`;
+
+type LoginDraft = {
+  foodRating: number | null;
+  serviceRating: number | null;
+  ambienceRating: number | null;
+  comment: string;
+  amount: string;
+  visitDate: string;
+};
 
 export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
   const { currentUserId, publishReview, claimRecommendationUnlock, showToast } = useAppContext();
@@ -36,14 +46,34 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
   const photosRef = useRef<RestaurantPhoto[]>([]);
   const derivedScore = useMemo(() => getDimensionalReviewScore(foodRating, serviceRating, ambienceRating), [foodRating, serviceRating, ambienceRating]);
   const currency = getCurrencyForCountry(restaurant.countryCode);
+  useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem(loginDraftKey(restaurant.id));
+      if (!saved) return;
+      const draft = JSON.parse(saved) as Partial<LoginDraft>;
+      if (typeof draft.foodRating === "number" || draft.foodRating === null) setFoodRating(draft.foodRating ?? null);
+      if (typeof draft.serviceRating === "number" || draft.serviceRating === null) setServiceRating(draft.serviceRating ?? null);
+      if (typeof draft.ambienceRating === "number" || draft.ambienceRating === null) setAmbienceRating(draft.ambienceRating ?? null);
+      if (typeof draft.comment === "string") setComment(draft.comment);
+      if (typeof draft.amount === "string") setAmount(draft.amount);
+      if (typeof draft.visitDate === "string") setVisitDate(draft.visitDate);
+      window.sessionStorage.removeItem(loginDraftKey(restaurant.id));
+    } catch {
+      window.sessionStorage.removeItem(loginDraftKey(restaurant.id));
+    }
+  }, [restaurant.id]);
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => { trackEvent("review_started", { restaurantId: restaurant.id }); }, [restaurant.id]);
   useEffect(() => () => { if (!submitted.current) photosRef.current.forEach((photo) => { if (photo.url.startsWith("blob:")) URL.revokeObjectURL(photo.url); }); }, []);
   if (published) return <ReviewSuccess review={published} restaurant={restaurant} recommendationsUnlocked={recommendationsUnlocked} claimRecommendationUnlock={claimRecommendationUnlock}/>;
+  const saveLoginDraft = () => {
+    const draft: LoginDraft = { foodRating, serviceRating, ambienceRating, comment, amount, visitDate };
+    window.sessionStorage.setItem(loginDraftKey(restaurant.id), JSON.stringify(draft));
+  };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
-    if (!currentUserId) { setLoginOpen(true); return; }
+    if (!currentUserId) { saveLoginDraft(); setLoginOpen(true); return; }
     if (!isDimensionRating(foodRating) || !isDimensionRating(serviceRating) || !isDimensionRating(ambienceRating)) nextErrors.rating = "Avalie comida, serviço e ambiente de 1 a 5 estrelas.";
     if (!comment.trim()) nextErrors.comment = "Conte um pouco sobre sua experiência.";
     if (visitDate > today()) nextErrors.visitDate = "A data da visita não pode estar no futuro.";
@@ -54,6 +84,7 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
     const publishedReview = await publishReview({ restaurantId: restaurant.id, foodRating: foodRating as number, serviceRating: serviceRating as number, ambienceRating: ambienceRating as number, comment: comment.trim(), photos, amountPerPerson: amount ? Number(amount) : undefined, visitDate, publicationKey: publicationKey.current });
     if (!publishedReview) { setErrors({ publish: "Não conseguimos publicar sua experiência. Tente novamente." }); return; }
     submitted.current = true;
+    window.sessionStorage.removeItem(loginDraftKey(restaurant.id));
     setPublished(publishedReview.review);
     setRecommendationsUnlocked(publishedReview.recommendationsUnlocked);
     trackEvent("review_published", { restaurantId: restaurant.id, hasPhoto: photos.length > 0, food_rating: foodRating ?? undefined, service_rating: serviceRating ?? undefined, ambience_rating: ambienceRating ?? undefined, derived_rating: derivedScore ?? undefined, rating_method: "dimensions" });
