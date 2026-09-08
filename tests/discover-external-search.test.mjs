@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("Discover keeps catalog search first and exposes Google only after an explicit action", async () => {
+test("Discover keeps catalog search first, resolves city intent, and automatically complements an empty scoped catalog", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /filterRestaurants\(scoped, \{ q: searchQuery \}/);
+  assert.match(page, /resolveSearchGeography/);
+  assert.match(page, /homeSearchLocalResults/);
+  assert.match(page, /homeSearchOtherRegionResults/);
   assert.match(page, /discover_search_no_results/);
-  assert.match(page, /Buscar “\{searchQuery\.trim\(\)\}” no Google/);
-  assert.match(page, /Buscar outros restaurantes/);
+  assert.match(page, /window\.setTimeout/);
+  assert.match(page, /Lugares encontrados/);
+  assert.match(page, /Buscar mais lugares/);
   assert.match(page, /onClick=\{searchOutsideCatalog\}/);
   assert.match(page, /const searchOutsideCatalog = \(\) =>/);
   assert.match(page, /onClick=\{searchOutsideCatalog\}/);
@@ -16,7 +19,8 @@ test("Discover keeps catalog search first and exposes Google only after an expli
 test("Discover external fallback preserves the query without prompting for location and keeps Google results attributed", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(page, /searchExternalPlaces\(query, locationBias\)/);
-  assert.match(page, /void runExternalSearch\(query, attempt, devicePosition \?\? undefined\)/);
+  assert.match(page, /googleQueryForReview/);
+  assert.match(page, /queryIncludesExplicitPlaceContext/);
   assert.doesNotMatch(page, /navigator\.geolocation\.getCurrentPosition/);
   assert.match(page, /Dados fornecidos pelo Google/);
   assert.match(page, /Encontrado via Google/);

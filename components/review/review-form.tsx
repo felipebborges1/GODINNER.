@@ -51,12 +51,14 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
       const saved = window.sessionStorage.getItem(loginDraftKey(restaurant.id));
       if (!saved) return;
       const draft = JSON.parse(saved) as Partial<LoginDraft>;
-      if (typeof draft.foodRating === "number" || draft.foodRating === null) setFoodRating(draft.foodRating ?? null);
-      if (typeof draft.serviceRating === "number" || draft.serviceRating === null) setServiceRating(draft.serviceRating ?? null);
-      if (typeof draft.ambienceRating === "number" || draft.ambienceRating === null) setAmbienceRating(draft.ambienceRating ?? null);
-      if (typeof draft.comment === "string") setComment(draft.comment);
-      if (typeof draft.amount === "string") setAmount(draft.amount);
-      if (typeof draft.visitDate === "string") setVisitDate(draft.visitDate);
+      queueMicrotask(() => {
+        if (typeof draft.foodRating === "number" || draft.foodRating === null) setFoodRating(draft.foodRating ?? null);
+        if (typeof draft.serviceRating === "number" || draft.serviceRating === null) setServiceRating(draft.serviceRating ?? null);
+        if (typeof draft.ambienceRating === "number" || draft.ambienceRating === null) setAmbienceRating(draft.ambienceRating ?? null);
+        if (typeof draft.comment === "string") setComment(draft.comment);
+        if (typeof draft.amount === "string") setAmount(draft.amount);
+        if (typeof draft.visitDate === "string") setVisitDate(draft.visitDate);
+      });
       window.sessionStorage.removeItem(loginDraftKey(restaurant.id));
     } catch {
       window.sessionStorage.removeItem(loginDraftKey(restaurant.id));

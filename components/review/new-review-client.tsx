@@ -11,7 +11,6 @@ import { RestaurantSelector } from "./restaurant-selector";
 import { ReviewForm } from "./review-form";
 
 const selectedGooglePlaceStorageKey = "godinner.review.google-place.v1";
-const manualPlaceQueryStorageKey = "godinner.review.manual-place-query.v1";
 
 function storablePlace(place: GooglePlaceCandidate): GooglePlaceCandidate {
   // A restaurant Place ID is sufficient for the server-side preparation step.
@@ -47,22 +46,17 @@ export function NewReviewClient() {
   const preset = restaurants.find((restaurant) => restaurant.slug === params.get("restaurant"));
   const [selected, setSelected] = useState<Restaurant | null>(preset ?? null);
   const [selectedExternal, setSelectedExternal] = useState<GooglePlaceCandidate | null>(null);
-  const [manualQuery, setManualQuery] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [resumeAfterLogin, setResumeAfterLogin] = useState<"google-place" | "manual-place">("google-place");
+  const [resumeAfterLogin, setResumeAfterLogin] = useState<"google-place">("google-place");
 
   useEffect(() => {
     const resume = params.get("resume");
-    if (resume !== "google-place" && resume !== "manual-place") return;
+    if (resume !== "google-place") return;
     router.replace("/review/new");
     if (resume === "google-place") {
       const saved = restoredPlace(window.sessionStorage.getItem(selectedGooglePlaceStorageKey));
       window.sessionStorage.removeItem(selectedGooglePlaceStorageKey);
-      if (saved) setSelectedExternal(saved);
-    } else {
-      const savedQuery = window.sessionStorage.getItem(manualPlaceQueryStorageKey);
-      window.sessionStorage.removeItem(manualPlaceQueryStorageKey);
-      if (savedQuery) setManualQuery(savedQuery);
+      if (saved) queueMicrotask(() => setSelectedExternal(saved));
     }
   }, [params, router]);
 
@@ -81,29 +75,17 @@ export function NewReviewClient() {
     setSelectedExternal(place);
   };
 
-  const selectManualFallback = (query: string) => {
-    if (!currentUserId) {
-      window.sessionStorage.setItem(manualPlaceQueryStorageKey, query);
-      setResumeAfterLogin("manual-place");
-      setLoginOpen(true);
-      return;
-    }
-    setManualQuery(query);
-  };
-
   const returnToSelector = () => {
     setSelected(null);
     setSelectedExternal(null);
-    setManualQuery(null);
     router.replace("/review/new");
   };
 
   if (selected) return <ReviewForm restaurant={selected}/>;
   if (selectedExternal) return <NewRestaurantClient initialPlace={selectedExternal} onBack={returnToSelector}/>;
-  if (manualQuery !== null) return <NewRestaurantClient initialQuery={manualQuery} startManual onBack={returnToSelector}/>;
 
   return <>
-    <RestaurantSelector onSelect={selectExisting} onSelectExternal={selectExternal} onManualFallback={selectManualFallback}/>
+    <RestaurantSelector onSelect={selectExisting} onSelectExternal={selectExternal}/>
     <LoginWall open={loginOpen} onClose={() => setLoginOpen(false)} next={`/review/new?resume=${resumeAfterLogin}`}/>
   </>;
 }

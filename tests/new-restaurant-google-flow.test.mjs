@@ -40,7 +40,7 @@ test("new restaurant review flow keeps Google discovery, nearby search, map and 
   assert.match(component, /Permissão de localização negada|Não conseguimos acessar sua localização/);
 });
 
-test("public restaurant creation entry points lead with the unified evaluation journey and preserve manual fallback", async () => {
+test("public restaurant creation entry points lead with the unified evaluation journey without a manual-result CTA", async () => {
   const [desktopHeader, bottomNavigation, searchExplorer, selector, fallback] = await Promise.all([
     readFile(new URL("../components/layout/desktop-header.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/layout/bottom-navigation.tsx", import.meta.url), "utf8"),
@@ -52,11 +52,11 @@ test("public restaurant creation entry points lead with the unified evaluation j
   assert.match(desktopHeader, /href="\/review\/new"[^>]*><Plus size=\{16\}\/>Avaliar/);
   assert.doesNotMatch(desktopHeader, /<Plus size=\{16\}\/>Registrar/);
   assert.match(bottomNavigation, /href="\/review\/new" aria-label="Avaliar experiência"/);
-  assert.match(searchExplorer, /params\.q \? "Encontrar este lugar" : undefined/);
+  assert.match(searchExplorer, /Lugares encontrados/);
   assert.match(selector, /Qual lugar você quer avaliar\?/);
   assert.match(selector, /Buscar mais lugares/);
-  assert.match(selector, /Informar os dados do lugar/);
-  assert.match(selector, /onManualFallback/);
+  assert.doesNotMatch(selector, /Informar os dados do lugar/);
+  assert.doesNotMatch(selector, /onManualFallback/);
   assert.match(fallback, /Preencher manualmente/);
 });
 
