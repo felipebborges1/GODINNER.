@@ -53,6 +53,10 @@ test("public restaurant creation entry points lead with the unified evaluation j
   assert.doesNotMatch(desktopHeader, /<Plus size=\{16\}\/>Registrar/);
   assert.match(bottomNavigation, /href="\/review\/new" aria-label="Avaliar experiência"/);
   assert.match(searchExplorer, /Lugares encontrados/);
+  assert.match(searchExplorer, /Encontramos opções no Google logo abaixo\./);
+  assert.match(searchExplorer, /Ver opções do Google/);
+  assert.match(searchExplorer, /scrollIntoView\(\{ behavior: "smooth", block: "start" \}\)/);
+  assert.match(searchExplorer, /id="google-place-results"/);
   assert.match(selector, /Qual lugar você quer avaliar\?/);
   assert.match(selector, /Buscar mais lugares/);
   assert.doesNotMatch(selector, /Informar os dados do lugar/);
