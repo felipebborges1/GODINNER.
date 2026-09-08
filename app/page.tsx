@@ -22,10 +22,12 @@ import { useGooglePlaceSearch } from "@/hooks/use-google-place-search";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { DeferredContent } from "@/components/ui/deferred-content";
+import { ZeroCoverageState } from "@/components/discover/zero-coverage-state";
 import { trackEvent } from "@/lib/analytics";
 import { generateRecommendations } from "@/lib/recommendations/engine";
 import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { useExploreLocation } from "@/hooks/use-explore-location";
+import { useCatalogCoverage } from "@/hooks/use-catalog-coverage";
 import type { GooglePlaceCandidate } from "@/lib/google-place-types";
 import { resolveSearchGeography, searchCityLabel, type SearchCity } from "@/lib/search-geography";
 import { googleQueryForReview, queryIncludesExplicitPlaceContext } from "@/lib/review/place-search";
@@ -71,7 +73,7 @@ export default function DiscoverPage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const externalSearchAttempt = useRef(0);
   const selectedPlaceConfirmationRef = useRef<HTMLDivElement>(null);
-  const { mode, manualRegion, devicePosition, requestStatus, showLocationNudge } = useExploreLocation();
+  const { mode, manualRegion, devicePosition, deviceRegion, requestStatus, showLocationNudge } = useExploreLocation();
   const { currentUserId, follows, lists, restaurants, reviews, reviewSocial, users, isLoading, dataError, retryData } = useAppContext();
   const { places: externalPlaces, isLoading: isExternalLoading, error: externalError, searchPlaces: searchExternalPlaces, clear: clearExternalSearch } = useGooglePlaceSearch();
   const resetExternalSearch = () => {
@@ -82,6 +84,8 @@ export default function DiscoverPage() {
   };
   useEffect(() => { trackEvent("discover_viewed"); }, []);
   const publishedRestaurants = useMemo(() => restaurants.filter((restaurant) => restaurant.status === "published"), [restaurants]);
+  const deviceRegionPublishedCount = useMemo(() => deviceRegion ? publishedRestaurants.filter((restaurant) => isInManualRegion(restaurant.city, restaurant.countryCode, deviceRegion)).length : null, [deviceRegion, publishedRestaurants]);
+  const coverage = useCatalogCoverage({ mode, region: deviceRegion, fallbackPublishedCount: deviceRegionPublishedCount, catalogReady: !isLoading });
   // General discovery deliberately keeps the catalog order already used by the Home; L2 adds no ranking rule.
   const generalDiscovery = useMemo(() => publishedRestaurants.slice(0, 6), [publishedRestaurants]);
   const localDiscovery = useMemo(() => mode === "device" && devicePosition
@@ -194,7 +198,7 @@ export default function DiscoverPage() {
     {currentUserId && recommendations && <RecommendationSection result={recommendations}/>}
     <DeferredContent label="Carregando experiências de amigos"><section className="mt-10"><div className="mb-4 flex items-center justify-between gap-4"><h2 className="min-w-0 flex-1 text-xl font-black leading-tight tracking-tight sm:text-2xl">Seus amigos estão conhecendo</h2><Link href="/feed" className="inline-flex min-h-11 shrink-0 items-center text-sm font-bold text-stone-700">Ver mais</Link></div><div className="-mx-4 flex touch-auto snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">{friendActivities.map((review) => { const user = users.find((item) => item.id === review.userId); const restaurant = restaurants.find((item) => item.id === review.restaurantId); return user && restaurant ? <FriendActivityCard key={review.id} user={user} restaurant={restaurant} review={review}/> : null; })}</div></section></DeferredContent>
 
-    <DeferredContent label="Carregando lugares para explorar">{requestStatus === "requesting" ? <section className="mt-10" aria-label="Encontrando lugares perto de você"><h2 className="text-xl font-black tracking-tight sm:text-2xl">Encontrando lugares perto de você</h2><LoadingSkeleton className="mt-4 h-72 w-[82vw] max-w-80 sm:w-72"/></section> : !publishedRestaurants.length ? <section className="mt-10"><EmptyState title="Ainda não há lugares publicados" message="Quando novas experiências forem adicionadas, elas aparecerão aqui."/></section> : <DiscoverSection title={useGeneralFallback || mode === "all" ? "Explore no GODINNER" : mode === "device" ? "Perto de você" : `Em ${manualRegion?.city}`} description={useGeneralFallback ? "Explore lugares em outras cidades" : undefined} href={useGeneralFallback || mode === "all" ? "/search?scope=all" : "/search"} restaurants={primaryDiscovery} distances={mode === "device" && !useGeneralFallback ? localDiscovery.map((restaurant) => `${restaurant.distanceKm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`) : undefined} friendCounts={friendCounts} prioritizeFirst showCatalogLocation={useGeneralFallback || mode === "all"}/>}</DeferredContent>
+    <DeferredContent label="Carregando lugares para explorar">{requestStatus === "requesting" ? <section className="mt-10" aria-label="Encontrando lugares perto de você"><h2 className="text-xl font-black tracking-tight sm:text-2xl">Encontrando lugares perto de você</h2><LoadingSkeleton className="mt-4 h-72 w-[82vw] max-w-80 sm:w-72"/></section> : coverage.isZeroCoverage && deviceRegion ? <ZeroCoverageState region={deviceRegion}/> : !publishedRestaurants.length ? <section className="mt-10"><EmptyState title="Ainda não há lugares publicados" message="Quando novas experiências forem adicionadas, elas aparecerão aqui."/></section> : <DiscoverSection title={useGeneralFallback || mode === "all" ? "Explore no GODINNER" : mode === "device" ? "Perto de você" : `Em ${manualRegion?.city}`} description={useGeneralFallback ? "Explore lugares em outras cidades" : undefined} href={useGeneralFallback || mode === "all" ? "/search?scope=all" : "/search"} restaurants={primaryDiscovery} distances={mode === "device" && !useGeneralFallback ? localDiscovery.map((restaurant) => `${restaurant.distanceKm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`) : undefined} friendCounts={friendCounts} prioritizeFirst showCatalogLocation={useGeneralFallback || mode === "all"}/>}</DeferredContent>
     <DeferredContent label="Carregando queridinhos da comunidade"><DiscoverSection title="Queridinhos da comunidade" href="/search?sort=rating&scope=all" restaurants={communityFavorites} friendCounts={friendCounts} showCatalogLocation/></DeferredContent>
     <DeferredContent label="Carregando sugestões para date"><DiscoverSection title="Para um date" href="/search?occasion=date&scope=all" restaurants={datePlaces} friendCounts={friendCounts} showCatalogLocation/></DeferredContent>
     <DeferredContent label="Carregando novos restaurantes"><DiscoverSection title="Novos no GODINNER" href="/search?sort=new&scope=all" restaurants={newPlaces} friendCounts={friendCounts} showCatalogLocation/></DeferredContent>

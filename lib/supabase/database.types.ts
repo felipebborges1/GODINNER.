@@ -20,6 +20,8 @@ export interface Database {
       follows: { Row: FollowRow; Insert: FollowInsert; Update: FollowUpdate; Relationships: [] };
       push_subscriptions: { Row: PushSubscriptionRow; Insert: PushSubscriptionInsert; Update: PushSubscriptionUpdate; Relationships: [] };
       follow_push_events: { Row: FollowPushEventRow; Insert: FollowPushEventInsert; Update: FollowPushEventUpdate; Relationships: [] };
+      catalog_coverage_requests: { Row: CatalogCoverageRequestRow; Insert: CatalogCoverageRequestInsert; Update: CatalogCoverageRequestUpdate; Relationships: [] };
+      catalog_coverage_request_signals: { Row: CatalogCoverageRequestSignalRow; Insert: CatalogCoverageRequestSignalInsert; Update: CatalogCoverageRequestSignalUpdate; Relationships: [] };
     };
     Views: {
       review_social_summaries: { Row: ReviewSocialSummaryRow; Relationships: [] };
@@ -36,6 +38,7 @@ export interface Database {
       mark_notification_read: { Args: { p_notification_id: string }; Returns: boolean };
       mark_all_notifications_read: { Args: Record<string, never>; Returns: number };
       create_review_comment: { Args: { p_review_id: string; p_body: string; p_reply_to_comment_id?: string | null }; Returns: ReviewCommentRow };
+      record_catalog_coverage_signal: { Args: { p_city: string; p_state?: string | null; p_country_code?: string | null; p_session_id?: string | null }; Returns: Array<{ zero_coverage: boolean; coverage_recorded: boolean; coverage_request_id: string | null; signal_recorded: boolean }> };
     };
     Enums: { app_role: AppRole; restaurant_category: RestaurantCategory; restaurant_status: RestaurantStatus; list_type: ListType; price_range: PriceRange };
     CompositeTypes: Record<string, never>;
@@ -83,3 +86,9 @@ export type PushSubscriptionUpdate = Partial<PushSubscriptionInsert>;
 export type FollowPushEventRow = { id: string; follower_id: string; following_id: string; created_at: string; processed_at: string | null; };
 export type FollowPushEventInsert = Omit<FollowPushEventRow, "id" | "created_at"> & { id?: string; created_at?: string; };
 export type FollowPushEventUpdate = Partial<FollowPushEventInsert>;
+export type CatalogCoverageRequestRow = { id: string; city: string; state: string | null; country_code: string; city_key: string; state_key: string; first_detected_at: string; last_detected_at: string; signal_count: number; unique_user_count: number; created_at: string; updated_at: string; };
+export type CatalogCoverageRequestInsert = Omit<CatalogCoverageRequestRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
+export type CatalogCoverageRequestUpdate = Partial<CatalogCoverageRequestInsert>;
+export type CatalogCoverageRequestSignalRow = { coverage_request_id: string; actor_key: string; actor_kind: "user" | "session"; created_at: string; last_detected_at: string; };
+export type CatalogCoverageRequestSignalInsert = Omit<CatalogCoverageRequestSignalRow, "created_at" | "last_detected_at"> & { created_at?: string; last_detected_at?: string };
+export type CatalogCoverageRequestSignalUpdate = Partial<CatalogCoverageRequestSignalInsert>;

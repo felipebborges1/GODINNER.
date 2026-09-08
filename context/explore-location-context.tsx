@@ -7,7 +7,7 @@ import { createLocationRequestCoordinator, type LocationDiagnostic, type Locatio
 export type ExploreLocationMode = "all" | "manual" | "device";
 export type ExploreRegion = { placeId: string; city: string; region?: string; country?: string; countryCode?: string };
 export type LocationRequestStatus = "idle" | "requesting" | "denied" | "unavailable" | "timeout";
-type ExploreLocationContextValue = { mode: ExploreLocationMode; manualRegion: ExploreRegion | null; devicePosition: RestaurantCoordinates | null; requestStatus: LocationRequestStatus; label: string; locationNudgeVisible: boolean; locationDiagnostics: LocationDiagnostic[]; selectManualRegion: (region: ExploreRegion) => void; requestDeviceLocation: (origin?: LocationRequestOrigin) => Promise<boolean>; exploreAll: () => void; showLocationNudge: () => void; dismissLocationNudge: () => void };
+type ExploreLocationContextValue = { mode: ExploreLocationMode; manualRegion: ExploreRegion | null; devicePosition: RestaurantCoordinates | null; deviceRegion: ExploreRegion | null; requestStatus: LocationRequestStatus; label: string; locationNudgeVisible: boolean; locationDiagnostics: LocationDiagnostic[]; selectManualRegion: (region: ExploreRegion) => void; requestDeviceLocation: (origin?: LocationRequestOrigin) => Promise<boolean>; exploreAll: () => void; showLocationNudge: () => void; dismissLocationNudge: () => void };
 
 const storageKey = "godinner.explore-region.v1";
 const allChoiceSessionKey = "godinner.explore-region.all.v1";
@@ -24,6 +24,7 @@ export function ExploreLocationProvider({ children }: { children: React.ReactNod
   const [mode, setMode] = useState<ExploreLocationMode>("all");
   const [manualRegion, setManualRegion] = useState<ExploreRegion | null>(null);
   const [devicePosition, setDevicePosition] = useState<RestaurantCoordinates | null>(null);
+  const [deviceRegion, setDeviceRegion] = useState<ExploreRegion | null>(null);
   const [requestStatus, setRequestStatus] = useState<LocationRequestStatus>("idle");
   const [explicitAll, setExplicitAll] = useState(false);
   const [locationNudgeVisible, setLocationNudgeVisible] = useState(false);
@@ -33,6 +34,7 @@ export function ExploreLocationProvider({ children }: { children: React.ReactNod
   const coordinator = useRef<ReturnType<typeof createLocationRequestCoordinator> | null>(null);
   const visualUpdate = useRef<{ attemptId: string; origin: LocationRequestOrigin; startedAt: number } | null>(null);
   const permissionChecked = useRef(false);
+  const deviceRegionRequest = useRef(0);
 
   const recordDiagnostic = useCallback((diagnostic: LocationDiagnostic) => {
     if (!diagnosticsEnabled.current) return;
@@ -64,8 +66,20 @@ export function ExploreLocationProvider({ children }: { children: React.ReactNod
     return () => window.clearTimeout(restore);
   }, []);
 
-  const selectManualRegion = useCallback((region: ExploreRegion) => { coordinator.current?.cancel(); setDevicePosition(null); setRequestStatus("idle"); setExplicitAll(false); setManualRegion(region); setMode("manual"); window.sessionStorage.removeItem(allChoiceSessionKey); window.localStorage.setItem(storageKey, JSON.stringify(region)); }, []);
-  const exploreAll = useCallback(() => { coordinator.current?.cancel(); setDevicePosition(null); setManualRegion(null); setRequestStatus("idle"); setExplicitAll(true); setMode("all"); window.sessionStorage.setItem(allChoiceSessionKey, "true"); window.localStorage.removeItem(storageKey); }, []);
+  const clearDeviceRegion = useCallback(() => { deviceRegionRequest.current += 1; setDeviceRegion(null); }, []);
+  const selectManualRegion = useCallback((region: ExploreRegion) => { coordinator.current?.cancel(); clearDeviceRegion(); setDevicePosition(null); setRequestStatus("idle"); setExplicitAll(false); setManualRegion(region); setMode("manual"); window.sessionStorage.removeItem(allChoiceSessionKey); window.localStorage.setItem(storageKey, JSON.stringify(region)); }, [clearDeviceRegion]);
+  const exploreAll = useCallback(() => { coordinator.current?.cancel(); clearDeviceRegion(); setDevicePosition(null); setManualRegion(null); setRequestStatus("idle"); setExplicitAll(true); setMode("all"); window.sessionStorage.setItem(allChoiceSessionKey, "true"); window.localStorage.removeItem(storageKey); }, [clearDeviceRegion]);
+  const resolveCurrentDeviceRegion = useCallback((position: RestaurantCoordinates) => {
+    const request = ++deviceRegionRequest.current;
+    setDeviceRegion(null);
+    void fetch("/api/location/resolve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(position) })
+      .then(async (response) => response.ok ? response.json() as Promise<{ region?: { city?: string; region?: string; country?: string; countryCode?: string } | null }> : null)
+      .then((payload) => {
+        const region = payload?.region;
+        if (request !== deviceRegionRequest.current || !region?.city || !region.countryCode) return;
+        setDeviceRegion({ placeId: `device:${region.countryCode}:${region.city}`, city: region.city, region: region.region, country: region.country, countryCode: region.countryCode });
+      }).catch(() => undefined);
+  }, []);
   const requestDeviceLocation = useCallback(async (origin: LocationRequestOrigin = "click") => {
     if (!coordinator.current) coordinator.current = createLocationRequestCoordinator({ getGeolocation: () => navigator.geolocation, onDiagnostic: recordDiagnostic });
     setRequestStatus("requesting");
@@ -79,9 +93,10 @@ export function ExploreLocationProvider({ children }: { children: React.ReactNod
       return false;
     }
     visualUpdate.current = { attemptId: result.attemptId, origin, startedAt: performance.now() };
-    setDevicePosition({ latitude: result.latitude, longitude: result.longitude }); setExplicitAll(false); setMode("device"); setRequestStatus("idle"); window.sessionStorage.removeItem(allChoiceSessionKey);
+    const position = { latitude: result.latitude, longitude: result.longitude };
+    setDevicePosition(position); setExplicitAll(false); setMode("device"); setRequestStatus("idle"); window.sessionStorage.removeItem(allChoiceSessionKey); resolveCurrentDeviceRegion(position);
     return true;
-  }, [recordDiagnostic]);
+  }, [recordDiagnostic, resolveCurrentDeviceRegion]);
   useEffect(() => {
     if (!visualUpdate.current || mode !== "device" || !devicePosition) return;
     recordDiagnostic({ attemptId: visualUpdate.current.attemptId, origin: visualUpdate.current.origin, event: "visual-updated", elapsedMs: Math.round(performance.now() - visualUpdate.current.startedAt), accepted: true });
@@ -103,7 +118,7 @@ export function ExploreLocationProvider({ children }: { children: React.ReactNod
   }, [explicitAll, mode, requestStatus]);
   const dismissLocationNudge = useCallback(() => { setLocationNudgeVisible(false); window.sessionStorage.setItem(nudgeDismissedSessionKey, "true"); }, []);
   const label = mode === "device" ? "Perto de mim" : mode === "manual" && manualRegion ? [manualRegion.city, manualRegion.region || manualRegion.country].filter(Boolean).join(", ") : "Todas as regiões";
-  const value = useMemo(() => ({ mode, manualRegion, devicePosition, requestStatus, label, locationNudgeVisible, locationDiagnostics, selectManualRegion, requestDeviceLocation, exploreAll, showLocationNudge, dismissLocationNudge }), [devicePosition, dismissLocationNudge, label, locationDiagnostics, locationNudgeVisible, manualRegion, mode, requestDeviceLocation, requestStatus, selectManualRegion, exploreAll, showLocationNudge]);
+  const value = useMemo(() => ({ mode, manualRegion, devicePosition, deviceRegion, requestStatus, label, locationNudgeVisible, locationDiagnostics, selectManualRegion, requestDeviceLocation, exploreAll, showLocationNudge, dismissLocationNudge }), [devicePosition, deviceRegion, dismissLocationNudge, label, locationDiagnostics, locationNudgeVisible, manualRegion, mode, requestDeviceLocation, requestStatus, selectManualRegion, exploreAll, showLocationNudge]);
   return <ExploreLocationContext.Provider value={value}>{children}</ExploreLocationContext.Provider>;
 }
 

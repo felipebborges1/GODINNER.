@@ -53,7 +53,8 @@ export type AnalyticsEvent =
   | "recommendation_unlock_progress_viewed"
   | "recommendation_unlocked"
   | "recommendation_unlock_modal_viewed"
-  | "recommendation_unlock_cta_clicked";
+  | "recommendation_unlock_cta_clicked"
+  | "catalog_zero_coverage_detected";
 
 type AnalyticsProperties = Record<string, string | number | boolean | undefined>;
 
