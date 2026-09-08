@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, Clipboard, Ellipsis, Heart, ListPlus, MapPin, Share2, Star, Utensils } from "lucide-react";
+import { Check, Clipboard, Ellipsis, Heart, ListPlus, MapPin, Share2, Utensils } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { LoginWall } from "@/components/auth/login-wall";
@@ -14,7 +14,7 @@ import type { Restaurant } from "@/types";
 import { CuisineChip } from "@/components/ui/cuisine-chip";
 import { DuoGourmetIndicator } from "@/components/ui/duo-gourmet-indicator";
 import { PriceBadge } from "@/components/ui/price-badge";
-import { RatingBadge } from "@/components/ui/rating-badge";
+import { GodinnerRatingSummary } from "@/components/ui/godinner-rating-summary";
 import { ReviewCard } from "@/components/review/review-card";
 import { DeferredMapView } from "@/components/search/deferred-map-view";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -24,7 +24,7 @@ import { SaveToListSheet } from "./save-to-list-sheet";
 import { trackEvent } from "@/lib/analytics";
 
 export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
-  const { currentUserId, reviews, follows, users, showToast } = useAppContext();
+  const { currentUserId, reviews, follows, users, showToast, isLoading, dataError } = useAppContext();
   const { isWanted, toggleWantToVisit } = useWantToVisit(restaurant.id);
   const [listsOpen, setListsOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -37,7 +37,6 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
   const restaurantReviews = reviews.filter((review) => review.restaurantId === restaurant.id);
   const friendReviews = restaurantReviews.filter((review) => friendIds.has(review.userId));
   const communityReviews = restaurantReviews.filter((review) => !friendIds.has(review.userId));
-  const rating = averageReviewScore(restaurantReviews);
   const friendsRating = averageReviewScore(friendReviews);
   const dimensionAverages = getDimensionAverages(restaurantReviews);
   const hasDimensionAverages = Object.values(dimensionAverages).some((value) => value !== null);
@@ -60,8 +59,7 @@ export function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
         <section aria-label="Resumo de decisão" className="mt-6 grid grid-cols-2 gap-3 lg:mt-0 lg:grid-cols-3">
           <div className="rounded-3xl bg-stone-950 p-5 text-white">
             <p className="text-xs font-black uppercase tracking-wide text-stone-300">GODINNER</p>
-            <p className="mt-1 text-3xl font-black">{formatRating(rating)}</p>
-            <p className="mt-1 text-xs text-stone-300">{rating !== null ? `${restaurantReviews.length} avaliações` : "Sem avaliações"}</p>
+            <GodinnerRatingSummary variant="summary" rating={restaurant.godinnerRating} reviewCount={restaurant.reviewCount} isLoading={isLoading} isUnavailable={Boolean(dataError)}/>
           </div>
           <div className="rounded-3xl bg-orange-50 p-5">
             <p className="text-xs font-black uppercase tracking-wide text-orange-700">Seus amigos</p>
