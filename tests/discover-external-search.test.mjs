@@ -18,14 +18,19 @@ test("Discover keeps catalog search first, resolves city intent, and automatical
 
 test("Discover external fallback preserves the query without prompting for location and keeps Google results attributed", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /searchExternalPlaces\(query, locationBias\)/);
+  assert.match(page, /searchExternalPlaces\(query, \{/);
   assert.match(page, /googleQueryForReview/);
   assert.match(page, /queryIncludesExplicitPlaceContext/);
   assert.doesNotMatch(page, /navigator\.geolocation\.getCurrentPosition/);
   assert.match(page, /Dados fornecidos pelo Google/);
   assert.match(page, /Encontrado via Google/);
-  assert.match(page, /Não conseguimos buscar outros lugares agora\./);
+  assert.match(page, /\{externalError\}/);
   assert.match(page, /clearExternalSearch\(\)/);
+  assert.match(page, /manualRegionType/);
+  assert.match(page, /externalRetryAfterSeconds/);
+  assert.match(page, /externalResultQuery === externalSearchQuery/);
+  assert.match(page, /isWithinManualState/);
+  assert.match(page, /Diagnóstico da busca externa \(somente Preview\)/);
 });
 
 test("Existing Places open the catalog profile and new Places reuse the review/new flow without automatic creation", async () => {
@@ -44,8 +49,13 @@ test("Google Places client calls remain shared and server-side routes keep the k
   const service = await readFile(new URL("../lib/google-place-discovery.ts", import.meta.url), "utf8");
   assert.match(hook, /\/api\/google-places\/search/);
   assert.match(hook, /\/api\/google-places\/nearby/);
+  assert.match(hook, /retryAfterSeconds/);
+  assert.match(hook, /requestVersion/);
+  assert.match(service, /GooglePlacesRequestError/);
   assert.match(service, /import "server-only"/);
   assert.match(service, /locationBias/);
+  assert.match(service, /new AbortController\(\)/);
+  assert.doesNotMatch(service, /AbortSignal\.timeout/);
   assert.doesNotMatch(service, /countryCode: "BR"/);
   assert.doesNotMatch(hook, /NEXT_PUBLIC_GOOGLE_PLACES_API_KEY/);
 });

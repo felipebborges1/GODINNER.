@@ -5,7 +5,7 @@ import type { RestaurantCoordinates } from "@/types";
 import { createLocationRequestCoordinator, type LocationDiagnostic, type LocationRequestOrigin } from "@/lib/location/location-request-coordinator";
 
 export type ExploreLocationMode = "all" | "manual" | "device";
-export type ExploreRegion = { placeId: string; city: string; region?: string; country?: string; countryCode?: string };
+export type ExploreRegion = { placeId: string; city: string; region?: string; country?: string; countryCode?: string; scopeType?: "city" | "state" | "country" | "unknown" };
 export type LocationRequestStatus = "idle" | "requesting" | "denied" | "unavailable" | "timeout";
 type ExploreLocationContextValue = { mode: ExploreLocationMode; manualRegion: ExploreRegion | null; devicePosition: RestaurantCoordinates | null; requestStatus: LocationRequestStatus; label: string; locationNudgeVisible: boolean; locationDiagnostics: LocationDiagnostic[]; selectManualRegion: (region: ExploreRegion) => void; requestDeviceLocation: (origin?: LocationRequestOrigin) => Promise<boolean>; exploreAll: () => void; showLocationNudge: () => void; dismissLocationNudge: () => void };
 
@@ -49,7 +49,7 @@ export function ExploreLocationProvider({ children }: { children: React.ReactNod
         if (saved) {
           const region = JSON.parse(saved) as Partial<ExploreRegion>;
           if (region.placeId && region.city) {
-            setManualRegion({ placeId: region.placeId, city: region.city, region: region.region, country: region.country, countryCode: region.countryCode });
+            setManualRegion({ placeId: region.placeId, city: region.city, region: region.region, country: region.country, countryCode: region.countryCode, scopeType: region.scopeType });
             setMode("manual");
           }
         } else if (window.sessionStorage.getItem(allChoiceSessionKey) === "true") {

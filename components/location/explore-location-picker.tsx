@@ -8,6 +8,7 @@ import { useGooglePlaceSearch } from "@/hooks/use-google-place-search";
 
 type Props = { className?: string; onManualSelected?: () => void; onDeviceSelected?: () => void; onExploreAll?: () => void };
 const requestMessage = { denied: "Permissão negada. Você pode escolher uma região ou explorar todo o catálogo.", unavailable: "Localização indisponível. Você pode escolher uma região ou explorar todo o catálogo.", timeout: "A localização demorou demais. Você pode tentar novamente ou escolher uma região." } as const;
+const regionScopeType = (place: { types: string[]; city?: string; region?: string; country?: string }) => place.types.includes("administrative_area_level_1") ? "state" as const : place.types.includes("country") ? "country" as const : place.city ? "city" as const : "unknown" as const;
 
 export function ExploreLocationPicker({ className = "", onManualSelected, onDeviceSelected, onExploreAll }: Props) {
   const [open, setOpen] = useState(false); const [query, setQuery] = useState("");
@@ -16,7 +17,7 @@ export function ExploreLocationPicker({ className = "", onManualSelected, onDevi
   useEffect(() => { const term = query.trim(); if (term.length < 2) { clear(); return; } const timeout = window.setTimeout(() => { void searchPlaces(`${term}, cidade ou região`); }, 300); return () => window.clearTimeout(timeout); }, [clear, query, searchPlaces]);
   const close = () => { setOpen(false); setQuery(""); clear(); };
   const requestCurrentDevice = async () => { const success = await requestDeviceLocation("click"); if (success) { onDeviceSelected?.(); close(); } };
-  const chooseRegion = (place: typeof places[number]) => { selectManualRegion({ placeId: place.placeId, city: place.city || place.name, region: place.region, country: place.country, countryCode: place.countryCode }); onManualSelected?.(); close(); };
+  const chooseRegion = (place: typeof places[number]) => { selectManualRegion({ placeId: place.placeId, city: place.city || place.name, region: place.region, country: place.country, countryCode: place.countryCode, scopeType: regionScopeType(place) }); onManualSelected?.(); close(); };
   const all = () => { exploreAll(); onExploreAll?.(); close(); };
   return <>
     <button type="button" onClick={() => setOpen(true)} className={`inline-flex min-h-11 items-center gap-1 text-left text-sm font-semibold text-stone-600 ${className}`} aria-label="Escolher região para explorar"><MapPin size={16} className="shrink-0 text-orange-500"/>{label}<ChevronDown size={15}/></button>

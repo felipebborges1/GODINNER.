@@ -37,6 +37,7 @@ test("manual region selection remains structured and uses the existing server-si
   const picker = await readFile(new URL("../components/location/explore-location-picker.tsx", import.meta.url), "utf8");
   assert.match(picker, /placeId: place\.placeId/);
   assert.match(picker, /countryCode: place\.countryCode/);
+  assert.match(picker, /scopeType: regionScopeType\(place\)/);
   assert.match(picker, /searchPlaces\(`/);
   assert.doesNotMatch(picker, /NEXT_PUBLIC_GOOGLE_PLACES_API_KEY/);
 });

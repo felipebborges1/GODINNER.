@@ -29,6 +29,17 @@ test("an explicit city wins over the current selected region while a city-less q
   assert.equal(googleQueryForReview("Madero", undefined), "Madero");
 });
 
+test("a selected state remains an explicit manual scope without borrowing device coordinates", () => {
+  const region = { city: "Bahia", region: "Bahia", country: "Brasil", scopeType: "state" as const };
+  assert.equal(googleQueryForReview("Madero", region), "Madero, Bahia, Brasil");
+  assert.equal(queryIncludesExplicitPlaceContext(googleQueryForReview("Madero", region)), true);
+});
+
+test("an explicit state in the text keeps the selected country context", () => {
+  const region = { city: "Bahia", region: "Bahia", country: "Brasil", scopeType: "state" as const };
+  assert.equal(googleQueryForReview("Madero, Bahia", region), "Madero, Bahia, Brasil");
+});
+
 test("the displayed identity keeps units distinguishable by address and city", () => {
   assert.equal(restaurantLocationLabel(restaurant()), "Rua Pernambuco, 100 · Belo Horizonte");
   assert.equal(restaurantLocationLabel(restaurant({ address: "Av. Paulista, 1", city: "São Paulo", countryCode: "BR" })), "Av. Paulista, 1 · São Paulo");

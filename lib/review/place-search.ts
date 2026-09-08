@@ -34,9 +34,20 @@ export function queryIncludesExplicitPlaceContext(query: string) {
   return /[,;]|\s[-–—]\s|\b(em|em\s+|na|no)\s+[\p{L}]/iu.test(compact) || /\b[A-Z]{2}\b/.test(compact);
 }
 
-export function googleQueryForReview(query: string, region?: { city: string; region?: string; country?: string }) {
-  if (!region || queryIncludesExplicitPlaceContext(query)) return query.trim();
-  const suffix = [region.city, region.region || region.country].filter(Boolean).join(", ");
+export function googleQueryForReview(query: string, region?: { city: string; region?: string; country?: string; scopeType?: "city" | "state" | "country" | "unknown" }) {
+  if (!region) return query.trim();
+  if (queryIncludesExplicitPlaceContext(query)) {
+    const stateName = region.region || region.city;
+    const normalizedQuery = normalize(query);
+    if (region.scopeType === "state" && region.country && normalizedQuery.includes(normalize(stateName)) && !normalizedQuery.includes(normalize(region.country))) {
+      return `${query.trim()}, ${region.country}`;
+    }
+    return query.trim();
+  }
+  const suffixParts = region.scopeType === "state"
+    ? [region.region || region.city, region.country]
+    : [region.city, region.region || region.country];
+  const suffix = [...new Map(suffixParts.filter(Boolean).map((part) => [normalize(part as string), part])).values()].join(", ");
   return suffix ? `${query.trim()}, ${suffix}` : query.trim();
 }
 

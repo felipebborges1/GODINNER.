@@ -1,6 +1,7 @@
 import "server-only";
 
 import { parseRestaurantAddress, type GoogleAddressComponent } from "@/lib/restaurant-location";
+import { GooglePlacesRequestError, networkFailureCode, retryAfterSeconds } from "@/lib/google-places-errors";
 import type { RestaurantCoordinates } from "@/types";
 import type { GooglePlaceCandidate } from "@/lib/google-place-types";
 
@@ -22,7 +23,7 @@ type SearchOptions = { position?: RestaurantCoordinates };
 
 function apiKey() {
   const value = process.env.GOOGLE_PLACES_API_KEY?.trim();
-  if (!value) throw new Error("Google Places indisponível neste ambiente.");
+  if (!value) throw new GooglePlacesRequestError("configuration");
   return value;
 }
 
@@ -58,19 +59,41 @@ async function requestGooglePlaces(path: string, body?: Record<string, unknown>)
   const fieldMask = body
     ? "places.id,places.displayName,places.formattedAddress,places.addressComponents,places.location,places.primaryType,places.types"
     : "id,displayName,formattedAddress,addressComponents,location,primaryType,types";
-  const response = await fetch(`https://places.googleapis.com/v1/${path}`, {
-    method: body ? "POST" : "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey(),
-      "X-Goog-FieldMask": fieldMask,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    cache: "no-store",
-    signal: AbortSignal.timeout(7_000),
-  });
-  if (!response.ok) throw new Error(`Google Places retornou HTTP ${response.status}.`);
-  return response.json() as Promise<{ places?: GooglePlaceApiPlace[] } & GooglePlaceApiPlace>;
+  let response: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7_000);
+  try {
+    response = await fetch(`https://places.googleapis.com/v1/${path}`, {
+      method: body ? "POST" : "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey(),
+        "X-Goog-FieldMask": fieldMask,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof GooglePlacesRequestError) throw error;
+    if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) throw new GooglePlacesRequestError("timeout");
+    throw new GooglePlacesRequestError("service", undefined, undefined, networkFailureCode(error));
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!response.ok) {
+    const status = response.status;
+    const retryAfter = retryAfterSeconds(response.headers.get("retry-after"));
+    if (status === 401 || status === 403) throw new GooglePlacesRequestError("credential", status);
+    if (status === 429) throw new GooglePlacesRequestError("quota", status, retryAfter);
+    if (status >= 400 && status < 500) throw new GooglePlacesRequestError("invalid_request", status);
+    throw new GooglePlacesRequestError("service", status, retryAfter);
+  }
+  try {
+    return await response.json() as { places?: GooglePlaceApiPlace[] } & GooglePlaceApiPlace;
+  } catch {
+    throw new GooglePlacesRequestError("invalid_response");
+  }
 }
 
 export async function searchGooglePlaces(query: string, options: SearchOptions = {}) {
