@@ -96,7 +96,7 @@ test('profile route cache and fallback lifecycle: no duplicate read, loading, re
     useEffect(callback) { effect = callback; },
   };
   const jsx = (type, props, key) => ({ type, props, key });
-  const module = { exports: {} };
+  const testModule = { exports: {} };
   const requireMock = name => {
     if (name === 'react') return react;
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
@@ -110,8 +110,8 @@ test('profile route cache and fallback lifecycle: no duplicate read, loading, re
     if (name === './restaurant-profile') return { RestaurantProfile: 'RestaurantProfile' };
     throw Error(name);
   };
-  new Function('exports', 'require', 'module', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText)(module.exports, requireMock, module);
-  const Route = module.exports.RestaurantRouteClient;
+  new Function('exports', 'require', 'module', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText)(testModule.exports, requireMock, testModule);
+  const Route = testModule.exports.RestaurantRouteClient;
   assert.equal(Route({ slug: 'cached' }).props.restaurant, existing);
   assert.equal(calls, 0);
   const missing = Route({ slug: 'outside' });
