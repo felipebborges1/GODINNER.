@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowDown, SlidersHorizontal, X } from "lucide-react";
+import { MapPin, SlidersHorizontal, X } from "lucide-react";
 import { RestaurantCard } from "@/components/restaurant/restaurant-card";
 import { FilterChip } from "@/components/search/filter-chip";
 import { FilterSheet } from "@/components/search/filter-sheet";
@@ -70,7 +70,6 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   const { showToast } = useToast();
   const params = Object.fromEntries(searchParams.entries());
   const pendingParams = useRef(searchParams.toString());
-  const externalResultsRef = useRef<HTMLElement>(null);
   const [selectedAmbiguousCity, setSelectedAmbiguousCity] = useState<{ query: string; city: SearchCity } | null>(null);
 
   useEffect(() => {
@@ -152,8 +151,6 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   }, [clearExternalSearch, devicePosition, externalQuery, geography.explicitCity, mode, params.q, searchExternalPlaces, shouldSearchExternal]);
   const internalPlaceIds = useMemo(() => new Set(eligibleRestaurants.map((restaurant) => restaurant.googlePlaceId).filter(Boolean)), [eligibleRestaurants]);
   const visibleExternalPlaces = externalPlaces.filter((place) => !internalPlaceIds.has(place.placeId));
-  const canRevealExternalResults = shouldSearchExternal && !externalError && (isExternalLoading || visibleExternalPlaces.length > 0);
-  const revealExternalResults = () => externalResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   const selectExternalPlace = (place: GooglePlaceCandidate) => {
     const existing = eligibleRestaurants.find((restaurant) => restaurant.googlePlaceId === place.placeId && restaurant.status === "published");
     router.push(existing ? `/restaurant/${existing.slug}` : reviewNewUrl(place));
@@ -215,8 +212,8 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={Number.isFinite(restaurant.distanceKm) ? `${restaurant.distanceKm} km` : undefined} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}
         </div>
-      ) : !geography.ambiguousCities.length && <div className="mt-5"><EmptyState title={activeDistanceConstraint ? "Nenhum lugar dentro do raio escolhido" : "Nenhum lugar encontrado"} message={activeDistanceConstraint ? "A busca respeitou o raio selecionado. Remova o filtro de distância para ampliar os resultados." : params.q ? `Buscando “${params.q}” também fora do catálogo GODINNER.` : "Ajuste os filtros para explorar mais lugares."} />{canRevealExternalResults && <div className="mt-3 rounded-2xl border border-orange-200 bg-orange-50 p-3 sm:hidden"><p className="text-sm font-bold text-stone-900">{isExternalLoading ? "Estamos buscando opções no Google logo abaixo." : "Encontramos opções no Google logo abaixo."}</p><button type="button" onClick={revealExternalResults} aria-controls="google-place-results" className="mt-2 inline-flex min-h-10 items-center gap-2 text-sm font-black text-orange-700">Ver opções do Google <ArrowDown size={16} aria-hidden /></button></div>}</div>}
-      {shouldSearchExternal && <section ref={externalResultsRef} id="google-place-results" className="mt-6 scroll-mt-4 rounded-3xl border border-stone-200 bg-stone-50 p-4 sm:p-5"><p className="text-xs font-black uppercase tracking-wide text-orange-600">LUGARES ENCONTRADOS</p><h3 className="mt-1 text-lg font-black">Lugares encontrados</h3><p className="mt-1 text-xs text-stone-500">Dados fornecidos pelo Google</p>{isExternalLoading && <p role="status" className="mt-4 text-sm text-stone-600">Buscando lugares…</p>}{externalError && <div role="alert" className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><p>Não conseguimos buscar outros lugares agora. Tente novamente em instantes.</p></div>}{!isExternalLoading && !externalError && !visibleExternalPlaces.length && <p className="mt-4 text-sm text-stone-600">Nenhum lugar externo encontrado para esse termo.</p>}{visibleExternalPlaces.length > 0 && <div className="mt-4 grid gap-2">{visibleExternalPlaces.map((place) => <button type="button" key={place.placeId} onClick={() => selectExternalPlace(place)} className="flex min-h-20 items-start gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-stone-100"><span className="min-w-0"><b className="block break-words text-sm">{place.name}</b><span className="mt-1 block break-words text-xs text-stone-500">{googleLocationLabel(place)}</span></span></button>)}</div>}</section>}
+      ) : !geography.ambiguousCities.length && <div className="mt-5">{shouldSearchExternal ? <div className="rounded-3xl border border-dashed border-stone-300 bg-stone-50 px-5 py-5 text-center sm:px-6 sm:py-12"><MapPin className="mx-auto mb-2 h-5 w-5 text-orange-500 sm:mb-3 sm:h-6 sm:w-6" aria-hidden="true"/><h3 className="font-bold">Nenhum lugar encontrado</h3><p className="mt-1 text-sm text-stone-500">Buscando “{params.q}” também fora do catálogo GODINNER.</p></div> : <EmptyState title={activeDistanceConstraint ? "Nenhum lugar dentro do raio escolhido" : "Nenhum lugar encontrado"} message={activeDistanceConstraint ? "A busca respeitou o raio selecionado. Remova o filtro de distância para ampliar os resultados." : "Ajuste os filtros para explorar mais lugares."} />}</div>}
+      {shouldSearchExternal && <section id="google-place-results" className="mt-3 rounded-3xl border border-stone-200 bg-stone-50 p-4 sm:mt-6 sm:p-5"><p className="text-xs font-black uppercase tracking-wide text-orange-600">LUGARES ENCONTRADOS</p><h3 className="mt-1 text-lg font-black">Lugares encontrados</h3><p className="mt-1 text-xs text-stone-500">Dados fornecidos pelo Google</p>{isExternalLoading && <p role="status" className="mt-4 text-sm text-stone-600">Buscando lugares…</p>}{externalError && <div role="alert" className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><p>Não conseguimos buscar outros lugares agora. Tente novamente em instantes.</p></div>}{!isExternalLoading && !externalError && !visibleExternalPlaces.length && <p className="mt-4 text-sm text-stone-600">Nenhum lugar externo encontrado para esse termo.</p>}{visibleExternalPlaces.length > 0 && <div className="mt-4 grid gap-2">{visibleExternalPlaces.map((place) => <button type="button" key={place.placeId} onClick={() => selectExternalPlace(place)} className="flex min-h-20 items-start gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-stone-100"><span className="min-w-0"><b className="block break-words text-sm">{place.name}</b><span className="mt-1 block break-words text-xs text-stone-500">{googleLocationLabel(place)}</span></span></button>)}</div>}</section>}
     </div>
   );
 }
