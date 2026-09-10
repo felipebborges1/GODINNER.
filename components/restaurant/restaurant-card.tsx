@@ -25,7 +25,7 @@ function catalogLocation(restaurant: Restaurant) {
   return [restaurant.city, state, country].filter(Boolean).join(" · ");
 }
 
-export function RestaurantCard({ restaurant, distance, friendsVisited = 0, className = "", imagePriority = false, onRestaurantClick, showCatalogLocation = false }: { restaurant: Restaurant; distance?: string; friendsVisited?: number; className?: string; imagePriority?: boolean; onRestaurantClick?: () => void; showCatalogLocation?: boolean }) {
+export function RestaurantCard({ restaurant, distance, friendsVisited = 0, className = "", imagePriority = false, imageEager = false, onRestaurantClick, showCatalogLocation = false }: { restaurant: Restaurant; distance?: string; friendsVisited?: number; className?: string; imagePriority?: boolean; imageEager?: boolean; onRestaurantClick?: () => void; showCatalogLocation?: boolean }) {
   const { isWanted, toggleWantToVisit } = useWantToVisit(restaurant.id);
   const { currentUserId, dataError, isLoading } = useAppContext();
   const { showToast } = useToast();
@@ -44,7 +44,7 @@ export function RestaurantCard({ restaurant, distance, friendsVisited = 0, class
   return <>
     <article className={`group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-stone-100 transition hover:-translate-y-0.5 hover:shadow-lg ${className}`}>
       <Link href={`/restaurant/${restaurant.slug}`} onClick={onRestaurantClick} className="relative block aspect-[4/3] overflow-hidden">
-        {restaurant.hasGooglePlaceCover ? <GooglePlaceCover slug={restaurant.slug} alt={restaurant.name} variant="card" priority={imagePriority}/> : restaurant.coverPhoto.url ? <Image src={restaurant.coverPhoto.url} alt={restaurant.name} fill priority={imagePriority} sizes="(min-width: 1024px) 270px, 72vw" className="object-cover transition duration-500 group-hover:scale-105"/> : <RestaurantPhotoUnavailable alt={restaurant.name} variant="card"/>}
+        {restaurant.hasGooglePlaceCover ? <GooglePlaceCover slug={restaurant.slug} alt={restaurant.name} variant="card" priority={imagePriority} eager={imageEager}/> : restaurant.coverPhoto.url ? <Image src={restaurant.coverPhoto.url} alt={restaurant.name} fill priority={imagePriority} loading={imagePriority ? undefined : imageEager ? "eager" : "lazy"} sizes="(min-width: 1024px) 270px, 72vw" className="object-cover transition duration-500 group-hover:scale-105"/> : <RestaurantPhotoUnavailable alt={restaurant.name} variant="card"/>}
         {restaurant.status === "pending_review" ? <span className="absolute bottom-3 left-3 rounded-full bg-orange-500 px-2 py-1 text-[10px] font-black text-white">PENDENTE</span> : <div className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)]"><GodinnerRatingSummary rating={restaurant.godinnerRating} reviewCount={restaurant.reviewCount} isLoading={isLoading} isUnavailable={Boolean(dataError)}/></div>}
       </Link>
       <div className="p-4">

@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { preload } from "react-dom";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { getReviewPhotoSwipeDirection, moveReviewPhotoIndex, orderReviewPhotos } from "@/lib/review-media";
+import { recordMediaDiagnostic } from "@/lib/media-performance-diagnostics";
 import { cn } from "@/lib/utils";
 import type { RestaurantPhoto } from "@/types";
 
@@ -13,11 +14,12 @@ type ReviewMediaProps = {
   alt: string;
   fallback?: ReactNode;
   priority?: boolean;
+  eager?: boolean;
   rounded?: boolean;
   className?: string;
 };
 
-export function ReviewMedia({ photos, alt, fallback = null, priority = false, rounded = true, className }: ReviewMediaProps) {
+export function ReviewMedia({ photos, alt, fallback = null, priority = false, eager = false, rounded = true, className }: ReviewMediaProps) {
   const orderedPhotos = useMemo(() => orderReviewPhotos(photos), [photos]);
   const photoCount = orderedPhotos.length;
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -27,6 +29,7 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ro
   const pointerStartRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const ignoreClickUntilRef = useRef(0);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const activeStartedAt = useRef(0);
   const activePhoto = orderedPhotos[activeIndex];
 
   useEffect(() => {
@@ -38,6 +41,12 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ro
     preloadedImage.src = nextPhoto.url;
     void preloadedImage.decode().catch(() => undefined);
   }, [activeIndex, orderedPhotos]);
+
+  useEffect(() => {
+    if (!activePhoto) return;
+    activeStartedAt.current = performance.now();
+    recordMediaDiagnostic("review-photo", activePhoto.id, "request-ready", activeStartedAt.current);
+  }, [activePhoto]);
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -67,28 +76,32 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ro
   };
 
   const markPhotoLoaded = async (photoId: string, image: HTMLImageElement) => {
+    recordMediaDiagnostic("review-photo", photoId, "loaded", activeStartedAt.current);
     try {
       await image.decode();
     } catch {
       // Some cached browser images report an already-decoded failure here.
       // The load event is still sufficient to reveal the image safely.
     }
+    recordMediaDiagnostic("review-photo", photoId, "decoded", activeStartedAt.current);
     setLoadedPhotoIds((current) => {
       if (current.has(photoId)) return current;
       const next = new Set(current);
       next.add(photoId);
+      recordMediaDiagnostic("review-photo", photoId, "visible", activeStartedAt.current);
       return next;
     });
   };
 
-  const galleryTrack = (sizes: string, eager = false) => <div
+  const galleryTrack = (sizes: string) => <div
     className="flex h-full w-full transition-transform duration-200 ease-out motion-reduce:transition-none"
     style={{ transform: `translateX(-${activeIndex * 100}%)` }}
   >
     {orderedPhotos.map((photo, index) => {
       const shouldRenderImage = Math.abs(index - activeIndex) <= 1;
       const isLoaded = loadedPhotoIds.has(photo.id);
-      const isFirstPriorityMedia = eager && index === 0;
+      const isFirstPriorityMedia = priority && index === 0;
+      const shouldEagerLoad = isFirstPriorityMedia || (eager && index === 0) || index === activeIndex + 1;
       if (isFirstPriorityMedia) preload(photo.url, { as: "image", fetchPriority: "high" });
       return <div className="relative h-full w-full shrink-0 bg-stone-200" key={photo.id}>
         {shouldRenderImage && <Image
@@ -97,7 +110,7 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ro
           fill
           priority={isFirstPriorityMedia}
           fetchPriority={isFirstPriorityMedia ? "high" : "auto"}
-          loading={isFirstPriorityMedia ? undefined : index === activeIndex + 1 ? "eager" : "lazy"}
+          loading={isFirstPriorityMedia ? undefined : shouldEagerLoad ? "eager" : "lazy"}
           sizes={sizes}
           // The route performs the authorization check and redirects to a
           // short-lived Storage URL. Let the browser follow that redirect
@@ -143,7 +156,7 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ro
     >
       {!loadedPhotoIds.has(activePhoto.id) && <div className="pointer-events-none absolute inset-0 z-10 animate-pulse bg-stone-200" aria-hidden="true"/>}
       <button type="button" onClick={openLightbox} onDragStart={(event) => event.preventDefault()} className="absolute inset-0 block w-full cursor-zoom-in" aria-label={`Ampliar foto ${activeIndex + 1} de ${photoCount}`}>
-        {galleryTrack("(min-width: 1024px) 576px, (min-width: 640px) 480px, 100vw", priority)}
+        {galleryTrack("(min-width: 1024px) 576px, (min-width: 640px) 480px, 100vw")}
       </button>
       {photoCount > 1 && <>
         <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-stone-950/80 px-2.5 py-1 text-xs font-bold text-white">{activeIndex + 1} / {photoCount}</span>

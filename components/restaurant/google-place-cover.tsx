@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { recordMediaDiagnostic } from "@/lib/media-performance-diagnostics";
 
 type PhotoMetadata = {
   imageUrl: string;
@@ -37,17 +38,25 @@ function loadMetadata(slug: string, variant: "card" | "profile") {
   return request;
 }
 
-export function GooglePlaceCover({ slug, alt, variant, priority = false }: {
+export function GooglePlaceCover({ slug, alt, variant, priority = false, eager = false }: {
   slug: string;
   alt: string;
   variant: "card" | "profile";
   priority?: boolean;
+  /** Starts one adjacent carousel card without making it a high-priority image. */
+  eager?: boolean;
 }) {
   const requestKey = `${slug}:${variant}`;
   const cardRef = useRef<HTMLSpanElement | null>(null);
-  const [isVisible, setIsVisible] = useState(variant === "profile" || priority);
+  const startedAt = useRef(typeof performance === "undefined" ? 0 : performance.now());
+  const [isVisible, setIsVisible] = useState(variant === "profile" || priority || eager);
   const [state, setState] = useState<CoverState>({ key: "", metadata: null, phase: "loading" });
   const [cardState, setCardState] = useState<CardState>({ key: "", phase: "loading" });
+
+  useEffect(() => {
+    recordMediaDiagnostic("google-card", requestKey, "mounted", startedAt.current);
+    return () => recordMediaDiagnostic("google-card", requestKey, "unmounted", startedAt.current);
+  }, [requestKey]);
 
   useEffect(() => {
     if (variant === "profile" || isVisible) return;
@@ -59,12 +68,15 @@ export function GooglePlaceCover({ slug, alt, variant, priority = false }: {
     }
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
+      recordMediaDiagnostic("google-card", requestKey, "lookahead", startedAt.current);
       setIsVisible(true);
       observer.disconnect();
-    }, { rootMargin: "160px" });
+    // Horizontal carousels use cards wider than the former 160px lookahead.
+    // One-card horizontal margin starts the image before its snap point is visible.
+    }, { rootMargin: "160px 360px" });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [isVisible, variant]);
+  }, [isVisible, requestKey, variant]);
 
   useEffect(() => {
     if (variant !== "profile") return;
@@ -90,11 +102,22 @@ export function GooglePlaceCover({ slug, alt, variant, priority = false }: {
       alt={alt}
       fill
       priority={priority}
+      loading={priority ? undefined : eager ? "eager" : "lazy"}
       unoptimized
       sizes="(min-width: 1024px) 270px, 82vw"
       className={`object-cover transition-opacity duration-150 motion-reduce:transition-none group-hover:scale-105 ${cardLoaded ? "opacity-100" : "opacity-0"}`}
-      onLoad={() => setCardState({ key: requestKey, phase: "success" })}
-      onError={() => setCardState({ key: requestKey, phase: "error" })}
+      onLoad={(event) => {
+        recordMediaDiagnostic("google-card", requestKey, "loaded", startedAt.current);
+        void event.currentTarget.decode().catch(() => undefined).finally(() => {
+          recordMediaDiagnostic("google-card", requestKey, "decoded", startedAt.current);
+          setCardState({ key: requestKey, phase: "success" });
+          recordMediaDiagnostic("google-card", requestKey, "visible", startedAt.current);
+        });
+      }}
+      onError={() => {
+        recordMediaDiagnostic("google-card", requestKey, "error", startedAt.current);
+        setCardState({ key: requestKey, phase: "error" });
+      }}
     />}
     {cardFailed && <RestaurantPhotoUnavailable alt={alt} variant="card"/>}
     {cardLoaded && <span translate="no" className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs font-normal text-white backdrop-blur-sm">Google Maps</span>}
