@@ -34,5 +34,5 @@ export function mapReviewUrl(entry: MapReviewEntry) {
     params.set("centerLat", String(entry.devicePosition.latitude));
     params.set("centerLng", String(entry.devicePosition.longitude));
   }
-  return `/restaurant/new?${params.toString()}`;
+  return `/review/map?${params.toString()}`;
 }

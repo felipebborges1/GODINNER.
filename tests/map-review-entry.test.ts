@@ -6,6 +6,7 @@ test("explicit region takes priority over device position and is not part of the
   const entry = { query: "Madero, Bahia", manualRegion: { city: "Belo Horizonte", region: "Minas Gerais", country: "Brasil" }, devicePosition: { latitude: -19.9, longitude: -43.9 } };
   assert.equal(suggestedPlaceName(entry.query), "Madero");
   assert.equal(initialMapArea(entry), "Bahia");
+  assert.match(mapReviewUrl(entry), /^\/review\/map\?/);
   assert.match(mapReviewUrl(entry), /name=Madero/);
   assert.match(mapReviewUrl(entry), /area=Bahia/);
   assert.doesNotMatch(mapReviewUrl(entry), /centerLat/);
