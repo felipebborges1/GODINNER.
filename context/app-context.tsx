@@ -2,6 +2,7 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CURRENT_USER_ID, mockData, users } from "@/data/mocks";
 import { normalize } from "@/lib/search";
+import { distanceKm } from "@/lib/distance";
 import { dedupeReviewsById, orderReviewsForFeed } from "@/lib/feed-pagination";
 import { dataMode, hasSupabasePublicEnv, supabaseConfigurationError } from "@/lib/supabase/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -678,7 +679,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (normalizedName.length < 2) return { error: "Informe um nome válido." };
     if (!draft.city.trim()) return { error: "Informe a cidade do restaurante." };
     if (!draft.coordinates) return { error: "Marque a localização do restaurante no mapa para continuar." };
-    const duplicate = restaurants.find((restaurant) => normalize(restaurant.name) === normalizedName);
+    const duplicate = restaurants.find((restaurant) => {
+      if (normalize(restaurant.name) !== normalizedName) return false;
+      const sameAddress = Boolean(draft.address.trim()) && normalize(restaurant.address) === normalize(draft.address);
+      const closeEnough = Boolean(draft.coordinates && restaurant.coordinates && distanceKm(draft.coordinates, restaurant.coordinates) <= 0.1);
+      return sameAddress || closeEnough;
+    });
     if (duplicate) return { duplicate };
     const baseSlug = normalizedName.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const slug = restaurants.some((restaurant) => restaurant.slug === baseSlug) ? `${baseSlug}-${Date.now().toString().slice(-4)}` : baseSlug;

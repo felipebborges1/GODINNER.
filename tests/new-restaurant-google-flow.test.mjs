@@ -40,13 +40,13 @@ test("new restaurant review flow keeps Google discovery, nearby search, map and 
   assert.match(component, /Permissão de localização negada|Não conseguimos acessar sua localização/);
 });
 
-test("public restaurant creation entry points lead with the unified evaluation journey without a manual-result CTA", async () => {
-  const [desktopHeader, bottomNavigation, searchExplorer, selector, fallback] = await Promise.all([
+test("public entry points lead with the unified evaluation journey and map fallback", async () => {
+  const [desktopHeader, bottomNavigation, searchExplorer, selector, mapClient] = await Promise.all([
     readFile(new URL("../components/layout/desktop-header.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/layout/bottom-navigation.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/search/search-explorer.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/review/restaurant-selector.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../components/restaurant/new-restaurant-client.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/review/map-review-client.tsx", import.meta.url), "utf8"),
   ]);
 
   assert.match(desktopHeader, /href="\/review\/new"[^>]*><Plus size=\{16\}\/>Avaliar/);
@@ -55,14 +55,15 @@ test("public restaurant creation entry points lead with the unified evaluation j
   assert.match(searchExplorer, /Lugares encontrados/);
   assert.match(searchExplorer, /text-lg font-black text-orange-600/);
   assert.doesNotMatch(searchExplorer, /LUGARES ENCONTRADOS/);
-  assert.match(searchExplorer, /px-5 py-5 text-center sm:px-6 sm:py-12/);
   assert.match(searchExplorer, /mt-3 rounded-3xl border border-stone-200/);
   assert.match(searchExplorer, /id="google-place-results"/);
+  assert.match(searchExplorer, /MapReviewEntryCta/);
   assert.match(selector, /Qual lugar você quer avaliar\?/);
   assert.match(selector, /Buscar mais lugares/);
-  assert.doesNotMatch(selector, /Informar os dados do lugar/);
+  assert.match(selector, /mapReviewUrl/);
   assert.doesNotMatch(selector, /onManualFallback/);
-  assert.match(fallback, /Preencher manualmente/);
+  assert.match(mapClient, /Onde fica o lugar\?/);
+  assert.match(mapClient, /Confirmar local e avaliar/);
 });
 
 test("Google address components from Places API keep international city and country fields", async () => {

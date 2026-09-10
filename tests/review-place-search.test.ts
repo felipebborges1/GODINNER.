@@ -46,7 +46,7 @@ test("the displayed identity keeps units distinguishable by address and city", (
   assert.equal(restaurantLocationLabel(restaurant({ address: "Calle Gran Vía, 1", city: "Madrid", countryCode: "ES" })), "Calle Gran Vía, 1 · Madrid · ES");
 });
 
-test("the unified review journey debounces external search, keeps catalog results usable on failure, and resumes selected places after login", async () => {
+test("the unified review journey debounces external search, keeps catalog results usable on failure, and offers a map review path", async () => {
   const [selector, reviewClient, reviewForm, googleHook] = await Promise.all([
     readFile(new URL("../components/review/restaurant-selector.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/review/new-review-client.tsx", import.meta.url), "utf8"),
@@ -54,7 +54,8 @@ test("the unified review journey debounces external search, keeps catalog result
     readFile(new URL("../hooks/use-google-place-search.ts", import.meta.url), "utf8"),
   ]);
   assert.match(selector, /window\.setTimeout\([\s\S]*450/);
-  assert.match(selector, /Seus resultados do GODINNER continuam disponíveis/);
+  assert.match(selector, /MapReviewEntryCta failed/);
+  assert.match(selector, /mapReviewUrl/);
   assert.match(selector, /!internalPlaceIds\.has\(place\.placeId\)/);
   assert.match(googleHook, /requestVersion/);
   assert.match(reviewClient, /sessionStorage\.setItem\(selectedGooglePlaceStorageKey/);

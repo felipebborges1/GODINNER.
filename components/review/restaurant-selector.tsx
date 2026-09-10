@@ -1,12 +1,15 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { LoaderCircle, MapPin, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppContext } from "@/hooks/use-app-context";
 import { useExploreLocation } from "@/hooks/use-explore-location";
 import { useGooglePlaceSearch } from "@/hooks/use-google-place-search";
 import { googleQueryForReview, hasConfidentInternalPlaceMatch, queryIncludesExplicitPlaceContext, restaurantLocationLabel } from "@/lib/review/place-search";
+import { mapReviewUrl } from "@/lib/review/map-review-entry";
+import { MapReviewEntryCta } from "@/components/review/map-review-entry-cta";
 import { normalize } from "@/lib/search";
 import { resolveSearchGeography, searchCityLabel, type SearchCity } from "@/lib/search-geography";
 import type { GooglePlaceCandidate } from "@/lib/google-place-types";
@@ -22,13 +25,14 @@ function googleLocationLabel(place: GooglePlaceCandidate) {
 }
 
 export function RestaurantSelector({ onSelect, onSelectExternal }: RestaurantSelectorProps) {
+  const router = useRouter();
   const { restaurants, currentUserId } = useAppContext();
   const { mode, manualRegion, devicePosition } = useExploreLocation();
   const [query, setQuery] = useState("");
   const [externalRequested, setExternalRequested] = useState(false);
   const [externalSearchStartedFor, setExternalSearchStartedFor] = useState<string | null>(null);
   const [selectedAmbiguousCity, setSelectedAmbiguousCity] = useState<{ query: string; city: SearchCity } | null>(null);
-  const { places, isLoading, error: externalError, searchPlaces, clear } = useGooglePlaceSearch();
+  const { places, resultQuery, isLoading, error: externalError, searchPlaces, clear } = useGooglePlaceSearch();
 
   const candidates = useMemo(() => restaurants.filter((restaurant) => (
       restaurant.status !== "rejected"
@@ -83,16 +87,10 @@ export function RestaurantSelector({ onSelect, onSelectExternal }: RestaurantSel
   }, [clear, devicePosition, geography.explicitCity, manualRegion, mode, query, searchPlaces, shouldSearchExternal]);
 
   const internalPlaceIds = useMemo(() => new Set(internalResults.map((restaurant) => restaurant.googlePlaceId).filter(Boolean)), [internalResults]);
-  const externalResults = places.filter((place) => !internalPlaceIds.has(place.placeId));
+  const currentGoogleQuery = googleQueryForReview(query, mode === "manual" ? manualRegion ?? undefined : undefined);
+  const externalResults = !externalError && resultQuery === currentGoogleQuery ? places.filter((place) => !internalPlaceIds.has(place.placeId)) : [];
   const hasQuery = query.trim().length >= 2;
-  const retryExternalSearch = () => {
-    setExternalRequested(true);
-    setExternalSearchStartedFor(query);
-    void searchPlaces(
-      googleQueryForReview(query, mode === "manual" ? manualRegion ?? undefined : undefined),
-      mode === "device" && !geography.explicitCity && !queryIncludesExplicitPlaceContext(query) ? devicePosition ?? undefined : undefined,
-    );
-  };
+  const startMapReview = () => router.push(mapReviewUrl({ query, manualRegion: mode === "manual" ? manualRegion ?? undefined : undefined, devicePosition: mode === "device" ? devicePosition ?? undefined : undefined }));
 
   return <section className="mx-auto max-w-xl px-4 py-8 pb-28 lg:py-12">
     <p className="text-sm font-black text-orange-600">REGISTRAR EXPERIÊNCIA</p>
@@ -119,9 +117,9 @@ export function RestaurantSelector({ onSelect, onSelectExternal }: RestaurantSel
     {hasQuery && shouldSearchExternal && <div className="mt-6">
       <p className="text-xs font-black uppercase tracking-wide text-stone-500">Outros lugares</p>
       {isLoading && <p role="status" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-stone-500"><LoaderCircle className="animate-spin" size={16}/> Buscando mais lugares…</p>}
-      {externalError && <div className="mt-3 rounded-2xl bg-amber-50 p-4 text-sm text-stone-700"><p>Não foi possível buscar outros lugares agora. Seus resultados do GODINNER continuam disponíveis.</p><button type="button" onClick={retryExternalSearch} className="mt-2 min-h-11 font-black text-orange-600">Tentar novamente</button></div>}
+      {externalError && <div className="mt-3"><MapReviewEntryCta failed onStart={startMapReview}/></div>}
       {!isLoading && !externalError && externalResults.length > 0 && <div className="mt-3 grid gap-2">{externalResults.map((place) => <button key={place.placeId} type="button" onClick={() => onSelectExternal(place)} className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-orange-100 bg-orange-50/50 p-4 text-left"><span className="min-w-0"><b className="block truncate text-sm">{place.name}</b><span className="mt-1 block truncate text-xs text-stone-600">{googleLocationLabel(place)}</span></span><MapPin className="shrink-0 text-orange-500" size={18}/></button>)}</div>}
-      {!isLoading && !externalError && externalSearchStartedFor === query && externalResults.length === 0 && <p className="mt-3 rounded-2xl border border-dashed border-stone-300 p-5 text-center text-sm text-stone-600">Nenhum lugar externo encontrado para esse termo. Tente outro nome ou cidade.</p>}
+      {!isLoading && !externalError && externalSearchStartedFor === query && externalResults.length === 0 && <div className="mt-3"><MapReviewEntryCta onStart={startMapReview}/></div>}
     </div>}
   </section>;
 }
