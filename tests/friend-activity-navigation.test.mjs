@@ -7,9 +7,9 @@ import ts from "typescript";
 async function loadNavigation() {
   const source = await readFile(new URL("../lib/friend-activity-navigation.ts", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
-  const module = { exports: {} };
-  vm.runInNewContext(compiled.outputText, { exports: module.exports, module });
-  return module.exports;
+  const compiledModule = { exports: {} };
+  vm.runInNewContext(compiled.outputText, { exports: compiledModule.exports, module: compiledModule });
+  return compiledModule.exports;
 }
 
 test("friend activity moves exactly one photo or review for each direction", async () => {
@@ -51,15 +51,19 @@ test("friend activity respects both ends without a loop", async () => {
 });
 
 test("friend activity coordinates a review boundary without changing the lightbox behavior", async () => {
-  const [reviewMedia, card, carousel] = await Promise.all([
+  const [reviewMedia, card, carousel, avatar] = await Promise.all([
     readFile(new URL("../components/review/review-media.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/social/friend-activity-card.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/social/friend-activity-carousel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/ui/user-avatar.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(reviewMedia, /onBoundarySwipe\?\.\(direction\)/);
+  assert.match(reviewMedia, /Foto da experiência indisponível/);
+  assert.match(reviewMedia, /onError=\{\(\) => markPhotoFailed\(photo\.id\)\}/);
   assert.match(reviewMedia, /onPointerUp=\{\(event\) => handlePointerEnd\(event, false\)\}/);
   assert.match(card, /data-activity-media/);
   assert.match(card, /onNavigateReview/);
   assert.match(carousel, /targetPhotoIndex = direction === 1 \? 0 : Math\.max\(target\.review\.photos\.length - 1, 0\)/);
   assert.match(carousel, /mediaEager=\{index === activeIndex \|\| index === activeIndex \+ 1\}/);
+  assert.match(avatar, /startedAt\.current = performance\.now\(\)/);
 });

@@ -48,14 +48,16 @@ export function GooglePlaceCover({ slug, alt, variant, priority = false, eager =
 }) {
   const requestKey = `${slug}:${variant}`;
   const cardRef = useRef<HTMLSpanElement | null>(null);
-  const startedAt = useRef(typeof performance === "undefined" ? 0 : performance.now());
+  const startedAt = useRef(0);
   const [isVisible, setIsVisible] = useState(variant === "profile" || priority || eager);
   const [state, setState] = useState<CoverState>({ key: "", metadata: null, phase: "loading" });
   const [cardState, setCardState] = useState<CardState>({ key: "", phase: "loading" });
 
   useEffect(() => {
-    recordMediaDiagnostic("google-card", requestKey, "mounted", startedAt.current);
-    return () => recordMediaDiagnostic("google-card", requestKey, "unmounted", startedAt.current);
+    const mountedAt = performance.now();
+    startedAt.current = mountedAt;
+    recordMediaDiagnostic("google-card", requestKey, "mounted", mountedAt);
+    return () => recordMediaDiagnostic("google-card", requestKey, "unmounted", mountedAt);
   }, [requestKey]);
 
   useEffect(() => {

@@ -80,7 +80,8 @@ export function FriendActivityCard({
       rounded={false}
       priority={mediaPriority}
       eager={mediaEager}
-      photoIndexRequest={photoIndexRequest}
+      key={`${review.id}:${photoIndexRequest?.transitionId ?? "initial"}`}
+      initialPhotoIndex={photoIndexRequest?.index ?? 0}
       onBoundarySwipe={onNavigateReview}
       fallback={restaurant.hasGooglePlaceCover ? <Link href={`/restaurant/${restaurant.slug}`} className="relative block aspect-[4/3] overflow-hidden"><GooglePlaceCover slug={restaurant.slug} alt={restaurant.name} variant="card" priority={mediaPriority} eager={mediaEager}/></Link> : <Link href={`/restaurant/${restaurant.slug}`} className="relative block aspect-[4/3] overflow-hidden">{restaurant.coverPhoto.url ? <Image src={restaurant.coverPhoto.url} alt={restaurant.name} fill priority={mediaPriority} loading={mediaPriority ? undefined : mediaEager ? "eager" : "lazy"} sizes="288px" className="object-cover"/> : <RestaurantPhotoUnavailable alt={restaurant.name} variant="card"/>}</Link>}
     /><div className="pointer-events-none absolute bottom-3 left-3">{score !== null && <RatingBadge rating={score}/>}</div>{reviewCount > 1 && <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-stone-950/80 px-2.5 py-1 text-xs font-bold text-white">{reviewPosition + 1} / {reviewCount}</span>}</div>

@@ -19,14 +19,15 @@ type ReviewMediaProps = {
   className?: string;
   /** Provided only by a parent carousel that can continue past this review. */
   onBoundarySwipe?: (direction: -1 | 1) => void;
-  photoIndexRequest?: { index: number; transitionId: number };
+  initialPhotoIndex?: number;
 };
 
-export function ReviewMedia({ photos, alt, fallback = null, priority = false, eager = false, rounded = true, className, onBoundarySwipe, photoIndexRequest }: ReviewMediaProps) {
+export function ReviewMedia({ photos, alt, fallback = null, priority = false, eager = false, rounded = true, className, onBoundarySwipe, initialPhotoIndex = 0 }: ReviewMediaProps) {
   const orderedPhotos = useMemo(() => orderReviewPhotos(photos), [photos]);
   const photoCount = orderedPhotos.length;
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(() => Math.max(initialPhotoIndex, 0));
   const [loadedPhotoIds, setLoadedPhotoIds] = useState<Set<string>>(() => new Set());
+  const [failedPhotoIds, setFailedPhotoIds] = useState<Set<string>>(() => new Set());
   const activeIndex = Math.min(selectedIndex, Math.max(photoCount - 1, 0));
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const pointerStartRef = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -50,11 +51,6 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
     activeStartedAt.current = performance.now();
     recordMediaDiagnostic("review-photo", activePhoto.id, "request-ready", activeStartedAt.current);
   }, [activePhoto]);
-
-  useEffect(() => {
-    if (!photoIndexRequest) return;
-    setSelectedIndex(Math.min(Math.max(photoIndexRequest.index, 0), Math.max(photoCount - 1, 0)));
-  }, [photoCount, photoIndexRequest]);
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -119,6 +115,16 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
     });
   };
 
+  const markPhotoFailed = (photoId: string) => {
+    recordMediaDiagnostic("review-photo", photoId, "error", activeStartedAt.current);
+    setFailedPhotoIds((current) => {
+      if (current.has(photoId)) return current;
+      const next = new Set(current);
+      next.add(photoId);
+      return next;
+    });
+  };
+
   if (!activePhoto) return <div
     data-activity-media={onBoundarySwipe ? "true" : undefined}
     className={cn("relative", className)}
@@ -167,6 +173,7 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
           draggable={false}
           className={cn("object-contain p-1 transition-opacity duration-200 motion-reduce:transition-none", isLoaded ? "opacity-100" : "opacity-0")}
           onLoad={(event) => void markPhotoLoaded(photo.id, event.currentTarget)}
+          onError={() => markPhotoFailed(photo.id)}
         />}
       </div>;
     })}
@@ -203,7 +210,8 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
       tabIndex={photoCount > 1 ? 0 : undefined}
       style={{ touchAction: "pan-y" }}
     >
-      {!loadedPhotoIds.has(activePhoto.id) && <div className="pointer-events-none absolute inset-0 z-10 animate-pulse bg-stone-200" aria-hidden="true"/>}
+      {!loadedPhotoIds.has(activePhoto.id) && !failedPhotoIds.has(activePhoto.id) && <div className="pointer-events-none absolute inset-0 z-10 animate-pulse bg-stone-200" aria-hidden="true"/>}
+      {failedPhotoIds.has(activePhoto.id) && <div role="img" aria-label={`Foto da experiência indisponível: ${alt}`} className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-stone-100"><span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-stone-600 shadow-sm ring-1 ring-stone-200">Foto indisponível</span></div>}
       <button type="button" onClick={openLightbox} onDragStart={(event) => event.preventDefault()} className="absolute inset-0 block w-full cursor-zoom-in" aria-label={`Ampliar foto ${activeIndex + 1} de ${photoCount}`}>
         {galleryTrack("(min-width: 1024px) 576px, (min-width: 640px) 480px, 100vw")}
       </button>
@@ -218,7 +226,8 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
       <section className="w-full max-w-4xl" onMouseDown={(event) => event.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between text-sm font-bold text-white"><span>{activeIndex + 1} de {photoCount}</span><button ref={closeButtonRef} type="button" onClick={() => setLightboxOpen(false)} aria-label="Fechar galeria" className="grid h-11 w-11 place-items-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><X size={22}/></button></div>
         <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-900" onPointerDown={startPointer} onPointerUp={(event) => handlePointerEnd(event, false)} onPointerCancel={cancelPointer} style={{ touchAction: "pan-y" }}>
-          {!loadedPhotoIds.has(activePhoto.id) && <div className="pointer-events-none absolute inset-0 z-10 animate-pulse bg-stone-800" aria-hidden="true"/>}
+          {!loadedPhotoIds.has(activePhoto.id) && !failedPhotoIds.has(activePhoto.id) && <div className="pointer-events-none absolute inset-0 z-10 animate-pulse bg-stone-800" aria-hidden="true"/>}
+          {failedPhotoIds.has(activePhoto.id) && <div role="img" aria-label={`Foto da experiência indisponível: ${alt}`} className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-stone-900 text-white"><span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">Foto indisponível</span></div>}
           {galleryTrack("(min-width: 1024px) 960px, 100vw")}
           {photoCount > 1 && <><button type="button" onClick={() => move(-1, false)} aria-label="Foto anterior" className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-stone-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:grid"><ChevronLeft size={22}/></button><button type="button" onClick={() => move(1, false)} aria-label="Próxima foto" className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-stone-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:grid"><ChevronRight size={22}/></button></>}
         </div>
