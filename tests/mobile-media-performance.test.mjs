@@ -18,7 +18,7 @@ test("horizontal cards prepare only the next card without making it high priorit
 });
 
 test("social review media prepares the adjacent card and keeps private-media handling", () => {
-  assert.match(activity, /mediaPriority = false, mediaEager = false/);
+  assert.match(activity, /mediaPriority = false,[\s\S]*mediaEager = false/);
   assert.match(activity, /priority=\{mediaPriority\} eager=\{mediaEager\}/);
   assert.match(reviewMedia, /const shouldEagerLoad = isFirstPriorityMedia \|\| \(eager && index === 0\) \|\| index === activeIndex \+ 1/);
   assert.match(reviewMedia, /unoptimized=\{photo\.url\.startsWith\("\/api\/review-photo\/"\)\}/);

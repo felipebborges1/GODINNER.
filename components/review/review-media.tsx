@@ -17,9 +17,12 @@ type ReviewMediaProps = {
   eager?: boolean;
   rounded?: boolean;
   className?: string;
+  /** Provided only by a parent carousel that can continue past this review. */
+  onBoundarySwipe?: (direction: -1 | 1) => void;
+  photoIndexRequest?: { index: number; transitionId: number };
 };
 
-export function ReviewMedia({ photos, alt, fallback = null, priority = false, eager = false, rounded = true, className }: ReviewMediaProps) {
+export function ReviewMedia({ photos, alt, fallback = null, priority = false, eager = false, rounded = true, className, onBoundarySwipe, photoIndexRequest }: ReviewMediaProps) {
   const orderedPhotos = useMemo(() => orderReviewPhotos(photos), [photos]);
   const photoCount = orderedPhotos.length;
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -49,6 +52,11 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
   }, [activePhoto]);
 
   useEffect(() => {
+    if (!photoIndexRequest) return;
+    setSelectedIndex(Math.min(Math.max(photoIndexRequest.index, 0), Math.max(photoCount - 1, 0)));
+  }, [photoCount, photoIndexRequest]);
+
+  useEffect(() => {
     if (!lightboxOpen) return;
     closeButtonRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
@@ -60,10 +68,16 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [lightboxOpen, photoCount]);
 
-  if (!activePhoto) return fallback;
+  const move = (direction: -1 | 1, continueReview = true) => {
+    const nextIndex = moveReviewPhotoIndex(activeIndex, photoCount, direction);
+    if (nextIndex === activeIndex) {
+      if (continueReview) onBoundarySwipe?.(direction);
+      return;
+    }
+    setSelectedIndex(nextIndex);
+  };
 
-  const move = (direction: -1 | 1) => setSelectedIndex((current) => moveReviewPhotoIndex(Math.min(current, Math.max(photoCount - 1, 0)), photoCount, direction));
-  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>, continueReview = true) => {
     const start = pointerStartRef.current;
     if (!start || start.id !== event.pointerId) return;
     pointerStartRef.current = null;
@@ -72,7 +86,19 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
     const direction = getReviewPhotoSwipeDirection(start.x, start.y, event.clientX, event.clientY);
     if (direction === null) return;
     ignoreClickUntilRef.current = Date.now() + 350;
-    move(direction);
+    move(direction, continueReview);
+  };
+
+  const handleFallbackPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = pointerStartRef.current;
+    if (!start || start.id !== event.pointerId) return;
+    pointerStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+
+    const direction = getReviewPhotoSwipeDirection(start.x, start.y, event.clientX, event.clientY);
+    if (direction === null) return;
+    ignoreClickUntilRef.current = Date.now() + 350;
+    onBoundarySwipe?.(direction);
   };
 
   const markPhotoLoaded = async (photoId: string, image: HTMLImageElement) => {
@@ -92,6 +118,28 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
       return next;
     });
   };
+
+  if (!activePhoto) return <div
+    data-activity-media={onBoundarySwipe ? "true" : undefined}
+    className={cn("relative", className)}
+    onPointerDown={startPointer}
+    onPointerUp={handleFallbackPointerEnd}
+    onPointerCancel={cancelPointer}
+    onClickCapture={(event) => {
+      if (Date.now() < ignoreClickUntilRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }}
+    tabIndex={onBoundarySwipe ? 0 : undefined}
+    onKeyDown={(event) => {
+      if (event.key === "ArrowLeft") onBoundarySwipe?.(-1);
+      if (event.key === "ArrowRight") onBoundarySwipe?.(1);
+    }}
+    style={{ touchAction: "pan-y" }}
+  >
+    {fallback}
+  </div>;
 
   const galleryTrack = (sizes: string) => <div
     className="flex h-full w-full transition-transform duration-200 ease-out motion-reduce:transition-none"
@@ -124,15 +172,15 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
     })}
   </div>;
 
-  const startPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+  function startPointer(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     pointerStartRef.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
     event.currentTarget.setPointerCapture(event.pointerId);
-  };
+  }
 
-  const cancelPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+  function cancelPointer(event: ReactPointerEvent<HTMLDivElement>) {
     if (pointerStartRef.current?.id === event.pointerId) pointerStartRef.current = null;
-  };
+  }
 
   const openLightbox = () => {
     if (Date.now() < ignoreClickUntilRef.current) return;
@@ -146,6 +194,7 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
 
   return <>
     <div
+      data-activity-media={onBoundarySwipe ? "true" : undefined}
       className={cn("relative isolate aspect-[4/3] overflow-hidden bg-stone-100", rounded && "rounded-2xl", className)}
       onPointerDown={startPointer}
       onPointerUp={handlePointerEnd}
@@ -168,10 +217,10 @@ export function ReviewMedia({ photos, alt, fallback = null, priority = false, ea
     {lightboxOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-stone-950/80 p-4 sm:p-8" role="dialog" aria-modal="true" aria-label={`Fotos da experiência: ${alt}`} onMouseDown={() => setLightboxOpen(false)}>
       <section className="w-full max-w-4xl" onMouseDown={(event) => event.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between text-sm font-bold text-white"><span>{activeIndex + 1} de {photoCount}</span><button ref={closeButtonRef} type="button" onClick={() => setLightboxOpen(false)} aria-label="Fechar galeria" className="grid h-11 w-11 place-items-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><X size={22}/></button></div>
-        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-900" onPointerDown={startPointer} onPointerUp={handlePointerEnd} onPointerCancel={cancelPointer} style={{ touchAction: "pan-y" }}>
+        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-900" onPointerDown={startPointer} onPointerUp={(event) => handlePointerEnd(event, false)} onPointerCancel={cancelPointer} style={{ touchAction: "pan-y" }}>
           {!loadedPhotoIds.has(activePhoto.id) && <div className="pointer-events-none absolute inset-0 z-10 animate-pulse bg-stone-800" aria-hidden="true"/>}
           {galleryTrack("(min-width: 1024px) 960px, 100vw")}
-          {photoCount > 1 && <><button type="button" onClick={() => move(-1)} aria-label="Foto anterior" className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-stone-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:grid"><ChevronLeft size={22}/></button><button type="button" onClick={() => move(1)} aria-label="Próxima foto" className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-stone-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:grid"><ChevronRight size={22}/></button></>}
+          {photoCount > 1 && <><button type="button" onClick={() => move(-1, false)} aria-label="Foto anterior" className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-stone-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:grid"><ChevronLeft size={22}/></button><button type="button" onClick={() => move(1, false)} aria-label="Próxima foto" className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-stone-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:grid"><ChevronRight size={22}/></button></>}
         </div>
       </section>
     </div>}
