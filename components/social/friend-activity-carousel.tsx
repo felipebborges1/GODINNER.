@@ -42,12 +42,10 @@ export function FriendActivityCarousel({ activities }: { activities: FriendActiv
 
   if (!activities.length) return null;
 
-  return <div ref={containerRef} className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0" aria-label="Experiências dos seus amigos">
+  return <div ref={containerRef} className="-mx-4 flex touch-auto snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0" aria-label="Experiências dos seus amigos">
     {activities.map((activity, index) => <div key={activity.review.id} ref={(element) => { cardRefs.current[index] = element; }} className="shrink-0">
       <FriendActivityCard
         {...activity}
-        reviewPosition={index}
-        reviewCount={activities.length}
         mediaPriority={index === 0}
         mediaEager={index === activeIndex || index === activeIndex + 1}
         photoIndexRequest={photoRequests[activity.review.id]}

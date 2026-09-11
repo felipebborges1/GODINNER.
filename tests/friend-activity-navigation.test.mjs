@@ -63,6 +63,8 @@ test("friend activity coordinates a review boundary without changing the lightbo
   assert.match(reviewMedia, /onPointerUp=\{\(event\) => handlePointerEnd\(event, false\)\}/);
   assert.match(card, /data-activity-media/);
   assert.match(card, /onNavigateReview/);
+  assert.doesNotMatch(card, />Anterior</);
+  assert.doesNotMatch(card, />Próxima</);
   assert.match(carousel, /targetPhotoIndex = direction === 1 \? 0 : Math\.max\(target\.review\.photos\.length - 1, 0\)/);
   assert.match(carousel, /mediaEager=\{index === activeIndex \|\| index === activeIndex \+ 1\}/);
   assert.match(avatar, /startedAt\.current = performance\.now\(\)/);

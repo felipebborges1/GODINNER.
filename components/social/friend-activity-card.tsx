@@ -17,8 +17,6 @@ type FriendActivityCardProps = {
   review: Review;
   mediaPriority?: boolean;
   mediaEager?: boolean;
-  reviewPosition: number;
-  reviewCount: number;
   photoIndexRequest?: { index: number; transitionId: number };
   onNavigateReview: (direction: -1 | 1) => void;
   onActivate: () => void;
@@ -34,16 +32,12 @@ export function FriendActivityCard({
   review,
   mediaPriority = false,
   mediaEager = false,
-  reviewPosition,
-  reviewCount,
   photoIndexRequest,
   onNavigateReview,
   onActivate,
 }: FriendActivityCardProps) {
   const score = getReviewScore(review);
   const pointerStartRef = useRef<{ id: number; x: number; y: number } | null>(null);
-  const hasPreviousReview = reviewPosition > 0;
-  const hasNextReview = reviewPosition < reviewCount - 1;
 
   const startCardPointer = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -67,7 +61,7 @@ export function FriendActivityCard({
   };
 
   return <article
-    className="w-64 shrink-0 snap-start overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-stone-100 sm:w-72"
+    className="w-[82vw] max-w-80 shrink-0 snap-start overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-stone-100 sm:w-72"
     onPointerDown={startCardPointer}
     onPointerUp={finishCardPointer}
     onPointerCancel={cancelCardPointer}
@@ -84,8 +78,7 @@ export function FriendActivityCard({
       initialPhotoIndex={photoIndexRequest?.index ?? 0}
       onBoundarySwipe={onNavigateReview}
       fallback={restaurant.hasGooglePlaceCover ? <Link href={`/restaurant/${restaurant.slug}`} className="relative block aspect-[4/3] overflow-hidden"><GooglePlaceCover slug={restaurant.slug} alt={restaurant.name} variant="card" priority={mediaPriority} eager={mediaEager}/></Link> : <Link href={`/restaurant/${restaurant.slug}`} className="relative block aspect-[4/3] overflow-hidden">{restaurant.coverPhoto.url ? <Image src={restaurant.coverPhoto.url} alt={restaurant.name} fill priority={mediaPriority} loading={mediaPriority ? undefined : mediaEager ? "eager" : "lazy"} sizes="288px" className="object-cover"/> : <RestaurantPhotoUnavailable alt={restaurant.name} variant="card"/>}</Link>}
-    /><div className="pointer-events-none absolute bottom-3 left-3">{score !== null && <RatingBadge rating={score}/>}</div>{reviewCount > 1 && <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-stone-950/80 px-2.5 py-1 text-xs font-bold text-white">{reviewPosition + 1} / {reviewCount}</span>}</div>
-    <div className="flex items-center justify-between gap-3 px-3.5 pt-3 text-xs text-stone-500"><span>{new Date(review.visitDate).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>{reviewCount > 1 && <span>{reviewPosition + 1} de {reviewCount} experiências</span>}</div>
-    {reviewCount > 1 && <div className="grid grid-cols-2 gap-2 px-3.5 pb-3 pt-2"><button type="button" onClick={() => onNavigateReview(-1)} disabled={!hasPreviousReview} className="min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 disabled:cursor-not-allowed disabled:opacity-40">Anterior</button><button type="button" onClick={() => onNavigateReview(1)} disabled={!hasNextReview} className="min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 disabled:cursor-not-allowed disabled:opacity-40">Próxima</button></div>}
+    /><div className="pointer-events-none absolute bottom-3 left-3">{score !== null && <RatingBadge rating={score}/>}</div></div>
+    <p className="px-3.5 py-3 text-xs text-stone-500">{new Date(review.visitDate).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</p>
   </article>;
 }
