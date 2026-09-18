@@ -35,7 +35,10 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     p_edition_year: status === "verified_starred" || status === "verified_no_star" ? editionYear : null,
     p_source_url: status === "verified_starred" || status === "verified_no_star" ? sourceUrl : null,
   });
-  if (error) return NextResponse.json({ error: "Não foi possível salvar o reconhecimento Michelin." }, { status: 500 });
+  if (error) {
+    const schemaUnavailable = ["PGRST202", "42P01", "42703", "42883"].includes(error.code ?? "");
+    return NextResponse.json({ error: schemaUnavailable ? "O suporte Michelin ainda não foi aplicado neste ambiente. Aplique a migration antes de salvar." : "Não foi possível salvar o reconhecimento Michelin." }, { status: schemaUnavailable ? 409 : 500 });
+  }
   return NextResponse.json({ recognition: {
     state: data.michelin_status,
     stars: data.michelin_stars ?? undefined,
@@ -55,6 +58,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (administrator?.role !== "admin") return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
   const { id } = await context.params;
   const { data, error } = await supabase.from("restaurant_michelin_recognition_history").select("id, michelin_status, michelin_stars, michelin_edition_year, michelin_source_url, verified_at, changed_at").eq("restaurant_id", id).order("changed_at", { ascending: false });
-  if (error) return NextResponse.json({ error: "Não foi possível carregar o histórico Michelin." }, { status: 500 });
+  if (error) {
+    const schemaUnavailable = ["PGRST202", "PGRST205", "42P01", "42703"].includes(error.code ?? "");
+    return NextResponse.json({ error: schemaUnavailable ? "O suporte Michelin ainda não foi aplicado neste ambiente. Aplique a migration para consultar o histórico." : "Não foi possível carregar o histórico Michelin." }, { status: schemaUnavailable ? 409 : 500 });
+  }
   return NextResponse.json({ history: data });
 }

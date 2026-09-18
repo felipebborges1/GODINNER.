@@ -75,6 +75,7 @@ test("UI exposes the recognition filter, its removable shared query, and clear l
   assert.match(card, /MichelinRecognitionBadge/);
   assert.match(profile, /MichelinRecognitionSource/);
   assert.match(admin, /URL oficial do Guia Michelin/);
+  assert.match(admin, /status: recognition\.state/);
   assert.match(admin, /Ver histórico/);
   assert.match(route, /administrator\?\.role !== "admin"/);
   assert.match(route, /isOfficialMichelinGuideUrl/);

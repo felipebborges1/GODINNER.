@@ -23,7 +23,7 @@ export function AdminMichelinRecognition({ restaurantId, initialRecognition }: {
     setSaving(true);
     setMessage(null);
     try {
-      const response = await fetch(`/api/admin/restaurants/${restaurantId}/michelin`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(recognition) });
+      const response = await fetch(`/api/admin/restaurants/${restaurantId}/michelin`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: recognition.state, stars: recognition.stars ?? null, editionYear: recognition.editionYear ?? null, sourceUrl: recognition.sourceUrl ?? null }) });
       const payload = await response.json() as { recognition?: MichelinRecognition; error?: string };
       if (!response.ok || !payload.recognition) throw new Error(payload.error ?? "Não foi possível salvar.");
       setRecognition(payload.recognition);
