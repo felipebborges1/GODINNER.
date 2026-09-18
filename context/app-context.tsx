@@ -13,6 +13,7 @@ import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_
 import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/notifications";
 import { getCurrencyForCountry } from "@/lib/currency";
 import { averageReviewScore, getDimensionalReviewScore, getReviewScore } from "@/lib/review-rating";
+import { createGeneralRatingDetails, getRatingDetailsScore, getTopicScore } from "@/lib/review-criteria";
 import { isValidRecommendationReview, unlocksRecommendations } from "@/lib/recommendations/unlock";
 import type { CommentMention, Follow, InAppNotification, PriceRange, Restaurant, RestaurantCoordinates, RestaurantList, Review, ReviewComment, ReviewDraft, ReviewLikeUser, ReviewSocialSummary, ReviewUpdateDraft, User } from "@/types";
 
@@ -725,6 +726,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!currentUserId) return null;
     const restaurant = restaurants.find((item) => item.id === draft.restaurantId);
     if (!restaurant || restaurant.status === "rejected") return null;
+    const ratingDetails = draft.ratingDetails ?? createGeneralRatingDetails({ food: draft.foodRating, service: draft.serviceRating, ambience: draft.ambienceRating });
+    const foodRating = getTopicScore(ratingDetails.food);
+    const serviceRating = getTopicScore(ratingDetails.service);
+    const ambienceRating = getTopicScore(ratingDetails.ambience);
+    const derivedRating = getRatingDetailsScore(ratingDetails);
+    if (!foodRating || !serviceRating || !ambienceRating || !derivedRating) return null;
     let reviewId = `review-${Date.now()}`;
     let reviewPhotos = draft.photos;
     let recommendationsUnlocked = false;
@@ -738,14 +745,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (upload.error || !upload.data) return null;
         uploaded.push({ storagePath: upload.data.path, position, photo: { ...photo, url: upload.data.url, file: undefined } });
       }
-      const persisted = await publishReviewPersisted(client, { restaurantId: draft.restaurantId, foodRating: draft.foodRating as number, serviceRating: draft.serviceRating as number, ambienceRating: draft.ambienceRating as number, comment: draft.comment, amountPerPerson: draft.amountPerPerson, visitDate: draft.visitDate, photos: uploaded.map(({ storagePath, position }) => ({ storagePath, position })), publicationKey: draft.publicationKey });
+      const persisted = await publishReviewPersisted(client, { restaurantId: draft.restaurantId, ratingDetails, comment: draft.comment, amountPerPerson: draft.amountPerPerson, visitDate: draft.visitDate, photos: uploaded.map(({ storagePath, position }) => ({ storagePath, position })), publicationKey: draft.publicationKey });
       if (persisted.error || !persisted.data) return null;
       reviewId = persisted.data.reviewId;
       recommendationsUnlocked = persisted.data.recommendationsUnlocked;
       reviewPhotos = uploaded.map(({ photo }) => photo);
     }
     const now = new Date().toISOString();
-    const review: Review = { ...draft, photos: reviewPhotos, currency: getCurrencyForCountry(restaurant.countryCode) ?? undefined, rating: getDimensionalReviewScore(draft.foodRating, draft.serviceRating, draft.ambienceRating) ?? 0, ratingMethod: "dimensions", id: reviewId, userId: currentUserId, createdAt: now, updatedAt: now };
+    const review: Review = { ...draft, foodRating, serviceRating, ambienceRating, ratingDetails, photos: reviewPhotos, currency: getCurrencyForCountry(restaurant.countryCode) ?? undefined, rating: derivedRating, ratingMethod: "dimensions", id: reviewId, userId: currentUserId, createdAt: now, updatedAt: now };
     if (dataMode === "mock") {
       const validReviewCount = reviews.filter((item) => item.userId === currentUserId && isValidRecommendationReview(item)).length;
       recommendationsUnlocked = unlocksRecommendations(validReviewCount, review);
@@ -802,6 +809,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
       const persisted = await updateReviewPersisted(client, reviewId, {
+        ratingDetails: draft.ratingDetails ?? undefined,
         comment: draft.comment,
         amountPerPerson: draft.amountPerPerson,
         visitDate: draft.visitDate,
@@ -820,6 +828,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const updated: Review = {
       ...existing,
       ...draft,
+      ...(draft.ratingDetails ? { foodRating: getTopicScore(draft.ratingDetails.food), serviceRating: getTopicScore(draft.ratingDetails.service), ambienceRating: getTopicScore(draft.ratingDetails.ambience), rating: getRatingDetailsScore(draft.ratingDetails) ?? existing.rating, ratingMethod: "dimensions" as const } : {}),
       photos: nextPhotos,
       updatedAt,
     };

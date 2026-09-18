@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { toDataError, type DataError } from "./errors";
+import type { ReviewRatingDetails } from "@/types";
 
 type Client = SupabaseClient<Database>;
 export type RepositoryResult<T> = { data: T | null; error: DataError | null };
@@ -52,12 +53,10 @@ export async function removeFollow(client: Client, followerId: string, following
 
 export type PublishedReviewResult = { reviewId: string; recommendationsUnlocked: boolean };
 
-export async function publishReviewPersisted(client: Client, input: { restaurantId: string; foodRating: number; serviceRating: number; ambienceRating: number; comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }>; publicationKey?: string }) {
-  const response = await client.rpc("publish_review_with_recommendation_unlock", {
+export async function publishReviewPersisted(client: Client, input: { restaurantId: string; ratingDetails: ReviewRatingDetails; comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }>; publicationKey?: string }) {
+  const response = await client.rpc("publish_review_with_rating_details", {
     p_restaurant_id: input.restaurantId,
-    p_food_rating: input.foodRating,
-    p_service_rating: input.serviceRating,
-    p_ambience_rating: input.ambienceRating,
+    p_rating_details: input.ratingDetails,
     p_comment: input.comment,
     p_amount_per_person: input.amountPerPerson ?? null,
     p_visit_date: input.visitDate,
@@ -83,16 +82,19 @@ export async function listReviewLikes(client: Client, reviewId: string, offset =
   return result(response.data, response.error);
 }
 
-type ReviewUpdateMutationInput = { comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }> };
+type ReviewUpdateMutationInput = { ratingDetails?: ReviewRatingDetails; comment: string; amountPerPerson?: number; visitDate: string; photos: Array<{ storagePath: string; position: number }> };
 
 export async function updateReviewPersisted(client: Client, reviewId: string, input: ReviewUpdateMutationInput) {
-  const response = await client.rpc("update_review_owned", {
+  const args = {
     p_review_id: reviewId,
     p_comment: input.comment,
     p_amount_per_person: input.amountPerPerson ?? null,
     p_visit_date: input.visitDate,
     p_photos: input.photos.map((photo) => ({ storage_path: photo.storagePath, position: photo.position })),
-  });
+  };
+  const response = input.ratingDetails
+    ? await client.rpc("update_review_with_rating_details_owned", { ...args, p_rating_details: input.ratingDetails })
+    : await client.rpc("update_review_owned", args);
   return result(response.data?.[0] ?? null, response.error);
 }
 

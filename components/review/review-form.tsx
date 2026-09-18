@@ -6,20 +6,19 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { LoginWall } from "@/components/auth/login-wall";
 import { trackEvent } from "@/lib/analytics";
 import { getCurrencyForCountry } from "@/lib/currency";
-import { formatRating, getDimensionalReviewScore, isDimensionRating } from "@/lib/review-rating";
+import { createGeneralRatingDetails, getCriteriaCount, getRatingDetailsScore, getTopicScore, type ReviewRatingDetails } from "@/lib/review-criteria";
+import { formatRating, isDimensionRating } from "@/lib/review-rating";
 import type { Restaurant, RestaurantPhoto, Review } from "@/types";
 import { useAppContext } from "@/hooks/use-app-context";
 import { PhotoUploader } from "./photo-uploader";
-import { RatingInput } from "./rating-input";
+import { DetailedRatingInput } from "./detailed-rating-input";
 import { ReviewSuccess } from "./review-success";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const loginDraftKey = (restaurantId: string) => `godinner.review.login-draft.v1.${restaurantId}`;
 
 type LoginDraft = {
-  foodRating: number | null;
-  serviceRating: number | null;
-  ambienceRating: number | null;
+  ratingDetails: ReviewRatingDetails;
   comment: string;
   amount: string;
   visitDate: string;
@@ -27,9 +26,7 @@ type LoginDraft = {
 
 export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
   const { currentUserId, publishReview, claimRecommendationUnlock, showToast } = useAppContext();
-  const [foodRating, setFoodRating] = useState<number | null>(null);
-  const [serviceRating, setServiceRating] = useState<number | null>(null);
-  const [ambienceRating, setAmbienceRating] = useState<number | null>(null);
+  const [ratingDetails, setRatingDetails] = useState<ReviewRatingDetails>(() => createGeneralRatingDetails());
   const [comment, setComment] = useState("");
   const [photos, setPhotos] = useState<RestaurantPhoto[]>([]);
   const [amount, setAmount] = useState("");
@@ -44,7 +41,7 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
   const publicationKey = useRef<string | null>(null);
   const unlockTracked = useRef(false);
   const photosRef = useRef<RestaurantPhoto[]>([]);
-  const derivedScore = useMemo(() => getDimensionalReviewScore(foodRating, serviceRating, ambienceRating), [foodRating, serviceRating, ambienceRating]);
+  const derivedScore = useMemo(() => getRatingDetailsScore(ratingDetails), [ratingDetails]);
   const currency = getCurrencyForCountry(restaurant.countryCode);
   useEffect(() => {
     try {
@@ -52,9 +49,7 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
       if (!saved) return;
       const draft = JSON.parse(saved) as Partial<LoginDraft>;
       queueMicrotask(() => {
-        if (typeof draft.foodRating === "number" || draft.foodRating === null) setFoodRating(draft.foodRating ?? null);
-        if (typeof draft.serviceRating === "number" || draft.serviceRating === null) setServiceRating(draft.serviceRating ?? null);
-        if (typeof draft.ambienceRating === "number" || draft.ambienceRating === null) setAmbienceRating(draft.ambienceRating ?? null);
+        if (draft.ratingDetails?.version === 1) setRatingDetails(draft.ratingDetails);
         if (typeof draft.comment === "string") setComment(draft.comment);
         if (typeof draft.amount === "string") setAmount(draft.amount);
         if (typeof draft.visitDate === "string") setVisitDate(draft.visitDate);
@@ -69,21 +64,26 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
   useEffect(() => () => { if (!submitted.current) photosRef.current.forEach((photo) => { if (photo.url.startsWith("blob:")) URL.revokeObjectURL(photo.url); }); }, []);
   if (published) return <ReviewSuccess review={published} restaurant={restaurant} recommendationsUnlocked={recommendationsUnlocked} claimRecommendationUnlock={claimRecommendationUnlock}/>;
   const saveLoginDraft = () => {
-    const draft: LoginDraft = { foodRating, serviceRating, ambienceRating, comment, amount, visitDate };
+    const draft: LoginDraft = { ratingDetails, comment, amount, visitDate };
     window.sessionStorage.setItem(loginDraftKey(restaurant.id), JSON.stringify(draft));
   };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
     if (!currentUserId) { saveLoginDraft(); setLoginOpen(true); return; }
-    if (!isDimensionRating(foodRating) || !isDimensionRating(serviceRating) || !isDimensionRating(ambienceRating)) nextErrors.rating = "Avalie comida, serviço e ambiente de 1 a 5 estrelas.";
+    const foodRating = getTopicScore(ratingDetails.food);
+    const ambienceRating = getTopicScore(ratingDetails.ambience);
+    const serviceRating = getTopicScore(ratingDetails.service);
+    const emptyDetailedTopic = ([ratingDetails.food, ratingDetails.ambience, ratingDetails.service]).some((detail) => detail.mode === "criteria" && getCriteriaCount(detail) === 0);
+    if (emptyDetailedTopic) nextErrors.rating = "Avalie pelo menos um critério ou volte à nota geral.";
+    else if (!isDimensionRating(foodRating) || !isDimensionRating(serviceRating) || !isDimensionRating(ambienceRating)) nextErrors.rating = "Avalie comida, ambiente e serviço de 1 a 5 estrelas.";
     if (!comment.trim()) nextErrors.comment = "Conte um pouco sobre sua experiência.";
     if (visitDate > today()) nextErrors.visitDate = "A data da visita não pode estar no futuro.";
     if (amount && (!Number.isFinite(Number(amount)) || Number(amount) < 0)) nextErrors.amount = "Informe um valor válido.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length || !derivedScore) return;
     publicationKey.current ??= crypto.randomUUID();
-    const publishedReview = await publishReview({ restaurantId: restaurant.id, foodRating: foodRating as number, serviceRating: serviceRating as number, ambienceRating: ambienceRating as number, comment: comment.trim(), photos, amountPerPerson: amount ? Number(amount) : undefined, visitDate, publicationKey: publicationKey.current });
+    const publishedReview = await publishReview({ restaurantId: restaurant.id, foodRating: foodRating as number, serviceRating: serviceRating as number, ambienceRating: ambienceRating as number, ratingDetails, comment: comment.trim(), photos, amountPerPerson: amount ? Number(amount) : undefined, visitDate, publicationKey: publicationKey.current });
     if (!publishedReview) { setErrors({ publish: "Não conseguimos publicar sua experiência. Tente novamente." }); return; }
     submitted.current = true;
     window.sessionStorage.removeItem(loginDraftKey(restaurant.id));
@@ -96,5 +96,5 @@ export function ReviewForm({ restaurant }: { restaurant: Restaurant }) {
     }
     showToast("Experiência publicada!");
   };
-  return <><main className="mx-auto max-w-xl px-4 py-7 pb-28 lg:py-12"><form onSubmit={submit} className="space-y-7"><div className="flex items-center gap-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-stone-100"><Image src={restaurant.coverPhoto.url} alt={restaurant.name} width={72} height={72} className="h-18 w-18 rounded-2xl object-cover"/><div><p className="text-xs font-black text-orange-600">REGISTRAR EXPERIÊNCIA</p><h1 className="text-lg font-black">{restaurant.name}</h1><p className="text-sm text-stone-500">{restaurant.neighborhood}</p></div></div><section><h2 className="text-3xl font-black tracking-tight">Como foi sua experiência?</h2><div className="mt-5 grid gap-3"><RatingInput label="Comida" value={foodRating} onChange={setFoodRating}/><RatingInput label="Serviço" value={serviceRating} onChange={setServiceRating}/><RatingInput label="Ambiente" value={ambienceRating} onChange={setAmbienceRating}/></div><div className="mt-4 rounded-2xl bg-stone-950 px-5 py-4 text-white"><p className="text-xs font-bold text-stone-400">Sua nota</p><p className="mt-1 text-3xl font-black">{formatRating(derivedScore)}</p></div>{errors.rating && <p className="mt-2 text-sm font-semibold text-red-600">{errors.rating}</p>}</section><section><label htmlFor="comment" className="mb-2 block text-sm font-black">Conte para seus amigos</label><textarea id="comment" value={comment} onChange={(event) => setComment(event.target.value)} placeholder="O que você mais gostou? O que pediria novamente?" className="min-h-32 w-full rounded-2xl bg-stone-100 p-4 text-sm outline-none ring-orange-500 focus:ring-2"/>{errors.comment && <p className="mt-2 text-sm font-semibold text-red-600">{errors.comment}</p>}</section><PhotoUploader photos={photos} onChange={setPhotos}/><section><label htmlFor="amount" className="mb-2 block text-sm font-black">Quanto você gastou por pessoa?</label><div className="flex overflow-hidden rounded-2xl bg-stone-100 ring-orange-500 focus-within:ring-2"><span className="p-4 text-sm font-bold text-stone-500">{currency ?? "—"}</span><input id="amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value.replace(",", "."))} placeholder="Opcional" className="min-w-0 flex-1 bg-transparent py-4 pr-4 text-sm outline-none"/></div>{!currency && <p className="mt-2 text-xs text-stone-500">A moeda será informada quando a localização deste restaurante for confirmada.</p>}{errors.amount && <p className="mt-2 text-sm font-semibold text-red-600">{errors.amount}</p>}</section><section><label htmlFor="visit-date" className="mb-2 block text-sm font-black">Quando você foi?</label><input id="visit-date" type="date" max={today()} value={visitDate} onChange={(event) => setVisitDate(event.target.value)} className="w-full rounded-2xl bg-stone-100 p-4 text-sm outline-none ring-orange-500 focus:ring-2"/>{errors.visitDate && <p className="mt-2 text-sm font-semibold text-red-600">{errors.visitDate}</p>}</section>{errors.publish && <p role="alert" className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600">{errors.publish}</p>}<button className="w-full rounded-2xl bg-orange-500 py-4 text-sm font-black text-white shadow-lg shadow-orange-500/25">Publicar experiência</button></form></main><LoginWall open={loginOpen} onClose={() => setLoginOpen(false)} next={`${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`}/></>;
+  return <><main className="mx-auto max-w-xl px-4 py-7 pb-28 lg:py-12"><form onSubmit={submit} className="space-y-7"><div className="flex items-center gap-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-stone-100"><Image src={restaurant.coverPhoto.url} alt={restaurant.name} width={72} height={72} className="h-18 w-18 rounded-2xl object-cover"/><div><p className="text-xs font-black text-orange-600">REGISTRAR EXPERIÊNCIA</p><h1 className="text-lg font-black">{restaurant.name}</h1><p className="text-sm text-stone-500">{restaurant.neighborhood}</p></div></div><section><h2 className="text-3xl font-black tracking-tight">Como foi sua experiência?</h2><p className="mt-2 text-sm text-stone-500">Você pode usar a nota geral ou detalhar somente os tópicos que quiser.</p><div className="mt-5 grid gap-3"><DetailedRatingInput topic="food" value={ratingDetails.food} onChange={(food) => setRatingDetails((current) => ({ ...current, food }))}/><DetailedRatingInput topic="ambience" value={ratingDetails.ambience} onChange={(ambience) => setRatingDetails((current) => ({ ...current, ambience }))}/><DetailedRatingInput topic="service" value={ratingDetails.service} onChange={(service) => setRatingDetails((current) => ({ ...current, service }))}/></div><div className="mt-4 rounded-2xl bg-stone-950 px-5 py-4 text-white"><p className="text-xs font-bold text-stone-400">Sua nota</p><p className="mt-1 text-3xl font-black">{formatRating(derivedScore)}</p></div>{errors.rating && <p className="mt-2 text-sm font-semibold text-red-600">{errors.rating}</p>}</section><section><label htmlFor="comment" className="mb-2 block text-sm font-black">Conte para seus amigos</label><textarea id="comment" value={comment} onChange={(event) => setComment(event.target.value)} placeholder="O que você mais gostou? O que pediria novamente?" className="min-h-32 w-full rounded-2xl bg-stone-100 p-4 text-sm outline-none ring-orange-500 focus:ring-2"/>{errors.comment && <p className="mt-2 text-sm font-semibold text-red-600">{errors.comment}</p>}</section><PhotoUploader photos={photos} onChange={setPhotos}/><section><label htmlFor="amount" className="mb-2 block text-sm font-black">Quanto você gastou por pessoa?</label><div className="flex overflow-hidden rounded-2xl bg-stone-100 ring-orange-500 focus-within:ring-2"><span className="p-4 text-sm font-bold text-stone-500">{currency ?? "—"}</span><input id="amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value.replace(",", "."))} placeholder="Opcional" className="min-w-0 flex-1 bg-transparent py-4 pr-4 text-sm outline-none"/></div>{!currency && <p className="mt-2 text-xs text-stone-500">A moeda será informada quando a localização deste restaurante for confirmada.</p>}{errors.amount && <p className="mt-2 text-sm font-semibold text-red-600">{errors.amount}</p>}</section><section><label htmlFor="visit-date" className="mb-2 block text-sm font-black">Quando você foi?</label><input id="visit-date" type="date" max={today()} value={visitDate} onChange={(event) => setVisitDate(event.target.value)} className="w-full rounded-2xl bg-stone-100 p-4 text-sm outline-none ring-orange-500 focus:ring-2"/>{errors.visitDate && <p className="mt-2 text-sm font-semibold text-red-600">{errors.visitDate}</p>}</section>{errors.publish && <p role="alert" className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600">{errors.publish}</p>}<button className="w-full rounded-2xl bg-orange-500 py-4 text-sm font-black text-white shadow-lg shadow-orange-500/25">Publicar experiência</button></form></main><LoginWall open={loginOpen} onClose={() => setLoginOpen(false)} next={`${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`}/></>;
 }
