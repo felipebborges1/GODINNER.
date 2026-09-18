@@ -20,6 +20,7 @@ const { filterRestaurants } = load("lib/search");
 const routePath = new URL("../app/api/admin/restaurants/[id]/michelin/route.ts", import.meta.url);
 const migrationPath = new URL("../supabase/migrations/20260918000001_michelin_recognition.sql", import.meta.url);
 const validationFixMigrationPath = new URL("../supabase/migrations/20260918000002_fix_michelin_official_url_validation.sql", import.meta.url);
+const constraintFixMigrationPath = new URL("../supabase/migrations/20260918000003_fix_michelin_recognition_constraints.sql", import.meta.url);
 const sheetPath = new URL("../components/search/filter-sheet.tsx", import.meta.url);
 const searchPath = new URL("../components/search/search-explorer.tsx", import.meta.url);
 const cardPath = new URL("../components/restaurant/restaurant-card.tsx", import.meta.url);
@@ -73,6 +74,15 @@ test("Michelin database validation accepts the same official Guide URLs as the a
   assert.doesNotMatch(migration, /p_source_url !~/);
   assert.match(migration, /invalid_michelin_verification/);
   assert.match(migration, /restaurant_michelin_recognition_history/);
+});
+
+test("Michelin row constraints use the same official URL rule as the RPC", async () => {
+  const migration = await readFile(constraintFixMigrationPath, "utf8");
+  assert.match(migration, /drop constraint restaurants_michelin_verified_starred_check/);
+  assert.match(migration, /drop constraint restaurants_michelin_no_star_check/);
+  assert.match(migration, /michelin_source_url like 'https:\/\/guide\.michelin\.com\/%'/);
+  assert.match(migration, /michelin_source_url like 'https:\/\/%.guide\.michelin\.com\/%'/);
+  assert.doesNotMatch(migration, /michelin_source_url ~|michelin_source_url !~/);
 });
 
 test("UI exposes the recognition filter, its removable shared query, and clear labels", async () => {
