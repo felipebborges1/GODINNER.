@@ -19,6 +19,7 @@ const { filterRestaurants } = load("lib/search");
 
 const routePath = new URL("../app/api/admin/restaurants/[id]/michelin/route.ts", import.meta.url);
 const migrationPath = new URL("../supabase/migrations/20260918000001_michelin_recognition.sql", import.meta.url);
+const validationFixMigrationPath = new URL("../supabase/migrations/20260918000002_fix_michelin_official_url_validation.sql", import.meta.url);
 const sheetPath = new URL("../components/search/filter-sheet.tsx", import.meta.url);
 const searchPath = new URL("../components/search/search-explorer.tsx", import.meta.url);
 const cardPath = new URL("../components/restaurant/restaurant-card.tsx", import.meta.url);
@@ -63,6 +64,15 @@ test("migration keeps unknown distinct, stores audit history, and restricts it t
   assert.match(migration, /public\.is_admin\(\)/);
   assert.match(migration, /set_restaurant_michelin_recognition/);
   assert.doesNotMatch(migration, /default 0/);
+});
+
+test("Michelin database validation accepts the same official Guide URLs as the admin UI", async () => {
+  const migration = await readFile(validationFixMigrationPath, "utf8");
+  assert.match(migration, /p_source_url like 'https:\/\/guide\.michelin\.com\/%'/);
+  assert.match(migration, /p_source_url like 'https:\/\/%.guide\.michelin\.com\/%'/);
+  assert.doesNotMatch(migration, /p_source_url !~/);
+  assert.match(migration, /invalid_michelin_verification/);
+  assert.match(migration, /restaurant_michelin_recognition_history/);
 });
 
 test("UI exposes the recognition filter, its removable shared query, and clear labels", async () => {
