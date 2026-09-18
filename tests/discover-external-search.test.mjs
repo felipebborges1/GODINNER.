@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("Discover keeps catalog search first and exposes Google only after an explicit action", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../components/discover/discover-page.tsx", import.meta.url), "utf8");
   assert.match(page, /filterRestaurants\(eligibleRestaurants, \{ q: searchQuery \}/);
   assert.match(page, /discover_search_no_results/);
   assert.match(page, /Buscar “\{searchQuery\.trim\(\)\}” perto de mim/);
@@ -14,7 +14,7 @@ test("Discover keeps catalog search first and exposes Google only after an expli
 });
 
 test("Discover external fallback preserves the query, handles denied location, and keeps Google results attributed", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../components/discover/discover-page.tsx", import.meta.url), "utf8");
   assert.match(page, /searchExternalPlaces\(query, locationBias\)/);
   assert.match(page, /void runExternalSearch\(query, attempt\)/);
   assert.match(page, /Dados fornecidos pelo Google/);
@@ -24,7 +24,7 @@ test("Discover external fallback preserves the query, handles denied location, a
 });
 
 test("Existing Places open the catalog profile and new Places reuse the review/new flow without automatic creation", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../components/discover/discover-page.tsx", import.meta.url), "utf8");
   const newRestaurant = await readFile(new URL("../components/restaurant/new-restaurant-client.tsx", import.meta.url), "utf8");
   assert.match(page, /restaurant\.googlePlaceId === place\.placeId/);
   assert.match(page, /router\.push\(`\/restaurant\/\$\{existing\.slug\}`\)/);
@@ -46,7 +46,7 @@ test("Google Places client calls remain shared and server-side routes keep the k
 });
 
 test("Discover external result cards stay responsive and reveal the selected-place confirmation", async () => {
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../components/discover/discover-page.tsx", import.meta.url), "utf8");
   assert.match(page, /selectedPlaceConfirmationRef/);
   assert.match(page, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
   assert.match(page, /min-w-0 max-w-full/);

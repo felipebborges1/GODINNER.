@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://www.godinner.com.br/terms" },
   title: "Termos de Uso | GODINNER",
   description: "Regras de uso do GODINNER durante o período Beta.",
 };

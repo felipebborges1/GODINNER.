@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://www.godinner.com.br/privacy" },
   title: "Política de Privacidade | GODINNER",
   description: "Como o GODINNER trata dados pessoais no período Beta.",
 };

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const [discover, section, analytics, engine] = await Promise.all([
-  readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../components/discover/discover-page.tsx", import.meta.url), "utf8"),
   readFile(new URL("../components/discover/recommendation-section.tsx", import.meta.url), "utf8"),
   readFile(new URL("../lib/analytics.ts", import.meta.url), "utf8"),
   readFile(new URL("../lib/recommendations/engine.ts", import.meta.url), "utf8"),
