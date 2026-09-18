@@ -7,11 +7,11 @@ import ts from "typescript";
 const cache = new Map();
 function load(path) {
   if (cache.has(path)) return cache.get(path);
-  const module = { exports: {} };
-  cache.set(path, module.exports);
+  const commonJsModule = { exports: {} };
+  cache.set(path, commonJsModule.exports);
   const source = fs.readFileSync(new URL(`../${path}.ts`, import.meta.url), "utf8");
-  new Function("exports", "require", "module", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(module.exports, (name) => load(name.replace("@/", "")), module);
-  return module.exports;
+  new Function("exports", "require", "module", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(commonJsModule.exports, (name) => load(name.replace("@/", "")), commonJsModule);
+  return commonJsModule.exports;
 }
 
 const { hasVerifiedMichelinStars, isOfficialMichelinGuideUrl, michelinLabel } = load("lib/michelin");
@@ -80,4 +80,17 @@ test("UI exposes the recognition filter, its removable shared query, and clear l
   assert.match(route, /administrator\?\.role !== "admin"/);
   assert.match(route, /isOfficialMichelinGuideUrl/);
   assert.doesNotMatch(route, /SERVICE_ROLE_KEY/);
+});
+
+test("Michelin saving records safe server diagnostics and reconciles only an explicit retry", async () => {
+  const [admin, route] = await Promise.all([adminPath, routePath].map((path) => readFile(path, "utf8")));
+  assert.match(route, /attemptId/);
+  assert.match(route, /phase: "rpc"/);
+  assert.match(route, /sanitizeDiagnostic/);
+  assert.match(route, /body\?\.retry === true/);
+  assert.match(route, /matchesRequestedRecognition/);
+  assert.match(route, /Referência: \$\{attemptId\}/);
+  assert.match(admin, /const inFlight = useRef\(false\)/);
+  assert.match(admin, /retry: Boolean\(priorAttempt\)/);
+  assert.match(admin, /O salvamento anterior foi confirmado sem duplicar o histórico\./);
 });
