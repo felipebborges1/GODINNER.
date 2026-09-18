@@ -34,7 +34,7 @@ test("new dimensional reviews calculate one persisted 1-5 score server-side", ()
   assert.equal(dimensionalScore(5, 4, 5), 14 / 3);
   assert.match(migration, /\(p_food_rating \+ p_service_rating \+ p_ambience_rating\)::numeric \/ 3/);
   assert.match(migration, /p_food_rating not between 1 and 5/);
-  assert.match(reviewForm, /Avalie comida, serviço e ambiente de 1 a 5 estrelas/);
+  assert.match(reviewForm, /Avalie comida, ambiente e serviço de 1 a 5 estrelas/);
 });
 
 test("runtime reads the persisted 1-5 value directly and only normalizes old URL filters", () => {

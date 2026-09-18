@@ -7,7 +7,7 @@ export type DimensionAverages = {
 };
 
 export function isDimensionRating(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 5;
+  return typeof value === "number" && Number.isFinite(value) && value >= 1 && value <= 5;
 }
 
 export function getDimensionalReviewScore(foodRating: unknown, serviceRating: unknown, ambienceRating: unknown) {

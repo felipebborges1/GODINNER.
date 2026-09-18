@@ -43,7 +43,7 @@ test("publication and UI source keep retries, failures, edits, and deletes out o
     readFile(new URL("../lib/data/repositories.ts", import.meta.url), "utf8"),
   ]);
   assert.match(form, /publicationKey\.current \?\?= crypto\.randomUUID\(\)/);
-  assert.match(repository, /publish_review_with_recommendation_unlock/);
+  assert.match(repository, /publish_review_with_rating_details/);
   assert.match(context, /updateReview = useCallback/);
   assert.match(context, /deleteReview = useCallback/);
   assert.doesNotMatch(context.match(/const updateReview[\s\S]*?const deleteReview/)?.[0] ?? "", /claimRecommendationUnlock/);

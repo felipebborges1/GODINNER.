@@ -1,4 +1,7 @@
 export type PriceRange = "$" | "$$" | "$$$" | "$$$$";
+export type ReviewTopicMode = "general" | "criteria";
+export type ReviewTopicDetail = { mode: ReviewTopicMode; generalRating: number | null; criteria: Partial<Record<string, number | null>>; };
+export type ReviewRatingDetails = { version: 1; food: ReviewTopicDetail; ambience: ReviewTopicDetail; service: ReviewTopicDetail; };
 
 export interface User { id: string; username: string; name: string; avatar: string | null; avatarPath?: string | null; bio: string; neighborhood: string; followers: number; following: number; role?: "user" | "admin"; }
 export interface RestaurantPhoto { id: string; url: string; alt: string; reviewId?: string; storagePath?: string; position?: number; file?: File; }
@@ -11,8 +14,8 @@ export interface ReviewComment { id: string; reviewId: string; userId: string; b
 export type NotificationType = "follow" | "review_like" | "review_comment" | "comment_mention" | "comment_reply";
 export interface InAppNotification { id: string; recipientUserId: string; actorUserId: string; type: NotificationType; reviewId: string | null; restaurantId: string | null; commentId: string | null; createdAt: string; readAt: string | null; }
 export type ReviewRatingMethod = "legacy" | "dimensions";
-export interface Review { id: string; userId: string; restaurantId: string; rating: number; ratingMethod: ReviewRatingMethod; foodRating: number | null; serviceRating: number | null; ambienceRating: number | null; comment: string; photos: RestaurantPhoto[]; amountPerPerson?: number; currency?: string; visitDate: string; createdAt: string; updatedAt?: string; }
-export type ReviewDraft = Pick<Review, "restaurantId" | "comment" | "photos" | "amountPerPerson" | "visitDate" | "foodRating" | "serviceRating" | "ambienceRating"> & { publicationKey?: string };
-export type ReviewUpdateDraft = Pick<Review, "comment" | "photos" | "amountPerPerson" | "visitDate">;
+export interface Review { id: string; userId: string; restaurantId: string; rating: number; ratingMethod: ReviewRatingMethod; foodRating: number | null; serviceRating: number | null; ambienceRating: number | null; ratingDetails?: ReviewRatingDetails | null; comment: string; photos: RestaurantPhoto[]; amountPerPerson?: number; currency?: string; visitDate: string; createdAt: string; updatedAt?: string; }
+export type ReviewDraft = Pick<Review, "restaurantId" | "comment" | "photos" | "amountPerPerson" | "visitDate" | "foodRating" | "serviceRating" | "ambienceRating" | "ratingDetails"> & { publicationKey?: string };
+export type ReviewUpdateDraft = Pick<Review, "comment" | "photos" | "amountPerPerson" | "visitDate"> & Partial<Pick<Review, "foodRating" | "serviceRating" | "ambienceRating" | "ratingDetails">>;
 export interface RestaurantList { id: string; ownerId: string; name: string; description: string; isPublic: boolean; coverPhoto: string; restaurantIds: string[]; type?: "want" | "visited" | "favorites" | "custom"; }
 export interface Follow { followerId: string; followingId: string; createdAt: string; }
