@@ -11,6 +11,7 @@ import type { Restaurant } from "@/types";
 import { AdminShell } from "./admin-shell";
 import { ModerationAuthorship } from "./moderation-authorship";
 import { AdminMichelinRecognition } from "./admin-michelin-recognition";
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 const reasons = ["duplicado", "dados insuficientes", "fora da região", "conteúdo inválido", "outro"];
 
@@ -21,13 +22,12 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
   const [reason, setReason] = useState("");
   const [compareId, setCompareId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"approve" | "reject" | "merge" | null>(null);
-  const [draft, setDraft] = useState(restaurant);
+  const [draftChanges, setDraftChanges] = useState<Restaurant | null>(null);
+  const draft = draftChanges ?? restaurant;
 
-  if (!restaurant || !draft) notFound();
-
-  const reviews = ctx.reviews.filter((review) => review.restaurantId === restaurant.id);
   const duplicates = useMemo(
     () => ctx.restaurants.filter((candidate) => {
+      if (!restaurant) return false;
       if (candidate.id === restaurant.id || (candidate.status ?? "published") !== "published" || candidate.city !== restaurant.city) return false;
       const candidateName = normalize(candidate.name);
       const restaurantName = normalize(restaurant.name);
@@ -35,10 +35,15 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
     }),
     [ctx.restaurants, restaurant],
   );
+
+  if (ctx.isLoading) return <AdminRestaurantDetailLoading />;
+  if (!restaurant || !draft) notFound();
+
+  const reviews = ctx.reviews.filter((review) => review.restaurantId === restaurant.id);
   const target = compareId ? ctx.restaurants.find((item) => item.id === compareId) : null;
 
   const update = <K extends keyof Restaurant>(key: K, value: Restaurant[K]) => {
-    setDraft((current) => current ? { ...current, [key]: value } : current);
+    setDraftChanges((current) => ({ ...(current ?? restaurant), [key]: value }));
   };
   const save = () => {
     const result = ctx.updateRestaurantAdmin(id, draft);
@@ -146,6 +151,17 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
       {pendingAction && <div role="dialog" aria-modal="true" aria-labelledby="admin-confirm-title" className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"><div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl"><h2 id="admin-confirm-title" className="text-lg font-black">Confirmar ação</h2><p className="mt-2 text-sm text-stone-600">{pendingAction === "approve" ? "Aprovar este restaurante?" : pendingAction === "reject" ? "Rejeitar este restaurante?" : "Mesclar este cadastro? Reviews e listas serão movidas."}</p><div className="mt-5 flex justify-end gap-2"><button onClick={() => setPendingAction(null)} className="rounded-lg bg-stone-100 px-4 py-2 font-bold">Cancelar</button><button onClick={() => moderate(pendingAction)} className="rounded-lg bg-orange-500 px-4 py-2 font-bold text-white">Confirmar</button></div></div></div>}
     </AdminShell>
   );
+}
+
+function AdminRestaurantDetailLoading() {
+  return <main className="mx-auto max-w-7xl p-4 pb-10 sm:p-7 lg:max-w-none lg:p-10" aria-busy="true" aria-label="Carregando restaurante">
+    <LoadingSkeleton className="h-4 w-28" />
+    <LoadingSkeleton className="mt-3 h-10 w-80 max-w-full" />
+    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <LoadingSkeleton className="h-[420px] rounded-3xl" />
+      <div className="space-y-5"><LoadingSkeleton className="h-72 rounded-3xl" /><LoadingSkeleton className="h-56 rounded-3xl" /></div>
+    </div>
+  </main>;
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {

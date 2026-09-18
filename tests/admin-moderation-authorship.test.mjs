@@ -57,6 +57,14 @@ test("moderation UI distinguishes authorship states and never uses the legacy fa
   assert.doesNotMatch(list, /Legado/);
 });
 
+test("admin restaurant detail waits for the initial catalog load before declaring a restaurant missing", async () => {
+  const detail = await readFile(detailPath, "utf8");
+  assert.match(detail, /const draft = draftChanges \?\? restaurant;/);
+  assert.match(detail, /if \(ctx\.isLoading\) return <AdminRestaurantDetailLoading \/>;/);
+  assert.match(detail, /if \(!restaurant \|\| !draft\) notFound\(\);/);
+  assert.match(detail, /aria-label="Carregando restaurante"/);
+});
+
 test("the moderation audit keeps pending content behind an administrative route", async () => {
   const route = await readFile(routePath, "utf8");
   assert.match(route, /export const dynamic = "force-dynamic"/);
