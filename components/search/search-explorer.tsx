@@ -20,6 +20,7 @@ import { normalizeRatingFilter } from "@/lib/review-rating";
 import { distanceKm, hasCoordinates } from "@/lib/distance";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
+import { mapReviewUrl } from "@/lib/review/map-review-entry";
 
 const MapView = dynamic(() => import("@/components/search/map-view").then((module) => module.MapView), {
   ssr: false,
@@ -183,7 +184,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
           {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={`${restaurant.distanceKm} km`} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}
         </div>
       ) : (
-        <div className="mt-5">{params.michelin === "starred" ? <EmptyState title="Nenhum lugar encontrado" message="Não encontramos restaurantes com estrela Michelin verificada para estes filtros." actionLabel="Remover filtro Michelin" onAction={() => setParam("michelin")} /> : <EmptyState title="Nenhum lugar encontrado" message={params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={params.q ? "Encontrar este lugar" : undefined} actionHref={params.q ? `/restaurant/new?name=${encodeURIComponent(params.q)}` : undefined} />}</div>
+        <div className="mt-5">{params.michelin === "starred" ? <EmptyState title="Nenhum lugar encontrado" message="Não encontramos restaurantes com estrela Michelin verificada para estes filtros." actionLabel="Remover filtro Michelin" onAction={() => setParam("michelin")} /> : <EmptyState title="Nenhum lugar encontrado" message={params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={params.q ? "Marcar no mapa e avaliar" : undefined} actionHref={params.q ? mapReviewUrl(params.q) : undefined} />}</div>
       )}
     </div>
   );
