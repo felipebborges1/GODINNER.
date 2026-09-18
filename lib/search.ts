@@ -1,6 +1,7 @@
 import { calculateCommunitySpend } from "@/lib/community-spend";
 import { normalizeRatingFilter } from "@/lib/review-rating";
 import type { Restaurant, RestaurantList, Review } from "@/types";
+import { hasVerifiedMichelinStarsForRestaurant } from "@/lib/michelin";
 
 export type SearchParams = Record<string, string>;
 
@@ -67,6 +68,7 @@ export function filterRestaurants(
       (!params.nearby || restaurant.distanceKm <= 5) &&
       (!params.distance || restaurant.distanceKm <= Number(params.distance)) &&
       (!duo || restaurant.acceptsDuoGourmet === (duo === "true")) &&
+      (params.michelin !== "starred" || hasVerifiedMichelinStarsForRestaurant(restaurant)) &&
       (!ids || ids.has(restaurant.id))
     );
   });

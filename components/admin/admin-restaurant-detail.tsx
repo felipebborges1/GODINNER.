@@ -10,6 +10,7 @@ import { averageReviewScore, formatRating } from "@/lib/review-rating";
 import type { Restaurant } from "@/types";
 import { AdminShell } from "./admin-shell";
 import { ModerationAuthorship } from "./moderation-authorship";
+import { AdminMichelinRecognition } from "./admin-michelin-recognition";
 
 const reasons = ["duplicado", "dados insuficientes", "fora da região", "conteúdo inválido", "outro"];
 
@@ -105,6 +106,7 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
         </section>
 
         <aside className="space-y-5">
+          <AdminMichelinRecognition restaurantId={restaurant.id} initialRecognition={restaurant.michelin} />
           <section className="rounded-3xl bg-white p-5 shadow-sm">
             <h2 className="font-black">Auditoria</h2>
             <Info label="Status" value={restaurant.status ?? "published"} />
