@@ -9,6 +9,7 @@ export interface Database {
     Tables: {
       profiles: { Row: ProfileRow; Insert: ProfileInsert; Update: ProfileUpdate; Relationships: [] };
       restaurants: { Row: RestaurantRow; Insert: RestaurantInsert; Update: RestaurantUpdate; Relationships: [] };
+      restaurant_michelin_recognition_history: { Row: MichelinHistoryRow; Insert: MichelinHistoryInsert; Update: MichelinHistoryUpdate; Relationships: [] };
       reviews: { Row: ReviewRow; Insert: ReviewInsert; Update: ReviewUpdate; Relationships: [] };
       review_photos: { Row: ReviewPhotoRow; Insert: ReviewPhotoInsert; Update: ReviewPhotoUpdate; Relationships: [] };
       review_likes: { Row: ReviewLikeRow; Insert: ReviewLikeInsert; Update: ReviewLikeUpdate; Relationships: [] };
@@ -38,6 +39,7 @@ export interface Database {
       mark_notification_read: { Args: { p_notification_id: string }; Returns: boolean };
       mark_all_notifications_read: { Args: Record<string, never>; Returns: number };
       create_review_comment: { Args: { p_review_id: string; p_body: string; p_reply_to_comment_id?: string | null }; Returns: ReviewCommentRow };
+      set_restaurant_michelin_recognition: { Args: { p_restaurant_id: string; p_status: MichelinRecognitionState; p_stars: number | null; p_edition_year: number | null; p_source_url: string | null }; Returns: RestaurantRow };
     };
     Enums: { app_role: AppRole; restaurant_category: RestaurantCategory; restaurant_status: RestaurantStatus; list_type: ListType; price_range: PriceRange };
     CompositeTypes: Record<string, never>;
@@ -47,9 +49,13 @@ export interface Database {
 export type ProfileRow = { id: string; username: string; username_needs_confirmation: boolean; name: string; avatar_url: string | null; bio: string; location: string; role: AppRole; recommendations_unlocked_at: string | null; recommendations_unlock_seen_at: string | null; recommendations_unlock_review_id: string | null; created_at: string; updated_at: string; };
 export type ProfileInsert = Omit<ProfileRow, "created_at" | "updated_at"> & { created_at?: string; updated_at?: string };
 export type ProfileUpdate = Partial<ProfileInsert>;
-export type RestaurantRow = { id: string; slug: string; name: string; address: string; city: string; neighborhood: string; country_code: string | null; accepts_duo_gourmet: boolean | null; duo_gourmet_checked_at: string | null; latitude: number; longitude: number; category: RestaurantCategory; cuisines: string[]; price_range: PriceRange | null; instagram: string | null; website: string | null; phone: string | null; chef: string; cover_photo_url: string | null; cover_photo_path: string | null; google_place_id: string | null; status: RestaurantStatus; submitted_by: string | null; submitted_at: string | null; moderated_by: string | null; moderated_at: string | null; rejection_reason: string | null; merged_into_id: string | null; created_at: string; updated_at: string; };
+export type MichelinRecognitionState = "unknown" | "verified_starred" | "verified_no_star" | "needs_revalidation";
+export type RestaurantRow = { id: string; slug: string; name: string; address: string; city: string; neighborhood: string; country_code: string | null; accepts_duo_gourmet: boolean | null; duo_gourmet_checked_at: string | null; michelin_status?: MichelinRecognitionState; michelin_stars?: number | null; michelin_edition_year?: number | null; michelin_source_url?: string | null; michelin_verified_at?: string | null; michelin_verified_by?: string | null; latitude: number; longitude: number; category: RestaurantCategory; cuisines: string[]; price_range: PriceRange | null; instagram: string | null; website: string | null; phone: string | null; chef: string; cover_photo_url: string | null; cover_photo_path: string | null; google_place_id: string | null; status: RestaurantStatus; submitted_by: string | null; submitted_at: string | null; moderated_by: string | null; moderated_at: string | null; rejection_reason: string | null; merged_into_id: string | null; created_at: string; updated_at: string; };
 export type RestaurantInsert = Omit<RestaurantRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
 export type RestaurantUpdate = Partial<RestaurantInsert>;
+export type MichelinHistoryRow = { id: string; restaurant_id: string; michelin_status: MichelinRecognitionState; michelin_stars: number | null; michelin_edition_year: number | null; michelin_source_url: string | null; verified_at: string | null; verified_by: string | null; changed_at: string; changed_by: string; };
+export type MichelinHistoryInsert = Omit<MichelinHistoryRow, "id" | "changed_at"> & { id?: string; changed_at?: string; };
+export type MichelinHistoryUpdate = never;
 export type ReviewRow = { id: string; user_id: string; restaurant_id: string; rating: number; rating_method: "legacy" | "dimensions"; food_rating: number | null; service_rating: number | null; ambience_rating: number | null; rating_details: unknown | null; comment: string; amount_per_person: number | null; currency: string | null; visit_date: string; created_at: string; updated_at: string; };
 export type ReviewInsert = Omit<ReviewRow, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
 export type ReviewUpdate = Partial<ReviewInsert>;

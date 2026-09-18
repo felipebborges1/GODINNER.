@@ -10,6 +10,7 @@ import { CuisineChip } from "@/components/ui/cuisine-chip";
 import { DuoGourmetIndicator } from "@/components/ui/duo-gourmet-indicator";
 import { PriceBadge } from "@/components/ui/price-badge";
 import { GodinnerRatingSummary } from "@/components/ui/godinner-rating-summary";
+import { MichelinRecognitionBadge } from "@/components/ui/michelin-recognition";
 import { useAppContext } from "@/hooks/use-app-context";
 import { useToast } from "@/hooks/use-toast";
 import { useWantToVisit } from "@/hooks/use-want-to-visit";
@@ -45,6 +46,7 @@ export function RestaurantCard({ restaurant, distance, friendsVisited = 0, class
         {friendsVisited > 0 && <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-stone-500"><UsersRound size={14}/>{friendsVisited} amigos foram</p>}
         <div className="mt-3 flex items-center justify-between gap-2"><CuisineChip cuisine={restaurant.cuisine[0]}/><PriceBadge price={restaurant.priceRange}/></div>
         {restaurant.acceptsDuoGourmet && <div className="mt-2"><DuoGourmetIndicator/></div>}
+        <div className="mt-2"><MichelinRecognitionBadge recognition={restaurant.michelin}/></div>
         <p className="mt-3 truncate text-sm text-stone-500">{restaurant.neighborhood}{distance && ` · ${distance}`}</p>
         <div className="mt-4 flex items-center justify-between">
           <button type="button" onClick={handleWant} className={`grid min-h-10 min-w-10 place-items-center rounded-full ${isWanted ? "bg-orange-500 text-white" : "bg-stone-100 text-stone-700"}`} aria-label={isWanted ? `Remover ${restaurant.name} de Quero conhecer` : `Adicionar ${restaurant.name} a Quero conhecer`}><Heart size={18} fill={isWanted ? "currentColor" : "none"}/></button>

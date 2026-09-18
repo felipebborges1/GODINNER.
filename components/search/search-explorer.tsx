@@ -53,7 +53,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
   useEffect(() => {
     pendingParams.current = searchParams.toString();
     const q = searchParams.get("q");
-    const active = ["nearby", "city", "neighborhood", "distance", "type", "cuisine", "price", "duo", "occasion", "rating", "history", "chef", "openNow"].some((key) => searchParams.has(key));
+    const active = ["nearby", "city", "neighborhood", "distance", "type", "cuisine", "price", "michelin", "duo", "occasion", "rating", "history", "chef", "openNow"].some((key) => searchParams.has(key));
     if (q || active) trackEvent(q ? "search_performed" : "filter_applied", q ? { hasQuery: true } : { hasFilter: true });
   }, [searchParams]);
 
@@ -130,7 +130,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     [currentUserId, follows],
   );
   const view = params.view === "map" ? "map" : "list";
-  const labels: Record<string, string> = { nearby: "Perto de mim", city: "Cidade", neighborhood: "Bairro", distance: "Distância", type: "Categoria", cuisine: "Culinária", price: "Preço", duo: "Duo Gourmet", occasion: "Ocasião", rating: "Nota", history: "Histórico", chef: "Chef", openNow: "Aberto agora" };
+  const labels: Record<string, string> = { nearby: "Perto de mim", city: "Cidade", neighborhood: "Bairro", distance: "Distância", type: "Categoria", cuisine: "Culinária", price: "Preço", michelin: "Reconhecimento", duo: "Duo Gourmet", occasion: "Ocasião", rating: "Nota", history: "Histórico", chef: "Chef", openNow: "Aberto agora" };
   const valueLabels: Record<string, string> = {
     japanese: "Japonesa", italian: "Italiana", meat: "Carnes", brasileira: "Brasileira",
     mineira: "Mineira", contemporanea: "Contemporânea", restaurant: "Restaurante",
@@ -139,7 +139,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
     ...Object.fromEntries([...geography.cities, ...geography.neighborhoods].map(option => [option.value, option.label])),
   };
   const activeFilters = Object.entries(params).filter(([key]) => !["q", "view"].includes(key));
-  const activeFilterLabel = (key: string, value: string) => key === "duo" ? (value === "true" ? "Duo Gourmet" : "Duo Gourmet: Não") : key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`;
+  const activeFilterLabel = (key: string, value: string) => key === "michelin" ? "Com estrela Michelin" : key === "duo" ? (value === "true" ? "Duo Gourmet" : "Duo Gourmet: Não") : key === "openNow" || key === "nearby" ? labels[key] : `${labels[key]}: ${valueLabels[value] ?? value.replaceAll("-", " ")}`;
 
   if ((isLoading || catalog.isLoading) && !dataError) return <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:py-10"><LoadingSkeleton className="h-9 w-52"/><LoadingSkeleton className="mt-5 h-12 max-w-xl"/><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <LoadingSkeleton key={index} className="h-80"/>)}</div></div>;
   if (dataError || catalog.error) return <div className="mx-auto max-w-2xl px-4 py-10"><ErrorState message={dataError ?? catalog.error ?? ""} onRetry={() => { retryData(); catalog.retry(); }}/></div>;
@@ -183,7 +183,7 @@ export function SearchExplorer({ aiSearchEnabled = false }: { aiSearchEnabled?: 
           {results.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} distance={`${restaurant.distanceKm} km`} friendsVisited={countFriendsWhoVisited(reviews, restaurant.id, friendIds)} />)}
         </div>
       ) : (
-        <div className="mt-5"><EmptyState title="Nenhum lugar encontrado" message={params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={params.q ? "Encontrar este lugar" : undefined} actionHref={params.q ? `/restaurant/new?name=${encodeURIComponent(params.q)}` : undefined} /></div>
+        <div className="mt-5">{params.michelin === "starred" ? <EmptyState title="Nenhum lugar encontrado" message="Não encontramos restaurantes com estrela Michelin verificada para estes filtros." actionLabel="Remover filtro Michelin" onAction={() => setParam("michelin")} /> : <EmptyState title="Nenhum lugar encontrado" message={params.q ? `Nada para “${params.q}”. Ajuste sua busca ou filtros.` : "Ajuste os filtros para explorar mais lugares."} actionLabel={params.q ? "Encontrar este lugar" : undefined} actionHref={params.q ? `/restaurant/new?name=${encodeURIComponent(params.q)}` : undefined} />}</div>
       )}
     </div>
   );
