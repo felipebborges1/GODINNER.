@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { GooglePlaceCandidate } from "@/lib/google-place-types";
 import type { RestaurantCoordinates } from "@/types";
 
@@ -23,13 +23,17 @@ export function useGooglePlaceSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestVersion = useRef(0);
+  useEffect(() => () => { requestVersion.current += 1; }, []);
 
   const searchPlaces = useCallback(async (query: string, position?: RestaurantCoordinates) => {
     const version = ++requestVersion.current;
     if (query.trim().length < 2) {
       setPlaces([]);
+      setIsLoading(false);
+      setError(null);
       return [];
     }
+    setPlaces([]);
     setIsLoading(true);
     setError(null);
     try {

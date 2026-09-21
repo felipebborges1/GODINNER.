@@ -28,17 +28,7 @@ import { generateRecommendations } from "@/lib/recommendations/engine";
 import { distanceKm, hasCoordinates } from "@/lib/distance";
 import type { GooglePlaceCandidate } from "@/lib/google-place-types";
 
-function reviewNewUrl(place: GooglePlaceCandidate) {
-  const query = new URLSearchParams({ placeId: place.placeId, name: place.name, address: place.address });
-  if (place.city) query.set("city", place.city);
-  if (place.neighborhood) query.set("neighborhood", place.neighborhood);
-  if (place.country) query.set("country", place.country);
-  if (place.coordinates) {
-    query.set("latitude", String(place.coordinates.latitude));
-    query.set("longitude", String(place.coordinates.longitude));
-  }
-  return `/restaurant/new?${query.toString()}`;
-}
+import { reviewNewUrl } from "@/lib/review/google-review-entry";
 
 function formatPlaceDistance(position: { latitude: number; longitude: number }, place: GooglePlaceCandidate) {
   if (!place.coordinates) return null;
