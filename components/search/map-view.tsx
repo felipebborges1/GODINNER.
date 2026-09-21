@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import Script from "next/script";
 import { ArrowUpRight, LocateFixed, LoaderCircle, MapPin, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GooglePlaceCover, RestaurantPhotoUnavailable } from "@/components/restaurant/google-place-cover";
 import { hasCoordinates } from "@/lib/distance";
+import { googleMapsLoader, loadMapsLibraries } from "@/lib/google-maps-loader";
 import type { Restaurant } from "@/types";
 
 type LatLng = { lat: number; lng: number };
@@ -39,22 +39,8 @@ type MapsApi = {
   importLibrary?: (library: "maps" | "core") => Promise<Partial<MapsApi>>;
 };
 
-declare global {
-  interface Window {
-    google?: { maps: MapsApi };
-    __godinnerGoogleMapsLoaded?: () => void;
-  }
-}
-
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim();
 const defaultCenter = { lat: -19.956, lng: -43.946 };
-const googleMapsReadyEvent = "godinner-google-maps-ready";
-
-if (typeof window !== "undefined" && !window.__godinnerGoogleMapsLoaded) {
-  window.__godinnerGoogleMapsLoaded = () => {
-    window.dispatchEvent(new Event(googleMapsReadyEvent));
-  };
-}
 
 function formatDistance(distance: number) {
   return Number.isFinite(distance) ? `${distance.toFixed(1)} km` : "Distância indisponível";
@@ -149,7 +135,6 @@ export function MapView({ restaurants }: { restaurants: Restaurant[] }) {
   const mapRef = useRef<MapInstance | null>(null);
   const markersRef = useRef(new Map<string, MarkerInstance>());
   const [mapsApi, setMapsApi] = useState<MapsApi | null>(null);
-  const [scriptLoaded, setScriptLoaded] = useState(() => Boolean(globalThis.window?.google?.maps?.importLibrary));
   const [mapFailed, setMapFailed] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(true);
@@ -157,24 +142,18 @@ export function MapView({ restaurants }: { restaurants: Restaurant[] }) {
   const selected = selectedId ? mappableRestaurants.find((restaurant) => restaurant.id === selectedId) ?? null : null;
 
   useEffect(() => {
-    const markScriptAsLoaded = () => setScriptLoaded(true);
-    window.addEventListener(googleMapsReadyEvent, markScriptAsLoaded);
-    if (window.google?.maps?.importLibrary) markScriptAsLoaded();
-    return () => window.removeEventListener(googleMapsReadyEvent, markScriptAsLoaded);
-  }, []);
-
-  useEffect(() => {
-    if (!scriptLoaded || mapsApi) return;
-    const loader = window.google?.maps?.importLibrary;
-    if (!loader) return;
-    void Promise.all([loader("maps"), loader("core")])
-      .then(([maps, core]) => {
-        const api = { ...core, ...maps } as MapsApi;
+    if (!mappableRestaurants.length) return;
+    let active = true;
+    const unsubscribe = googleMapsLoader().subscribe(() => { if (active) setMapFailed(true); });
+    void loadMapsLibraries(["maps", "core"])
+      .then((libraries) => {
+        const api = libraries as MapsApi;
         if (!api.Map || !api.LatLngBounds || !api.OverlayView) throw new Error("Google Maps incompleto");
-        setMapsApi(api);
+        if (active) setMapsApi((current) => current ?? api);
       })
-      .catch(() => setMapFailed(true));
-  }, [mapsApi, scriptLoaded]);
+      .catch(() => { if (active) setMapFailed(true); });
+    return () => { active = false; unsubscribe(); };
+  }, [mappableRestaurants.length]);
 
   useEffect(() => {
     if (!mapsApi || !mapElementRef.current || mapRef.current) return;
@@ -255,12 +234,6 @@ export function MapView({ restaurants }: { restaurants: Restaurant[] }) {
   if (!mappableRestaurants.length) return <MapUnavailable missingKey={false}/>;
 
   return <div className="relative h-[min(72svh,620px)] min-h-[480px] overflow-hidden rounded-3xl bg-[#e8f0e4] shadow-inner ring-1 ring-stone-200 sm:h-[min(70svh,680px)] sm:min-h-[560px] lg:h-[min(76vh,760px)] lg:min-h-[620px]">
-    {googleMapsApiKey && <Script
-      id="godinner-google-maps"
-      src={`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsApiKey)}&v=weekly&language=pt-BR&region=BR&loading=async&callback=__godinnerGoogleMapsLoaded&auth_referrer_policy=origin`}
-      strategy="afterInteractive"
-      onError={() => setMapFailed(true)}
-    />}
     {!googleMapsApiKey || mapFailed ? <MapUnavailable missingKey={!googleMapsApiKey}/> : <>
       <div ref={mapElementRef} className="absolute inset-0" aria-label="Mapa dos restaurantes"/>
       {!mapsApi && <div className="absolute inset-0 z-10 grid place-items-center bg-[#e8f0e4]"><div className="rounded-2xl bg-white/95 px-5 py-4 text-center shadow-lg"><LoaderCircle className="mx-auto animate-spin text-orange-500"/><p className="mt-2 text-sm font-bold">Carregando mapa…</p></div></div>}

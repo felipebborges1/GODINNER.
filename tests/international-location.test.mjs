@@ -56,8 +56,9 @@ test("address parser resolves Belo Horizonte and Madrid without inventing a neig
 test("location failures keep manual address entry available with safe feedback", async () => {
   const picker = await readFile(new URL("../components/restaurant/location-picker.tsx", import.meta.url), "utf8");
   assert.match(picker, /Permissão de localização negada/);
-  assert.match(picker, /Você pode marcar o local no mapa ou preencher manualmente/);
-  assert.match(picker, /Não conseguimos preencher o endereço automaticamente/);
+  assert.match(picker, /Você pode selecionar o local no mapa, sem usar o GPS/);
+  assert.match(picker, /Não foi possível preencher o endereço/);
+  assert.match(picker, /As coordenadas selecionadas foram mantidas/);
 });
 
 test("Discover uses a real location when available and does not present BH as nearby outside the catalog", async () => {
