@@ -20,6 +20,32 @@ export type { GooglePlaceCandidate } from "@/lib/google-place-types";
 
 type SearchOptions = { position?: RestaurantCoordinates };
 
+// Use Google's categories, not names: "food" / "establishment" alone also
+// describe supermarkets, offices, etc. A missing category must fail closed.
+const diningTypes = new Set([
+  "restaurant", "cafe", "coffee_shop", "cafeteria", "tea_house", "cat_cafe", "dog_cafe",
+  "bar", "bar_and_grill", "wine_bar", "cocktail_bar", "pub", "beer_garden",
+  "bakery", "bagel_shop", "donut_shop", "sandwich_shop", "ice_cream_shop", "dessert_shop", "juice_shop",
+  "diner", "steak_house", "food_court", "meal_takeaway", "meal_delivery",
+]);
+
+export function isDiningPlace(place: { primaryType?: string; types?: string[] }) {
+  return [place.primaryType, ...(place.types ?? [])].some(type =>
+    typeof type === "string" && (diningTypes.has(type) || type.endsWith("_restaurant")),
+  );
+}
+
+export class GooglePlaceCategoryError extends Error {
+  constructor() {
+    super("Este local não está classificado no Google como restaurante, bar, café ou outro local de alimentação. Escolha outro resultado ou marque o restaurante no mapa.");
+    this.name = "GooglePlaceCategoryError";
+  }
+}
+
+function diningCandidates(places: GooglePlaceApiPlace[] = []) {
+  return places.filter(isDiningPlace).map(toCandidate).filter((place): place is GooglePlaceCandidate => Boolean(place));
+}
+
 function apiKey() {
   const value = process.env.GOOGLE_PLACES_API_KEY?.trim();
   if (!value) throw new Error("Google Places indisponível neste ambiente.");
@@ -79,13 +105,24 @@ export async function searchGooglePlaces(query: string, options: SearchOptions =
   const locationBias = options.position ? {
     circle: { center: options.position, radius: 30_000 },
   } : undefined;
-  const response = await requestGooglePlaces("places:searchText", {
+  const searchBody = {
     textQuery,
     languageCode: "pt-BR",
     maxResultCount: 6,
     ...(locationBias ? { locationBias } : {}),
+  };
+  const response = await requestGooglePlaces("places:searchText", searchBody);
+  const candidates = diningCandidates(response.places);
+  if (candidates.length) return candidates;
+  // Text Search accepts only one includedType. Keep cafes/bars from the first
+  // search, then recover restaurant matches hidden by a non-dining namesake.
+  // This is bounded to one extra request; never fall back to unfiltered results.
+  const restaurants = await requestGooglePlaces("places:searchText", {
+    ...searchBody,
+    includedType: "restaurant",
+    strictTypeFiltering: true,
   });
-  return (response.places ?? []).map(toCandidate).filter((place): place is GooglePlaceCandidate => Boolean(place));
+  return diningCandidates(restaurants.places);
 }
 
 export async function searchGooglePlacesNearby(position: RestaurantCoordinates) {
@@ -96,13 +133,14 @@ export async function searchGooglePlacesNearby(position: RestaurantCoordinates) 
     locationRestriction: { circle: { center: position, radius: 700 } },
     languageCode: "pt-BR",
   });
-  return (response.places ?? []).map(toCandidate).filter((place): place is GooglePlaceCandidate => Boolean(place));
+  return diningCandidates(response.places);
 }
 
 export async function getGooglePlaceDetails(placeId: string) {
   const safePlaceId = placeId.trim();
   if (!safePlaceId || safePlaceId.length > 200) throw new Error("Local inválido.");
   const place = await requestGooglePlaces(`places/${encodeURIComponent(safePlaceId)}?languageCode=pt-BR`);
+  if (!isDiningPlace(place)) throw new GooglePlaceCategoryError();
   const candidate = toCandidate(place);
   if (!candidate || !candidate.coordinates || !candidate.address) {
     throw new Error("Não conseguimos confirmar todos os dados deste local.");

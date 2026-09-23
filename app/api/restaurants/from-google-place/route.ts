@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { distanceKm } from "@/lib/distance";
-import { getGooglePlaceDetails, mapGooglePlaceType } from "@/lib/google-place-discovery";
+import { getGooglePlaceDetails, mapGooglePlaceType, GooglePlaceCategoryError } from "@/lib/google-place-discovery";
 import { normalize } from "@/lib/search";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { RestaurantRow } from "@/lib/supabase/database.types";
@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
       throw inserted.error ?? new Error("Falha ao criar restaurante.");
     }
     return NextResponse.json({ restaurant: inserted.data, matched: "created" }, { status: 201 });
-  } catch {
+  } catch (error) {
+    if (error instanceof GooglePlaceCategoryError) return NextResponse.json({ error: error.message }, { status: 422 });
     return NextResponse.json({ error: "Não conseguimos preparar este lugar agora. Você pode preencher manualmente." }, { status: 502 });
   }
 }
