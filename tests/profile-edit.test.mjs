@@ -56,9 +56,19 @@ test("website accepts one external HTTP(S) link and normalizes protocol", () => 
   assert.equal(normalizeProfileLink(" exemplo.com.br/cafe ").value, "https://exemplo.com.br/cafe");
   assert.equal(normalizeProfileLink("http://exemplo.com.br").value, "http://exemplo.com.br/");
   assert.equal(normalizeProfileLink("").value, null);
+  assert.deepEqual(normalizeProfileLink(null), { value: null, error: null });
   for (const value of ["javascript:alert(1)", "ftp://exemplo.com", "https://user:pass@exemplo.com", "localhost", "https://exemplo.com outro.com"]) {
     assert.ok(normalizeProfileLink(value).error, value);
   }
+});
+
+test("bio saves without a link when the client sends its optional null value", async () => {
+  const h = harness();
+  const result = await h.send({ ...base, bio: "Nova bio sem link", website: null });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.bio, "Nova bio sem link");
+  assert.equal(result.body.website, null);
+  assert.deepEqual(h.events.find(e => e[0] === "update")[1], { bio: "Nova bio sem link" });
 });
 
 test("anonymous user cannot edit a profile", async () => {

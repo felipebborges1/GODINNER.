@@ -14,6 +14,7 @@ export function validateProfileBio(value: unknown) {
 }
 
 export function normalizeProfileLink(value: unknown) {
+  if (value === null) return { value: null, error: null };
   if (typeof value !== "string") return { value: null, error: "Informe um link válido." };
   const input = value.trim();
   if (!input) return { value: null, error: null };
