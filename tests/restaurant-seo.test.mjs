@@ -15,6 +15,38 @@ function compile(file, dependencies = {}) {
 }
 const seo = compile("../lib/seo.ts");
 const restaurantSeo = compile("../lib/restaurant-seo.ts", { "@/lib/seo": seo });
+const brandDependencies = {
+  "@/lib/seo": seo,
+  "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children) },
+  "@/components/discover/discover-page": { default: () => React.createElement("main", null, "Discover") },
+};
+
+test("homepage associates Go Dinner with GODINNER in visible content, metadata and one WebSite entity", () => {
+  const home = compile("../app/page.tsx", brandDependencies);
+  const html = renderToStaticMarkup(React.createElement(home.default));
+  const schemas = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map(match => JSON.parse(match[1]));
+  assert.equal(schemas.length, 1);
+  assert.equal(schemas[0].name, "GODINNER");
+  assert.equal(schemas[0].alternateName, "Go Dinner");
+  assert.equal(schemas[0].url, seo.SITE_URL);
+  assert.match(html, /<p[^>]*>GODINNER, ou Go Dinner, é sua comunidade/);
+  assert.match(home.metadata.title, /GODINNER \(Go Dinner\)/);
+  assert.match(home.metadata.description, /Go Dinner/);
+  assert.equal(home.metadata.openGraph.siteName, "GODINNER");
+  assert.equal(home.metadata.twitter.title, home.metadata.title);
+  assert.equal(home.metadata.openGraph.title, home.metadata.title);
+  assert.equal(home.metadata.alternates.canonical, seo.SITE_URL);
+  assert.equal(home.metadata.robots, undefined, "preserve inherited Preview noindex");
+});
+
+test("about page explains the alternate spelling without replacing the brand or canonical", () => {
+  const about = compile("../app/sobre/page.tsx", brandDependencies);
+  const html = renderToStaticMarkup(React.createElement(about.default));
+  assert.match(html, /GODINNER, também escrito como Go Dinner/);
+  assert.match(about.metadata.title, /GODINNER \(Go Dinner\)/);
+  assert.equal(about.metadata.alternates.canonical, `${seo.SITE_URL}/sobre`);
+  assert.equal(about.metadata.robots, undefined);
+});
 const row = { id: "public", slug: "restaurante-publico", name: "Restaurante Público", address: "Rua pública, 10", city: "Lisboa", neighborhood: "Centro", country_code: "PT", category: "restaurant", cuisines: [], price_range: null, status: "published", merged_into_id: null };
 function client(replies) {
   const calls = [];
