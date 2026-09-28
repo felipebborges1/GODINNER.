@@ -48,7 +48,8 @@ test("review photo route reuses only a short-lived signed URL for published medi
   assert.match(route, /signedUrlCache\.get\(photoId\)/);
   assert.match(route, /reviews!inner\(restaurants!inner\(status\)\)/);
   assert.match(route, /Cache-Control": "private, max-age=240/);
-  assert.match(avatarRoute, /signedUrlCache\.get\(userId\)/);
+  assert.match(avatarRoute, /const cacheKey = `\$\{userId\}:\$\{path\}`/);
+  assert.match(avatarRoute, /signedUrlCache\.get\(cacheKey\)/);
   assert.match(avatarRoute, /Cache-Control": "private, max-age=240/);
 });
 

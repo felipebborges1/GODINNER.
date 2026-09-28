@@ -6,8 +6,9 @@ const placeholderImage = "https://images.unsplash.com/photo-1517248135467-4c7edc
 const unavailableRestaurantImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='900' viewBox='0 0 1200 900'%3E%3Crect width='1200' height='900' fill='%23f5f5f4'/%3E%3Ctext x='600' y='450' text-anchor='middle' fill='%23787571' font-family='Arial,sans-serif' font-size='42'%3EFoto indispon%C3%ADvel%3C/text%3E%3C/svg%3E";
 
 export function mapProfile(row: ProfileRow, avatarUrl: string | null = row.avatar_url) {
-  const avatarPath = row.avatar_url?.startsWith(`${row.id}/`) ? row.avatar_url : null;
-  return { id: row.id, username: row.username, name: row.name, avatar: avatarUrl, avatarPath, bio: row.bio, neighborhood: row.location, followers: 0, following: 0, role: row.role } satisfies User;
+  // Keep the persisted value for the optimistic edit guard, including legacy external URLs.
+  const avatarPath = row.avatar_url ?? null;
+  return { id: row.id, username: row.username, name: row.name, avatar: avatarUrl, avatarPath, bio: row.bio, website: row.website_url ?? null, neighborhood: row.location, followers: 0, following: 0, role: row.role } satisfies User;
 }
 export function mapRestaurant(row: RestaurantRow): Restaurant {
   const coordinates = hasCoordinates({ latitude: row.latitude, longitude: row.longitude })

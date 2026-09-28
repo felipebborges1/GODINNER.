@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test:enrichment": "node --test tests/google-place-enrichment.test.mjs",
+    "test:profile-edit": "node --experimental-strip-types --test --test-isolation=none tests/profile-edit.test.mjs tests/profile-avatar-upload.test.mjs",
     "test:seo": "node --test tests/restaurant-seo.test.mjs",
     "dev": "next dev",
     "build": "next build",

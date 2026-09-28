@@ -9,6 +9,7 @@ import { mapFollow, mapList, mapNotification, mapProfile, mapRestaurant, mapRevi
 import type { RestaurantRow } from "@/lib/supabase/database.types";
 import { claimRecommendationUnlockModal, deleteReviewPersisted, listReviewLikes, publishReviewPersisted, REVIEW_LIKES_PAGE_SIZE, updateReviewPersisted } from "@/lib/data/repositories";
 import { createSignedImageUrl, getAvatarUploadErrorMessage, removeProfileAvatar, removeReviewPhotos, uploadProfileAvatar, uploadUserImage } from "@/lib/supabase/storage";
+import { normalizeProfileLink, validateProfileBio } from "@/lib/profile-fields";
 import { canManageReviewComment, emptyReviewSocialSummary, REVIEW_COMMENTS_PAGE_SIZE, toggleReviewLikeSummary, validateReviewComment } from "@/lib/review-social";
 import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/notifications";
 import { getCurrencyForCountry } from "@/lib/currency";
@@ -21,6 +22,7 @@ export type RestaurantSubmission = { name: string; address: string; city: string
 export type AdminRestaurantDraft = Pick<Restaurant, "name" | "address" | "city" | "neighborhood" | "category" | "cuisine" | "priceRange" | "instagram" | "site" | "phone" | "chef" | "coordinates">;
 export type AdminResult = { ok: boolean; error?: string; restaurant?: Restaurant };
 export type PublishedReview = { review: Review; recommendationsUnlocked: boolean };
+export type ProfileEditDraft = { bio: string; website: string; avatarAction: "keep" | "remove" | "replace"; file?: File | null };
 
 function refreshRestaurantReviewStats(restaurants: Restaurant[], reviews: Review[], restaurantId: string) {
   const restaurantReviews = reviews.filter((review) => review.restaurantId === restaurantId);
@@ -93,7 +95,7 @@ type AppContextValue = {
   claimRecommendationUnlock: () => Promise<boolean>;
   updateReview: (reviewId: string, draft: ReviewUpdateDraft) => Promise<Review | null>;
   deleteReview: (reviewId: string) => Promise<{ ok: boolean; cleanupFailed?: boolean }>;
-  updateProfileAvatar: (file: File | null) => Promise<{ ok: boolean; avatar: string | null; error?: string }>;
+  updateProfile: (draft: ProfileEditDraft) => Promise<{ ok: boolean; error?: string }>;
   isAdmin: boolean;
   updateRestaurantAdmin: (restaurantId: string, draft: AdminRestaurantDraft) => AdminResult;
   approveRestaurant: (restaurantId: string) => Promise<AdminResult>;
@@ -628,50 +630,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showToast("Comentário removido.");
     return true;
   }, [backendConfigured, currentUserId, isAdmin, reviewComments, showToast]);
-  const updateProfileAvatar = useCallback(async (file: File | null) => {
-    if (!currentUserId) return { ok: false, avatar: null, error: "Entre para alterar sua foto." };
+  const updateProfile = useCallback(async (draft: ProfileEditDraft) => {
+    if (!currentUserId) return { ok: false, error: "Entre para editar seu perfil." };
     const current = profiles.find((profile) => profile.id === currentUserId);
-    if (!current) return { ok: false, avatar: null, error: "Perfil não encontrado." };
-    const previousPath = current.avatarPath;
-    const previousAvatar = current.avatar;
+    if (!current) return { ok: false, error: "Perfil não encontrado." };
+    const bio = validateProfileBio(draft.bio);
+    const website = normalizeProfileLink(draft.website);
+    if (bio.error || website.error) return { ok: false, error: bio.error ?? website.error ?? undefined };
+    if (draft.avatarAction === "replace" && !draft.file) return { ok: false, error: "Escolha uma foto válida." };
     if (dataMode !== "supabase" || !backendConfigured) {
-      const nextAvatar = file ? URL.createObjectURL(file) : null;
-      setProfiles((items) => items.map((profile) => profile.id === currentUserId ? { ...profile, avatar: nextAvatar, avatarPath: null } : profile));
-      return { ok: true, avatar: nextAvatar };
+      const avatar = draft.avatarAction === "replace" && draft.file ? URL.createObjectURL(draft.file) : draft.avatarAction === "remove" ? null : current.avatar;
+      setProfiles((items) => items.map((profile) => profile.id === currentUserId ? { ...profile, avatar, avatarPath: null, bio: bio.value, website: website.value } : profile));
+      setReviewLikes((groups) => Object.fromEntries(Object.entries(groups).map(([key, likes]) => [key, likes.map((like) => like.userId === currentUserId ? { ...like, avatar } : like)])));
+      return { ok: true };
     }
-    const client = createSupabaseBrowserClient();
-    if (!client) return { ok: false, avatar: previousAvatar, error: "Supabase não está configurado." };
-    if (!file) {
-      const cleared = await client.from("profiles").update({ avatar_url: null }).eq("id", currentUserId).select("*").single();
-      if (cleared.error) return { ok: false, avatar: previousAvatar, error: "Não foi possível remover sua foto." };
-      if (previousPath) {
-        const removed = await removeProfileAvatar(previousPath);
-        if (removed.error) {
-          await client.from("profiles").update({ avatar_url: previousPath }).eq("id", currentUserId);
-          return { ok: false, avatar: previousAvatar, error: "Não foi possível remover sua foto. Tente novamente." };
-        }
-      }
-      setProfiles((items) => items.map((profile) => profile.id === currentUserId ? { ...profile, avatar: null, avatarPath: null } : profile));
-      return { ok: true, avatar: null };
+    let uploadedPath: string | null = null;
+    if (draft.avatarAction === "replace" && draft.file) {
+      const uploaded = await uploadProfileAvatar(currentUserId, draft.file);
+      if (uploaded.error || !uploaded.data) return { ok: false, error: getAvatarUploadErrorMessage(uploaded.error) };
+      uploadedPath = uploaded.data.path;
     }
-    const uploaded = await uploadProfileAvatar(currentUserId, file);
-    if (uploaded.error || !uploaded.data) return { ok: false, avatar: previousAvatar, error: getAvatarUploadErrorMessage(uploaded.error) };
-    const updated = await client.from("profiles").update({ avatar_url: uploaded.data.path }).eq("id", currentUserId).select("*").single();
-    if (updated.error) {
-      await removeProfileAvatar(uploaded.data.path);
-      return { ok: false, avatar: previousAvatar, error: "Não foi possível salvar sua foto." };
+    let response: Response;
+    try {
+      response = await fetch("/api/profile/edit", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bio: bio.value, website: website.value, expectedAvatarPath: current.avatarPath ?? null, avatar: { action: draft.avatarAction, path: uploadedPath } }),
+      });
+    } catch {
+      return { ok: false, error: "Não conseguimos confirmar o salvamento. Recarregue o perfil antes de tentar novamente." };
     }
-    if (previousPath) {
-      const removed = await removeProfileAvatar(previousPath);
-      if (removed.error) {
-        await client.from("profiles").update({ avatar_url: previousPath }).eq("id", currentUserId);
-        await removeProfileAvatar(uploaded.data.path);
-        return { ok: false, avatar: previousAvatar, error: "Não foi possível alterar sua foto. Tente novamente." };
-      }
+    const result = await response.json().catch(() => null) as { error?: string; bio?: string; website?: string | null; avatarPath?: string | null } | null;
+    if (!response.ok) {
+      if (uploadedPath) await removeProfileAvatar(uploadedPath);
+      return { ok: false, error: result?.error ?? "Não foi possível salvar o perfil. Tente novamente." };
     }
-    const avatar = `/api/profile-avatar/${currentUserId}?v=${encodeURIComponent(uploaded.data.path)}`;
-    setProfiles((items) => items.map((profile) => profile.id === currentUserId ? { ...profile, avatar, avatarPath: uploaded.data.path } : profile));
-    return { ok: true, avatar };
+    if (!result || typeof result.bio !== "string") return { ok: false, error: "O perfil foi salvo, mas a resposta não chegou corretamente. Recarregue a página." };
+    const path = result.avatarPath ?? null;
+    const avatar = path?.startsWith(`${currentUserId}/`) ? `/api/profile-avatar/${currentUserId}?v=${encodeURIComponent(path)}` : null;
+    setProfiles((items) => items.map((profile) => profile.id === currentUserId ? { ...profile, avatar, avatarPath: path, bio: result.bio!, website: result.website ?? null } : profile));
+    setReviewLikes((groups) => Object.fromEntries(Object.entries(groups).map(([key, likes]) => [key, likes.map((like) => like.userId === currentUserId ? { ...like, avatar } : like)])));
+    return { ok: true };
   }, [backendConfigured, currentUserId, profiles]);
   const submitRestaurant = useCallback(async (draft: RestaurantSubmission) => {
     if (!currentUserId) return { error: "Entre para adicionar um restaurante." };
@@ -907,6 +905,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRestaurants((items) => items.map((item) => item.id === target.id ? restaurant : item.id === source.id ? { ...item, status: "rejected" as const, rejectionReason: "duplicate", mergedIntoId: target.id, moderatedBy: currentUserId ?? undefined, moderatedAt: new Date().toISOString() } : item));
     return { ok: true, restaurant };
   }, [adminGuard, currentUserId, restaurants, reviews]);
-  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewLikes, reviewLikesHasMore, reviewLikesLoading, reviewLikesError, reviewComments, reviewCommentsHasMore, notifications, notificationsHasMore, notificationsLoading, notificationsError, unreadNotificationCount, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewLikes, loadReviewComments, createReviewComment, deleteReviewComment, loadNotifications, markNotificationRead, markAllNotificationsRead, submitRestaurant, createRestaurantFromGooglePlace, publishReview, claimRecommendationUnlock, updateReview, deleteReview, updateProfileAvatar, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, claimRecommendationUnlock, createList, createRestaurantFromGooglePlace, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadNotifications, loadReviewComments, loadReviewLikes, markAllNotificationsRead, markNotificationRead, mergeRestaurant, notifications, notificationsError, notificationsHasMore, notificationsLoading, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewLikes, reviewLikesError, reviewLikesHasMore, reviewLikesLoading, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, unreadNotificationCount, updateList, updateProfileAvatar, updateRestaurantAdmin, updateReview]);
+  const value = useMemo(() => ({ dataMode, backendConfigured, isLoading, dataError, retryData, currentUserId, isAuthLoading, users: profiles, reviews, restaurants, lists, follows, reviewSocial, reviewLikes, reviewLikesHasMore, reviewLikesLoading, reviewLikesError, reviewComments, reviewCommentsHasMore, notifications, notificationsHasMore, notificationsLoading, notificationsError, unreadNotificationCount, isToastOpen, toastMessage, showToast, hideToast, toggleWantToVisit, toggleRestaurantInList, createList, updateList, deleteList, removeRestaurantFromList, toggleFollow, toggleReviewLike, loadReviewLikes, loadReviewComments, createReviewComment, deleteReviewComment, loadNotifications, markNotificationRead, markAllNotificationsRead, submitRestaurant, createRestaurantFromGooglePlace, publishReview, claimRecommendationUnlock, updateReview, deleteReview, updateProfile, isAdmin, updateRestaurantAdmin, approveRestaurant, rejectRestaurant, mergeRestaurant }), [approveRestaurant, backendConfigured, claimRecommendationUnlock, createList, createRestaurantFromGooglePlace, createReviewComment, currentUserId, dataError, deleteList, deleteReview, deleteReviewComment, follows, hideToast, isAdmin, isAuthLoading, isLoading, isToastOpen, lists, loadNotifications, loadReviewComments, loadReviewLikes, markAllNotificationsRead, markNotificationRead, mergeRestaurant, notifications, notificationsError, notificationsHasMore, notificationsLoading, profiles, publishReview, rejectRestaurant, removeRestaurantFromList, restaurants, retryData, reviewComments, reviewCommentsHasMore, reviewLikes, reviewLikesError, reviewLikesHasMore, reviewLikesLoading, reviewSocial, reviews, showToast, submitRestaurant, toastMessage, toggleFollow, toggleRestaurantInList, toggleReviewLike, toggleWantToVisit, unreadNotificationCount, updateList, updateProfile, updateRestaurantAdmin, updateReview]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -46,7 +46,7 @@ export interface Database {
   };
 }
 
-export type ProfileRow = { id: string; username: string; username_needs_confirmation: boolean; name: string; avatar_url: string | null; bio: string; location: string; role: AppRole; recommendations_unlocked_at: string | null; recommendations_unlock_seen_at: string | null; recommendations_unlock_review_id: string | null; created_at: string; updated_at: string; };
+export type ProfileRow = { id: string; username: string; username_needs_confirmation: boolean; name: string; avatar_url: string | null; bio: string; website_url?: string | null; location: string; role: AppRole; recommendations_unlocked_at: string | null; recommendations_unlock_seen_at: string | null; recommendations_unlock_review_id: string | null; created_at: string; updated_at: string; };
 export type ProfileInsert = Omit<ProfileRow, "created_at" | "updated_at"> & { created_at?: string; updated_at?: string };
 export type ProfileUpdate = Partial<ProfileInsert>;
 export type MichelinRecognitionState = "unknown" | "verified_starred" | "verified_no_star" | "needs_revalidation";

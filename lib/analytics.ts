@@ -31,6 +31,7 @@ export type AnalyticsEvent =
   | "profile_photo_added"
   | "profile_photo_changed"
   | "profile_photo_removed"
+  | "profile_updated"
   | "review_liked"
   | "review_unliked"
   | "review_comment_created"
