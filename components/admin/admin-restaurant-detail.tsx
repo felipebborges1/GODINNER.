@@ -11,6 +11,8 @@ import type { Restaurant } from "@/types";
 import { AdminShell } from "./admin-shell";
 import { ModerationAuthorship } from "./moderation-authorship";
 import { AdminMichelinRecognition } from "./admin-michelin-recognition";
+import { AdminGoogleEnrichment } from "./admin-google-enrichment";
+import { GooglePlaceCover } from "@/components/restaurant/google-place-cover";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 
 const reasons = ["duplicado", "dados insuficientes", "fora da região", "conteúdo inválido", "outro"];
@@ -77,7 +79,7 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-3xl bg-white p-5 shadow-sm">
-          <Image src={restaurant.coverPhoto.url} alt={restaurant.name} width={960} height={500} className="aspect-[2/1] w-full rounded-2xl object-cover" />
+          {restaurant.status === "published" && restaurant.hasGooglePlaceCover ? <GooglePlaceCover slug={restaurant.slug} alt={restaurant.name} variant="profile"/> : <Image src={restaurant.coverPhoto.url} alt={restaurant.name} width={960} height={500} className="aspect-[2/1] w-full rounded-2xl object-cover" />}
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {editing ? <>
               <Field label="Nome"><input value={draft.name} onChange={(event) => update("name", event.target.value)} /></Field>
@@ -111,6 +113,7 @@ export function AdminRestaurantDetail({ id }: { id: string }) {
         </section>
 
         <aside className="space-y-5">
+          {restaurant.status === "published" && <AdminGoogleEnrichment key={restaurant.id} restaurantId={restaurant.id} linked={Boolean(restaurant.hasGooglePlaceCover)} onUpdated={ctx.retryData}/>}
           <AdminMichelinRecognition restaurantId={restaurant.id} initialRecognition={restaurant.michelin} />
           <section className="rounded-3xl bg-white p-5 shadow-sm">
             <h2 className="font-black">Auditoria</h2>
