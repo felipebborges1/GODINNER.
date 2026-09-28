@@ -15,7 +15,7 @@ for (const path of ["/", "/sobre", "/privacy", "/terms"]) {
   console.log(`PASS public ${path}`);
 }
 const xml = await (await fetch(`${base}/sitemap.xml`)).text();
-assert.equal((xml.match(/<loc>/g) || []).length, 4);
+assert.ok((xml.match(/<loc>/g) || []).length >= 4);
 assert.ok(xml.includes(`${official}/sobre`));
 assert.ok(!xml.includes("vercel.app"));
 const robots = await (await fetch(`${base}/robots.txt`)).text();

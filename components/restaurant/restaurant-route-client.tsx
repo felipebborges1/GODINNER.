@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
@@ -44,9 +45,9 @@ function MissingRestaurantProfile({ slug }: { slug: string }) {
   return <RestaurantProfile restaurant={result.restaurant}/>;
 }
 
-export function RestaurantRouteClient({ slug }: { slug: string }) {
+export function RestaurantRouteClient({ slug, children }: { slug: string; children?: ReactNode }) {
   const { restaurants, currentUserId, isLoading, dataError, retryData, dataMode } = useAppContext();
-  if (isLoading) return <ProfileLoading/>;
+  if (isLoading) return children ?? <ProfileLoading/>;
   if (dataError) return <div className="mx-auto max-w-2xl px-4 py-10"><ErrorState message={dataError} onRetry={retryData}/></div>;
   const restaurant = restaurants.find((item) => item.slug === slug);
   if (!restaurant) {
