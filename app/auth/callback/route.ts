@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
+import { attributeConfirmedUser } from "@/lib/personal-invites";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -37,6 +38,9 @@ export async function GET(request: Request) {
     logCallbackDiagnostic("profile_unavailable_after_auth", profileError);
     return loginError(url, "auth_callback");
   }
+
+  // Attribution is idempotent and never blocks a successful sign-in.
+  await attributeConfirmedUser(userData.user).catch(() => "failed");
 
   const destination = profile.username_needs_confirmation
     ? `/onboarding?next=${encodeURIComponent(next)}`

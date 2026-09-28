@@ -88,7 +88,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             password,
             options: {
               emailRedirectTo: `${window.location.origin}/auth/callback`,
-              data: { name: name.trim(), username: username.trim().toLowerCase() },
+              data: { name: name.trim(), username: username.trim().toLowerCase(), ...(await inviteMetadata()) },
             },
           });
       if (response.error) {
@@ -108,6 +108,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         return;
       }
       trackEvent("signup_completed", { provider: "email" });
+      await fetch("/api/invites/attribute", { method: "POST" }).catch(() => null);
       router.replace(`/onboarding?next=${encodeURIComponent(next)}`);
       router.refresh();
     } catch {
@@ -121,4 +122,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const googleLabel = busy ? "Conectando ao Google…" : "Continuar com Google";
 
   return <main className="mx-auto max-w-md px-4 py-10 pb-28"><div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-stone-100"><p className="text-sm font-black text-orange-600">GODINNER</p><h1 className="mt-2 text-3xl font-black">{heading}</h1><p className="mt-2 text-sm text-stone-500">{mode === "login" ? "Continue suas descobertas gastronômicas." : "Crie seu perfil e organize suas experiências."}</p><Button type="button" variant="soft" disabled={busy} onClick={() => void continueWithGoogle()} className="mt-6 min-h-12 w-full rounded-2xl border border-stone-200 bg-white text-stone-800 hover:bg-stone-50"><GoogleIcon/>{googleLabel}</Button><div className="my-6 flex items-center gap-3" aria-hidden="true"><span className="h-px flex-1 bg-stone-200"/><span className="text-xs font-bold uppercase tracking-wide text-stone-400">ou</span><span className="h-px flex-1 bg-stone-200"/></div><form onSubmit={submit} className="space-y-4" aria-busy={busy}>{mode === "register" && <><label className="block text-sm font-bold">Nome<input className="input mt-1" value={name} onChange={(event) => setName(event.target.value)} required /></label><label className="block text-sm font-bold">Username<input className="input mt-1" value={username} onChange={(event) => setUsername(event.target.value.toLowerCase())} pattern="[a-z0-9_.]{2,32}" required /></label></>}<label className="block text-sm font-bold">E-mail<input className="input mt-1" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><div><div className="flex items-center justify-between gap-3"><label htmlFor="auth-password" className="text-sm font-bold">Senha</label>{mode === "login" && <Link className="text-xs font-black text-orange-600 hover:text-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500" href={`/forgot-password${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Esqueci a senha</Link>}</div><input id="auth-password" className="input mt-1" type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required /></div>{mode === "register" && <label className="block text-sm font-bold">Confirmar senha<input className="input mt-1" type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={8} required /></label>}{error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}{message && <p role="status" className="rounded-xl bg-green-50 p-3 text-sm font-bold text-green-700">{message}</p>}<Button type="submit" disabled={busy} className="min-h-12 w-full rounded-2xl">{busy ? mode === "login" ? "Entrando…" : "Criando conta…" : mode === "login" ? "Entrar" : "Criar conta"}</Button></form><p className="mt-6 text-center text-sm text-stone-500">{mode === "login" ? <>Ainda não tem conta? <Link className="font-black text-orange-600" href={`/register${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Criar conta</Link></> : <>Já tem conta? <Link className="font-black text-orange-600" href={`/login${next === "/" ? "" : `?next=${encodeURIComponent(next)}`}`}>Entrar</Link></>}</p></div></main>;
+}
+
+async function inviteMetadata() {
+  try {
+    const response = await fetch("/api/invites/claim", { cache: "no-store" });
+    if (!response.ok) return {};
+    const data: { token?: string | null } = await response.json();
+    return data.token ? { personal_invite_token: data.token } : {};
+  } catch { return {}; }
 }
