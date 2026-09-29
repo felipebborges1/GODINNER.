@@ -2,7 +2,7 @@
 -- direct table access; public pages expose only the inviter's public profile.
 create table public.personal_invite_codes (
   inviter_id uuid primary key references public.profiles(id) on delete cascade,
-  code text not null unique default encode(gen_random_bytes(16), 'hex'),
+  code text not null unique default replace(gen_random_uuid()::text, '-', ''),
   created_at timestamptz not null default now(),
   constraint personal_invite_code_format check (code ~ '^[0-9a-f]{32}$')
 );

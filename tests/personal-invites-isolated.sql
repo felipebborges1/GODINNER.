@@ -21,7 +21,7 @@ begin
   end if;
   select code into first_code from public.personal_invite_codes
   where inviter_id = '11111111-1111-4111-8111-111111111111';
-  if length(first_code) <> 32 then raise exception 'code is not opaque 128-bit hex'; end if;
+  if length(first_code) <> 32 then raise exception 'code is not opaque UUID-derived hex'; end if;
   update public.profiles set name = 'Renamed inviter'
   where id = '11111111-1111-4111-8111-111111111111';
   if (select code from public.personal_invite_codes

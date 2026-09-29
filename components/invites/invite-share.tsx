@@ -3,16 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { INVITE_MESSAGE, isShareCancellation } from "@/lib/invite-sharing";
 
-export function InviteShare({ onClose, initialUrl }: { onClose: () => void; initialUrl?: string }) {
-  const [url, setUrl] = useState(initialUrl ?? "");
-  const [status, setStatus] = useState<"loading" | "ready" | "unavailable">(initialUrl ? "ready" : "loading");
+export function InviteShare({ onClose }: { onClose: () => void }) {
+  const [url, setUrl] = useState("");
+  const [status, setStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [shareFailed, setShareFailed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (initialUrl) return;
     let active = true;
     fetch("/api/invites/me", { method: "POST", cache: "no-store" }).then(async response => {
       if (!response.ok) throw new Error("unavailable");
@@ -21,7 +20,7 @@ export function InviteShare({ onClose, initialUrl }: { onClose: () => void; init
       if (active) { setUrl(data.url); setStatus("ready"); }
     }).catch(() => { if (active) setStatus("unavailable"); });
     return () => { active = false; };
-  }, [initialUrl]);
+  }, []);
 
   async function share() {
     if (!url || !navigator.share) return;

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LoginWall } from "@/components/auth/login-wall";
 import { ListCard } from "@/components/lists/list-card";
 import { ReviewCard } from "@/components/review/review-card";
@@ -18,7 +18,6 @@ import { BetaFeedback } from "./beta-feedback";
 import { PushNotificationSettings } from "@/components/push/push-notification-settings";
 import { ProfileEditor } from "./profile-editor";
 import { InviteShare } from "@/components/invites/invite-share";
-import { INVITE_MESSAGE, isShareCancellation } from "@/lib/invite-sharing";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
 type Tab = "experiences" | "lists" | "photos";
@@ -33,19 +32,7 @@ export function ProfileView({ userId, own }: { userId: string; own: boolean }) {
   const [loginOpen, setLoginOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteLink, setInviteLink] = useState<{ userId: string; url: string } | null>(null);
-  const inviteUrl = inviteLink?.userId === userId ? inviteLink.url : "";
   const [profileList, setProfileList] = useState<ProfileList | null>(null);
-  useEffect(() => {
-    if (!own || currentUserId !== userId) return;
-    let active = true;
-    fetch("/api/invites/me", { method: "POST", cache: "no-store" }).then(async response => {
-      if (!response.ok) return;
-      const data: { url?: string } = await response.json();
-      if (active && data.url) setInviteLink({ userId, url: data.url });
-    }).catch(() => null);
-    return () => { active = false; };
-  }, [own, currentUserId, userId]);
   const user = users.find((item) => item.id === userId);
   if (!user) return <div className="mx-auto max-w-6xl px-4 py-10 text-sm font-bold text-stone-500">Carregando perfil...</div>;
   const tabParam = searchParams.get("tab");
@@ -74,23 +61,13 @@ export function ProfileView({ userId, own }: { userId: string; own: boolean }) {
   const safeWebsite = user.website ? normalizeProfileLink(user.website) : null;
   const profileWebsite = safeWebsite && !safeWebsite.error ? safeWebsite.value : null;
   const canEdit = own && currentUserId === user.id;
-  const inviteFriends = async () => {
-    if (!inviteUrl || !navigator.share) { setInviteOpen(true); return; }
-    try { await navigator.share({ text: INVITE_MESSAGE, url: inviteUrl }); }
-    catch (error) { if (!isShareCancellation(error)) setInviteOpen(true); }
-  };
-  const copyInvite = async () => {
-    if (!inviteUrl) { setInviteOpen(true); return; }
-    try { await navigator.clipboard.writeText(inviteUrl); showToast("Link copiado!"); }
-    catch { setInviteOpen(true); }
-  };
 
   return <>
     <div className="mx-auto max-w-6xl px-4 py-6 pb-28 sm:px-6 lg:py-10">
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
         <section>
           <div className="flex items-start gap-3 sm:gap-4"><UserAvatar src={user.avatar} name={user.name} size="lg"/><div className="min-w-0 flex-1"><h1 className="break-words text-3xl font-black">{user.name}</h1><p className="mt-1 break-words text-sm text-stone-500">@{user.username}{user.neighborhood ? ` · ${user.neighborhood}` : ""}</p>{user.bio && <p className="mt-4 max-w-xl whitespace-pre-wrap break-words text-sm leading-6 text-stone-700">{user.bio}</p>}{profileWebsite && <a href={profileWebsite} target="_blank" rel="noopener noreferrer" className="mt-2 block max-w-xl break-all text-sm font-semibold text-orange-600 underline-offset-2 hover:underline">{readableProfileLink(profileWebsite)}</a>}</div><div className="flex shrink-0 items-center gap-2"><div className="lg:hidden"><NotificationBell mobile/></div>{own && isAdmin && <Link href="/admin" aria-label="Abrir painel administrativo" className="rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-black text-stone-700 shadow-sm">Painel admin</Link>}{!own && <Button variant={followingUser ? "soft" : "solid"} onClick={() => void toggleUserFollow(user)}>{followingUser ? "Seguindo" : "Seguir"}</Button>}</div></div>
-          {canEdit && <div className="mt-5 flex flex-wrap gap-2"><button type="button" onClick={() => setEditorOpen(true)} className="min-h-11 rounded-full border border-stone-200 bg-white px-5 text-sm font-black text-stone-900 shadow-sm transition hover:border-orange-300 hover:text-orange-600 focus-visible:outline-2 focus-visible:outline-orange-500">Editar perfil</button><button type="button" onClick={() => void inviteFriends()} className="min-h-11 rounded-full bg-orange-600 px-5 text-sm font-black text-white shadow-sm transition hover:bg-orange-700 focus-visible:outline-2 focus-visible:outline-orange-500">Convidar amigos</button><button type="button" onClick={() => void copyInvite()} className="min-h-11 rounded-full border border-orange-200 px-4 text-sm font-black text-orange-700 transition hover:bg-orange-50 focus-visible:outline-2 focus-visible:outline-orange-500">Copiar link</button></div>}
+          {canEdit && <div className="mt-5 flex flex-wrap gap-2"><button type="button" onClick={() => setEditorOpen(true)} className="min-h-11 rounded-full border border-stone-200 bg-white px-5 text-sm font-black text-stone-900 shadow-sm transition hover:border-orange-300 hover:text-orange-600 focus-visible:outline-2 focus-visible:outline-orange-500">Editar perfil</button><button type="button" onClick={() => setInviteOpen(true)} className="min-h-11 rounded-full bg-orange-600 px-5 text-sm font-black text-white shadow-sm transition hover:bg-orange-700 focus-visible:outline-2 focus-visible:outline-orange-500">Convidar amigos</button></div>}
           <div className="mt-7 flex gap-6 text-sm"><button type="button" onClick={() => setProfileList("places")} className="rounded-lg text-left transition hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><b className="block text-lg">{visitedIds.length}</b>lugares</button><button type="button" onClick={() => setProfileList("followers")} className="rounded-lg text-left transition hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><b className="block text-lg">{followers}</b>seguidores</button><button type="button" onClick={() => setProfileList("following")} className="rounded-lg text-left transition hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><b className="block text-lg">{following}</b>seguindo</button></div>
         </section>
         <aside className="mt-8 rounded-3xl bg-orange-50 p-5 lg:mt-0"><h2 className="text-lg font-black">Seu gosto</h2>{taste.length ? <ol className="mt-4 space-y-2">{taste.map((item, index) => <li key={item.cuisine} className="flex items-center gap-3 text-sm font-bold"><span className="grid h-6 w-6 place-items-center rounded-full bg-orange-500 text-xs text-white">{index + 1}</span>{item.cuisine}</li>)}</ol> : <p className="mt-3 text-sm leading-6 text-stone-600">Avalie lugares para construir seu perfil gastronômico.</p>}</aside>
@@ -102,7 +79,7 @@ export function ProfileView({ userId, own }: { userId: string; own: boolean }) {
       {own && <div className="mt-8 grid max-w-xl gap-4"><PushNotificationSettings/><BetaFeedback/></div>}
     </div>
     <LoginWall open={loginOpen} onClose={() => setLoginOpen(false)} next={next}/>
-    {canEdit && inviteOpen && <InviteShare onClose={() => setInviteOpen(false)} initialUrl={inviteUrl}/>}
+    {canEdit && inviteOpen && <InviteShare onClose={() => setInviteOpen(false)}/>}
     {canEdit && editorOpen && <ProfileEditor
       user={user}
       onClose={() => setEditorOpen(false)}
